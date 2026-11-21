@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v14_urbandash_responsive';
+      var LATEST_VERSION = 'v15_urbandash_front_polish';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v14">
+  <link rel="stylesheet" href="style.css?v=urbandash_v15">
 </head>
 <body>
   <div id="game-container">
@@ -133,41 +133,54 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="screen-overlay">
+      <!-- TOP NAV TOOLBAR: In-flow header, clean separation, never collides with title -->
       <div class="top-menu-toolbar">
-        <button class="mini-icon-btn" id="btn-audio">🔊 AUDIO: ON</button>
-        <button class="mini-icon-btn" id="btn-open-settings">⚙️ SETTINGS</button>
+        <button class="menu-pill-btn" id="btn-audio">
+          <span class="pill-icon">🔊</span>
+          <span class="pill-text">AUDIO: ON</span>
+        </button>
+        <button class="menu-pill-btn settings-pill" id="btn-open-settings">
+          <span class="pill-icon">⚙️</span>
+          <span class="pill-text">SETTINGS</span>
+        </button>
       </div>
 
-      <h1 class="game-title">URBAN<br>DASH 3D</h1>
-      <div class="game-subtitle">METRO SKYLINE RUNNER</div>
-
-      <div class="menu-stats-card">
-        <div class="stat-item">
-          <span class="stat-label">HIGH SCORE</span>
-          <span class="stat-val" id="menu-high-score">0</span>
+      <!-- CENTER HERO BANNER: Polished, attractive, high-end 3D arcade look -->
+      <div class="menu-center-hero">
+        <div class="game-logo-badge">
+          <span class="logo-emoji">🚇⚡</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">ENERGY CRYSTALS</span>
-          <span class="stat-val" id="menu-credits">0</span>
+        <h1 class="game-title">URBAN DASH<span class="title-3d-tag">3D</span></h1>
+        <div class="game-subtitle">
+          <span class="sub-sparkle">✦</span> METRO SKYLINE RUNNER <span class="sub-sparkle">✦</span>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="menu-actions-stack">
+          <button class="cyber-btn primary-start-btn" id="btn-start">
+            <span class="btn-glow-layer"></span>
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">PLAY NOW</span>
+          </button>
+
+          <!-- Install App Button -->
+          <button class="cyber-btn blue" id="btn-install-app">
+            <span class="btn-icon">📲</span>
+            <span class="btn-text">INSTALL APP</span>
+          </button>
         </div>
       </div>
 
-      <button class="cyber-btn" id="btn-start">
-        <span>⚡ PLAY NOW</span>
-      </button>
-
-      <!-- Install App Button -->
-      <button class="cyber-btn blue" id="btn-install-app">
-        <span>📲 INSTALL APP</span>
-      </button>
-
-      <div class="instructions-tip">
-        📱 <span>HOW TO PLAY & POWER-UPS:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to change magnetic tracks<br>
-        ⬆ <span>Swipe UP</span> to jump over low barriers & leap onto trains<br>
-        ⬇ <span>Swipe DOWN</span> to slide & duck under overhead cyber beams<br>
-        🧲 <span>Chumbak Magnet</span> & 🚀 <span>Jetpack</span> are stored when collected!<br>
-        ⚡ Tap their on-screen HUD button or press <b>E / Q</b> to use when YOU want!
+      <!-- BOTTOM FEATURE & CONTROLS CAPSULE: Compact, sleek & stylish -->
+      <div class="menu-bottom-capsule">
+        <div class="feature-chips-row">
+          <span class="feature-chip">🧲 Chumbak Magnet</span>
+          <span class="feature-chip">🚀 Jetpack Flight</span>
+          <span class="feature-chip">⚡ Overdrive</span>
+        </div>
+        <div class="controls-quick-hint">
+          Swipe <b>Left / Right</b> to dodge • <b>Up</b> to jump • <b>Down</b> to roll
+        </div>
       </div>
     </div>
 
@@ -182,6 +195,44 @@
 
         <!-- Scrollable Middle Body: Contains all options & stats -->
         <div class="settings-scroll-content">
+          <!-- 🏆 HIGH SCORE & ENERGY CRYSTALS HERO CARDS AT TOP OF SETTINGS -->
+          <div class="settings-section-title">🏆 PLAYER STATS & RECORDS</div>
+          <div class="settings-top-stats-banner">
+            <div class="top-stat-box hs-box">
+              <span class="top-stat-icon">👑</span>
+              <div class="top-stat-info">
+                <span class="top-stat-tag">HIGH SCORE (HS)</span>
+                <span class="top-stat-number" id="stats-high-score">0</span>
+              </div>
+            </div>
+            <div class="top-stat-box crystals-box">
+              <span class="top-stat-icon">💎</span>
+              <div class="top-stat-info">
+                <span class="top-stat-tag">ENERGY CRYSTALS</span>
+                <span class="top-stat-number" id="stats-total-crystals">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="career-stats-card">
+            <div class="career-stat-row">
+              <span class="career-stat-label">📏 LONGEST DISTANCE RECORD</span>
+              <span class="career-stat-val" id="stats-max-distance">0 m</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🏃 RUNS PLAYED</span>
+              <span class="career-stat-val" id="stats-total-runs">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🧲 CHUMBAK MAGNETS FOUND</span>
+              <span class="career-stat-val" id="stats-total-magnets">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🚀 JETPACKS COLLECTED</span>
+              <span class="career-stat-val" id="stats-total-jetpacks">0</span>
+            </div>
+          </div>
+
           <div class="settings-section-title">VISUAL THEME</div>
           <div class="control-options-group">
             <div class="control-toggle-card active" id="opt-theme-dark">
@@ -203,34 +254,6 @@
             <div class="control-toggle-card" id="opt-ctrl-buttons">
               <div class="control-toggle-title">🕹️ Touch Buttons</div>
               <div class="control-toggle-desc">On-screen tap buttons (◀ ▲ ▼ ▶)</div>
-            </div>
-          </div>
-
-          <div class="settings-section-title">🏆 CAREER RECORDS & STATS (HS)</div>
-          <div class="career-stats-card">
-            <div class="career-stat-row">
-              <span class="career-stat-label">👑 ALL-TIME HIGH SCORE (HS)</span>
-              <span class="career-stat-val" id="stats-high-score">0</span>
-            </div>
-            <div class="career-stat-row">
-              <span class="career-stat-label">💎 TOTAL CRYSTALS COLLECTED</span>
-              <span class="career-stat-val" id="stats-total-crystals">0</span>
-            </div>
-            <div class="career-stat-row">
-              <span class="career-stat-label">📏 LONGEST DISTANCE RECORD</span>
-              <span class="career-stat-val" id="stats-max-distance">0 m</span>
-            </div>
-            <div class="career-stat-row">
-              <span class="career-stat-label">🏃 RUNS PLAYED</span>
-              <span class="career-stat-val" id="stats-total-runs">0</span>
-            </div>
-            <div class="career-stat-row">
-              <span class="career-stat-label">🧲 CHUMBAK MAGNETS FOUND</span>
-              <span class="career-stat-val" id="stats-total-magnets">0</span>
-            </div>
-            <div class="career-stat-row">
-              <span class="career-stat-label">🚀 JETPACKS COLLECTED</span>
-              <span class="career-stat-val" id="stats-total-jetpacks">0</span>
             </div>
           </div>
 
@@ -314,8 +337,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v14"></script>
-  <script src="game.js?v=urbandash_v14"></script>
+  <script src="audio.js?v=urbandash_v15"></script>
+  <script src="game.js?v=urbandash_v15"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -333,7 +356,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=14').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=15').catch(() => {});
       });
     }
 

@@ -1174,7 +1174,11 @@
         const text = muted ? 'SOUND: OFF' : 'SOUND: ON';
         const a1 = document.getElementById('btn-audio');
         const a2 = document.getElementById('btn-toggle-sound');
-        if (a1) a1.textContent = muted ? '🔇 AUDIO: OFF' : '🔊 AUDIO: ON';
+        if (a1) {
+          a1.innerHTML = muted 
+            ? '<span class="pill-icon">🔇</span><span class="pill-text">AUDIO: OFF</span>'
+            : '<span class="pill-icon">🔊</span><span class="pill-text">AUDIO: ON</span>';
+        }
         if (a2) a2.textContent = text;
       }
     };
