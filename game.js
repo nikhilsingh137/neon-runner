@@ -7,12 +7,12 @@
   'use strict';
 
   // --- GAME CONFIGURATION ---
-  const TRACK_SPACING = 3.6;
+  const TRACK_SPACING = 2.8; // Tuned for perfect mobile aspect ratio so Jake is NEVER cut off on Left or Right
   const LANES = [-TRACK_SPACING, 0, TRACK_SPACING]; // -1: Left, 0: Center, 1: Right
   const VISIBLE_DISTANCE = 260;
-  const JUMP_HEIGHT = 4.5;
+  const JUMP_HEIGHT = 4.6;
   const GRAVITY = 32.0;
-  const TRAIN_HEIGHT = 3.6;
+  const TRAIN_HEIGHT = 3.5;
 
   // --- GAME STATE ---
   const state = {
@@ -89,15 +89,21 @@
   function initEngine() {
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
+    const aspect = width / height;
 
     // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x38bdf8); // Sunny vibrant sky
     scene.fog = new THREE.Fog(0x38bdf8, 100, VISIBLE_DISTANCE);
 
-    // Camera: Positioned behind Jake looking forward down the tracks
-    camera = new THREE.PerspectiveCamera(60, width / height, 0.5, 320);
-    camera.position.set(0, 4.4, 7.8);
+    // Dynamic FOV & Camera Framing for Mobile Phones:
+    // Wide FOV (68) and slightly farther back so Jake on Left and Right tracks is 100% in view!
+    const fov = aspect < 0.65 ? 68 : 58;
+    const camZ = aspect < 0.65 ? 9.2 : 8.2;
+    const camY = aspect < 0.65 ? 5.2 : 4.6;
+
+    camera = new THREE.PerspectiveCamera(fov, aspect, 0.5, 320);
+    camera.position.set(0, camY, camZ);
     camera.lookAt(0, 1.8, -18);
 
     // WebGL Renderer
@@ -348,17 +354,17 @@
     LANES.forEach((laneX) => {
       // Left Rail
       const railL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 600), railMat);
-      railL.position.set(laneX - 0.95, 0.1, -150);
+      railL.position.set(laneX - 0.85, 0.1, -150);
       tracksGroup.add(railL);
 
       // Right Rail
       const railR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 600), railMat);
-      railR.position.set(laneX + 0.95, 0.1, -150);
+      railR.position.set(laneX + 0.85, 0.1, -150);
       tracksGroup.add(railR);
     });
 
     // Wooden Sleepers along the tracks
-    const tieGeom = new THREE.BoxGeometry(2.4, 0.16, 0.45);
+    const tieGeom = new THREE.BoxGeometry(2.1, 0.16, 0.45);
     for (let z = 20; z > -320; z -= 2.4) {
       LANES.forEach((laneX) => {
         const tie = new THREE.Mesh(tieGeom, tieMat);
@@ -409,7 +415,7 @@
     const trainDepth = 26;
 
     // Train Carriage Body
-    const bodyGeom = new THREE.BoxGeometry(2.8, TRAIN_HEIGHT, trainDepth);
+    const bodyGeom = new THREE.BoxGeometry(2.35, TRAIN_HEIGHT, trainDepth);
     const bodyMat = new THREE.MeshStandardMaterial({
       color: 0xdc2626, // Subway Red
       roughness: 0.35,
@@ -422,7 +428,7 @@
     trainGroup.add(body);
 
     // Solid Yellow Roof (Runnable surface!)
-    const roofGeom = new THREE.BoxGeometry(2.9, 0.35, trainDepth + 0.2);
+    const roofGeom = new THREE.BoxGeometry(2.45, 0.35, trainDepth + 0.2);
     const roofMat = new THREE.MeshStandardMaterial({
       color: 0xf59e0b,
       roughness: 0.4
@@ -438,30 +444,30 @@
       roughness: 0.1,
       metalness: 0.8
     });
-    const frontWindshield = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 0.2), windowMat);
+    const frontWindshield = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, 0.2), windowMat);
     frontWindshield.position.set(0, 2.4, trainDepth / 2 + 0.05);
     trainGroup.add(frontWindshield);
 
     // Headlights
     const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-    const lightL = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 10), lightMat);
+    const lightL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.2, 10), lightMat);
     lightL.rotation.x = Math.PI / 2;
-    lightL.position.set(-0.9, 1.1, trainDepth / 2 + 0.05);
+    lightL.position.set(-0.75, 1.1, trainDepth / 2 + 0.05);
     const lightR = lightL.clone();
-    lightR.position.x = 0.9;
+    lightR.position.x = 0.75;
     trainGroup.add(lightL);
     trainGroup.add(lightR);
 
     // Front Bumper
     const grillMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-    const grill = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.6, 0.4), grillMat);
+    const grill = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.6, 0.4), grillMat);
     grill.position.set(0, 0.45, trainDepth / 2);
     trainGroup.add(grill);
 
     // Optional SLOPED RAMP at the front of the train
     if (hasRamp) {
       const rampLength = 5.5;
-      const rampGeom = new THREE.BoxGeometry(2.6, 0.3, rampLength);
+      const rampGeom = new THREE.BoxGeometry(2.3, 0.3, rampLength);
       const rampMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
       const ramp = new THREE.Mesh(rampGeom, rampMat);
       // Angle the ramp from ground to roof
@@ -936,9 +942,10 @@
     jakeModel.rotation.z = -laneDelta * 0.12;
     jakeModel.rotation.y = laneDelta * 0.15; // Leans slightly into the track switch
 
-    // Camera follow
-    camera.position.x = state.playerX * 0.35;
-    camera.position.y = state.isSliding ? 3.6 : 4.4;
+    // Camera follow (tracks player laterally so Jake is ALWAYS centered and never cut off)
+    const targetCamX = state.playerX * 0.72;
+    camera.position.x += (targetCamX - camera.position.x) * 16 * delta;
+    camera.position.y = state.isSliding ? 3.8 : 5.0;
 
     // Limb Animations
     runAnimTime += delta * (state.speed * 0.35);
@@ -1033,36 +1040,44 @@
     if (hudSpeed) hudSpeed.textContent = Math.floor(state.speed * 1.2) + ' KM/H';
   }
 
-  // --- COLLISION DETECTION (CAN RUN ON TRAIN ROOFS!) ---
+  // --- COLLISION DETECTION (FAST-PASS OVER HURDLES & UNDER BEAMS LIKE SUBWAY!) ---
   function checkCollision(obs) {
     const laneX = LANES[obs.userData.lane];
     // Must be in the same lane horizontally
-    if (Math.abs(state.playerX - laneX) > 1.35) return false;
+    if (Math.abs(state.playerX - laneX) > 1.1) return false;
 
     const zDist = obs.position.z - playerGroup.position.z;
 
     if (obs.userData.type === 'train') {
-      // If train has a ramp, front entry is safe (you run up!)
+      // If train has a ramp, front entry is safe (Jake runs right up!)
       if (obs.userData.hasRamp) {
         return false;
       }
-      // If you are jumping/running on top of the train roof, NO CRASH!
-      if (state.playerY >= TRAIN_HEIGHT - 0.25) {
+      // If jumping or running on top of the train roof: SAFE! No crash!
+      if (state.playerY >= TRAIN_HEIGHT - 0.3) {
         return false;
       }
-      // Only crash if you hit the front face of the train from below!
-      if (zDist > 0 && zDist < 1.2) {
+      // Only crash if running into the solid front bumper of the train at ground level
+      if (zDist > 0 && zDist < 1.3) {
         return true;
       }
     } else if (obs.userData.type === 'hurdle') {
-      // Hurdle: Cleared if player jumps high enough
-      if (Math.abs(zDist) < 0.9) {
-        if (state.playerY < 1.05) return true;
+      // In Subway Surfers: If player swiped UP to jump, they CLEANLY FAST-PASS over the hurdle!
+      if (state.isJumping && state.playerY > 0.35) {
+        return false; // Fast-pass success!
+      }
+      // Only crash if running on ground into the hurdle without jumping
+      if (Math.abs(zDist) < 0.85 && state.playerY < 0.85) {
+        return true;
       }
     } else if (obs.userData.type === 'overhead') {
-      // Overhead beam: Cleared if player slides under
-      if (Math.abs(zDist) < 0.9) {
-        if (!state.isSliding && state.playerY > -0.2) return true;
+      // In Subway Surfers: If player swiped DOWN to slide, they CLEANLY FAST-PASS under the beam!
+      if (state.isSliding) {
+        return false; // Fast-pass slide success!
+      }
+      // Only crash if running standing upright into the low beam
+      if (Math.abs(zDist) < 0.85 && state.playerY > 0.3) {
+        return true;
       }
     }
 
@@ -1083,7 +1098,9 @@
     if (!renderer || !camera || !container) return;
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
-    camera.aspect = width / height;
+    const aspect = width / height;
+    camera.aspect = aspect;
+    camera.fov = aspect < 0.65 ? 68 : 58;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
   }

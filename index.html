@@ -8,7 +8,7 @@
   <!-- Automatic Live Version Sync & Cache Purge -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v6_jake_3d_final';
+      var LATEST_VERSION = 'v7_jake_3d_fastpass';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -163,8 +163,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=subway3d_v6"></script>
-  <script src="game.js?v=subway3d_v6"></script>
+  <script src="audio.js?v=subway3d_v7"></script>
+  <script src="game.js?v=subway3d_v7"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -174,7 +174,7 @@
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=6').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=7').catch(() => {});
       });
     }
 
