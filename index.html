@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v13_urbandash_fixed';
+      var LATEST_VERSION = 'v14_urbandash_responsive';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v13">
+  <link rel="stylesheet" href="style.css?v=urbandash_v14">
 </head>
 <body>
   <div id="game-container">
@@ -174,80 +174,87 @@
     <!-- BIG-COMPANY SETTINGS MODAL -->
     <div id="settings-modal" class="screen-overlay hidden">
       <div class="settings-modal">
+        <!-- Pinned Header: Always visible at top without scrolling -->
         <div class="settings-header">
           <span class="settings-title">⚙️ GAME SETTINGS</span>
-          <button class="btn-hud-icon" id="btn-close-settings">✕</button>
+          <button class="btn-hud-icon" id="btn-close-settings" title="Close Settings">✕</button>
         </div>
 
-        <div class="settings-section-title">VISUAL THEME</div>
-        <div class="control-options-group">
-          <div class="control-toggle-card active" id="opt-theme-dark">
-            <div class="control-toggle-title">🌙 Cyber Dark Night</div>
-            <div class="control-toggle-desc">Midnight neon skyline & cyber lighting</div>
+        <!-- Scrollable Middle Body: Contains all options & stats -->
+        <div class="settings-scroll-content">
+          <div class="settings-section-title">VISUAL THEME</div>
+          <div class="control-options-group">
+            <div class="control-toggle-card active" id="opt-theme-dark">
+              <div class="control-toggle-title">🌙 Cyber Dark Night</div>
+              <div class="control-toggle-desc">Midnight neon skyline & cyber lighting</div>
+            </div>
+            <div class="control-toggle-card" id="opt-theme-bright">
+              <div class="control-toggle-title">☀️ Bright Solar Day</div>
+              <div class="control-toggle-desc">Daylight sky, sunny metro & crystal clarity</div>
+            </div>
           </div>
-          <div class="control-toggle-card" id="opt-theme-bright">
-            <div class="control-toggle-title">☀️ Bright Solar Day</div>
-            <div class="control-toggle-desc">Daylight sky, sunny metro & crystal clarity</div>
+
+          <div class="settings-section-title">CONTROL SCHEME</div>
+          <div class="control-options-group">
+            <div class="control-toggle-card active" id="opt-ctrl-swipe">
+              <div class="control-toggle-title">📱 Fullscreen Swipe</div>
+              <div class="control-toggle-desc">Clean, button-free screen with gesture controls</div>
+            </div>
+            <div class="control-toggle-card" id="opt-ctrl-buttons">
+              <div class="control-toggle-title">🕹️ Touch Buttons</div>
+              <div class="control-toggle-desc">On-screen tap buttons (◀ ▲ ▼ ▶)</div>
+            </div>
           </div>
+
+          <div class="settings-section-title">🏆 CAREER RECORDS & STATS (HS)</div>
+          <div class="career-stats-card">
+            <div class="career-stat-row">
+              <span class="career-stat-label">👑 ALL-TIME HIGH SCORE (HS)</span>
+              <span class="career-stat-val" id="stats-high-score">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">💎 TOTAL CRYSTALS COLLECTED</span>
+              <span class="career-stat-val" id="stats-total-crystals">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">📏 LONGEST DISTANCE RECORD</span>
+              <span class="career-stat-val" id="stats-max-distance">0 m</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🏃 RUNS PLAYED</span>
+              <span class="career-stat-val" id="stats-total-runs">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🧲 CHUMBAK MAGNETS FOUND</span>
+              <span class="career-stat-val" id="stats-total-magnets">0</span>
+            </div>
+            <div class="career-stat-row">
+              <span class="career-stat-label">🚀 JETPACKS COLLECTED</span>
+              <span class="career-stat-val" id="stats-total-jetpacks">0</span>
+            </div>
+          </div>
+
+          <div class="settings-section-title">AUDIO & SOUND</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <span style="font-size: 14px; font-weight: 700;">Game Sound Effects & Music</span>
+            <button class="mini-icon-btn" id="btn-toggle-sound">SOUND: ON</button>
+          </div>
+
+          <div class="settings-section-title">QUICK ACTIONS</div>
+          <button class="cyber-btn outline" id="btn-settings-home" style="max-width: 100%; margin-bottom: 10px;">
+            <span>🏠 Return to Main Menu</span>
+          </button>
+          <button class="cyber-btn blue" id="btn-settings-install" style="max-width: 100%; margin-bottom: 4px;">
+            <span>📲 Install App to Home Screen</span>
+          </button>
         </div>
 
-        <div class="settings-section-title">CONTROL SCHEME</div>
-        <div class="control-options-group">
-          <div class="control-toggle-card active" id="opt-ctrl-swipe">
-            <div class="control-toggle-title">📱 Fullscreen Swipe</div>
-            <div class="control-toggle-desc">Clean, button-free screen with gesture controls</div>
-          </div>
-          <div class="control-toggle-card" id="opt-ctrl-buttons">
-            <div class="control-toggle-title">🕹️ Touch Buttons</div>
-            <div class="control-toggle-desc">On-screen tap buttons (◀ ▲ ▼ ▶)</div>
-          </div>
+        <!-- Pinned Footer: Always visible at bottom without getting pushed off-screen -->
+        <div class="settings-footer">
+          <button class="cyber-btn" id="btn-save-settings">
+            <span>✓ SAVE & CLOSE</span>
+          </button>
         </div>
-
-        <div class="settings-section-title">🏆 CAREER RECORDS & STATS (HS)</div>
-        <div class="career-stats-card">
-          <div class="career-stat-row">
-            <span class="career-stat-label">👑 ALL-TIME HIGH SCORE (HS)</span>
-            <span class="career-stat-val" id="stats-high-score">0</span>
-          </div>
-          <div class="career-stat-row">
-            <span class="career-stat-label">💎 TOTAL CRYSTALS COLLECTED</span>
-            <span class="career-stat-val" id="stats-total-crystals">0</span>
-          </div>
-          <div class="career-stat-row">
-            <span class="career-stat-label">📏 LONGEST DISTANCE RECORD</span>
-            <span class="career-stat-val" id="stats-max-distance">0 m</span>
-          </div>
-          <div class="career-stat-row">
-            <span class="career-stat-label">🏃 RUNS PLAYED</span>
-            <span class="career-stat-val" id="stats-total-runs">0</span>
-          </div>
-          <div class="career-stat-row">
-            <span class="career-stat-label">🧲 CHUMBAK MAGNETS FOUND</span>
-            <span class="career-stat-val" id="stats-total-magnets">0</span>
-          </div>
-          <div class="career-stat-row">
-            <span class="career-stat-label">🚀 JETPACKS COLLECTED</span>
-            <span class="career-stat-val" id="stats-total-jetpacks">0</span>
-          </div>
-        </div>
-
-        <div class="settings-section-title">AUDIO & SOUND</div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <span style="font-size: 14px; font-weight: 700;">Game Sound Effects & Music</span>
-          <button class="mini-icon-btn" id="btn-toggle-sound">SOUND: ON</button>
-        </div>
-
-        <div class="settings-section-title">QUICK ACTIONS</div>
-        <button class="cyber-btn outline" id="btn-settings-home" style="max-width: 100%; margin-bottom: 10px;">
-          <span>🏠 Return to Main Menu</span>
-        </button>
-        <button class="cyber-btn blue" id="btn-settings-install" style="max-width: 100%; margin-bottom: 14px;">
-          <span>📲 Install App to Home Screen</span>
-        </button>
-
-        <button class="cyber-btn" id="btn-save-settings" style="max-width: 100%;">
-          <span>✓ SAVE & CLOSE</span>
-        </button>
       </div>
     </div>
 
@@ -307,8 +314,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v13"></script>
-  <script src="game.js?v=urbandash_v13"></script>
+  <script src="audio.js?v=urbandash_v14"></script>
+  <script src="game.js?v=urbandash_v14"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -326,7 +333,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=13').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=14').catch(() => {});
       });
     }
 

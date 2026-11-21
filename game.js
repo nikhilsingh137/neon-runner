@@ -1038,30 +1038,32 @@
       else if (e.key === 'q' || e.key === 'Q') useStoredJetpack();
     });
 
-    // Mobile Swipe Gesture (1 Gesture = Exactly 1 Lane Switch)
+    // Mobile Swipe Gesture (Smooth, Responsive & No Pull-To-Refresh Jitter)
     const overlay = document.getElementById('touch-overlay');
     let touchStartX = 0;
     let touchStartY = 0;
     let hasSwipedInCurrentTouch = false;
 
-    overlay.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 0) {
+    const handleTouchStart = (e) => {
+      if (e.touches && e.touches.length > 0) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         hasSwipedInCurrentTouch = false;
       }
-    }, { passive: true });
+    };
 
-    overlay.addEventListener('touchmove', (e) => {
+    const handleTouchMove = (e) => {
       if (hasSwipedInCurrentTouch || !state.running || state.paused) return;
-      if (e.touches.length > 0) {
+      if (e.touches && e.touches.length > 0) {
         const dx = e.touches[0].clientX - touchStartX;
         const dy = e.touches[0].clientY - touchStartY;
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        if (absX > 22 || absY > 22) {
+        // Optimal swipe threshold: 24px
+        if (absX > 24 || absY > 24) {
           hasSwipedInCurrentTouch = true;
+          if (e.cancelable) e.preventDefault(); // Stop mobile browser pull-to-refresh & scroll
           if (absX > absY) {
             if (dx > 0) moveLane(1);
             else moveLane(-1);
@@ -1071,24 +1073,40 @@
           }
         }
       }
-    }, { passive: true });
+    };
 
-    overlay.addEventListener('touchend', () => {
+    const handleTouchEnd = () => {
       hasSwipedInCurrentTouch = false;
-    }, { passive: true });
+    };
 
-    // Virtual Buttons
+    if (overlay) {
+      overlay.addEventListener('touchstart', handleTouchStart, { passive: true });
+      overlay.addEventListener('touchmove', handleTouchMove, { passive: false });
+      overlay.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+    if (canvas) {
+      canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+      canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+
+    // Button Binder with Double-Tap Protection for Mobile
     const bindBtn = (id, action) => {
       const btn = document.getElementById(id);
       if (btn) {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
+        let lastTriggerTime = 0;
+        const trigger = (e) => {
+          if (e) {
+            e.stopPropagation();
+            if (e.cancelable && e.type === 'touchstart') e.preventDefault();
+          }
+          const now = Date.now();
+          if (now - lastTriggerTime < 320) return; // Prevent double trigger
+          lastTriggerTime = now;
           action();
-        });
-        btn.addEventListener('touchstart', (e) => {
-          e.stopPropagation();
-          action();
-        }, { passive: true });
+        };
+        btn.addEventListener('click', trigger);
+        btn.addEventListener('touchstart', trigger, { passive: false });
       }
     };
 
