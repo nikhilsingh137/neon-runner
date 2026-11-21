@@ -69,6 +69,7 @@
       localStorage.setItem('urban_dash_career_stats', JSON.stringify(careerStats));
     } catch (e) {}
   }
+  const savedData = careerStats;
 
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
@@ -235,8 +236,8 @@
   const menuCredits = document.getElementById('menu-credits');
   const newRecordBadge = document.getElementById('new-record-badge');
 
-  if (menuHighScore) menuHighScore.textContent = savedData.highScore;
-  if (menuCredits) menuCredits.textContent = savedData.totalCoins;
+  if (menuHighScore) menuHighScore.textContent = careerStats.highScore;
+  if (menuCredits) menuCredits.textContent = careerStats.totalCoins;
 
   // Apply Control Mode UI
   function applyControlMode(mode) {
@@ -1097,18 +1098,11 @@
     bindBtn('btn-slide', () => doSlide());
     bindBtn('btn-boost', () => triggerBoost());
 
-    // Navigation Buttons
-    const startBtn = document.getElementById('btn-start');
-    if (startBtn) startBtn.addEventListener('click', startGame);
-
-    const restartBtn = document.getElementById('btn-restart');
-    if (restartBtn) restartBtn.addEventListener('click', startGame);
-
-    const pauseBtn = document.getElementById('btn-pause');
-    if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
-
-    const resumeBtn = document.getElementById('btn-resume');
-    if (resumeBtn) resumeBtn.addEventListener('click', togglePause);
+    // Navigation Buttons (Instant Mobile Touch & Click)
+    bindBtn('btn-start', startGame);
+    bindBtn('btn-restart', startGame);
+    bindBtn('btn-pause', togglePause);
+    bindBtn('btn-resume', togglePause);
 
     // Home Buttons
     const goHome = () => {
@@ -1120,8 +1114,8 @@
       gameOverScreen.classList.add('hidden');
       settingsModal.classList.add('hidden');
       startScreen.classList.remove('hidden');
-      if (menuHighScore) menuHighScore.textContent = savedData.highScore;
-      if (menuCredits) menuCredits.textContent = savedData.totalCoins;
+      if (menuHighScore) menuHighScore.textContent = careerStats.highScore;
+      if (menuCredits) menuCredits.textContent = careerStats.totalCoins;
     };
 
     bindBtn('btn-hud-home', goHome);
@@ -1130,41 +1124,26 @@
     bindBtn('btn-settings-home', goHome);
 
     // Settings Modal
-    const openSettingsBtn = document.getElementById('btn-open-settings');
-    if (openSettingsBtn) {
-      openSettingsBtn.addEventListener('click', () => {
-        updateCareerStatsUI();
-        settingsModal.classList.remove('hidden');
-      });
-    }
+    bindBtn('btn-open-settings', () => {
+      updateCareerStatsUI();
+      settingsModal.classList.remove('hidden');
+    });
 
-    const closeSettingsBtn = document.getElementById('btn-close-settings');
-    if (closeSettingsBtn) {
-      closeSettingsBtn.addEventListener('click', () => {
-        settingsModal.classList.add('hidden');
-      });
-    }
+    bindBtn('btn-close-settings', () => {
+      settingsModal.classList.add('hidden');
+    });
 
-    const saveSettingsBtn = document.getElementById('btn-save-settings');
-    if (saveSettingsBtn) {
-      saveSettingsBtn.addEventListener('click', () => {
-        settingsModal.classList.add('hidden');
-      });
-    }
+    bindBtn('btn-save-settings', () => {
+      settingsModal.classList.add('hidden');
+    });
 
     // Theme Option Toggles
-    const optDark = document.getElementById('opt-theme-dark');
-    if (optDark) optDark.addEventListener('click', () => applyTheme('dark'));
-
-    const optBright = document.getElementById('opt-theme-bright');
-    if (optBright) optBright.addEventListener('click', () => applyTheme('bright'));
+    bindBtn('opt-theme-dark', () => applyTheme('dark'));
+    bindBtn('opt-theme-bright', () => applyTheme('bright'));
 
     // Control Option Toggles
-    const optSwipe = document.getElementById('opt-ctrl-swipe');
-    if (optSwipe) optSwipe.addEventListener('click', () => applyControlMode('swipe'));
-
-    const optButtons = document.getElementById('opt-ctrl-buttons');
-    if (optButtons) optButtons.addEventListener('click', () => applyControlMode('buttons'));
+    bindBtn('opt-ctrl-swipe', () => applyControlMode('swipe'));
+    bindBtn('opt-ctrl-buttons', () => applyControlMode('buttons'));
 
     // Power-Up Inventory Slot Buttons
     bindBtn('slot-magnet', useStoredMagnet);
