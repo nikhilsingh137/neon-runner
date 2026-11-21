@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v9_urbandash_live';
+      var LATEST_VERSION = 'v11_urbandash_live';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v9">
+  <link rel="stylesheet" href="style.css?v=urbandash_v11">
 </head>
 <body>
   <div id="game-container">
@@ -243,8 +243,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v9"></script>
-  <script src="game.js?v=urbandash_v9"></script>
+  <script src="audio.js?v=urbandash_v11"></script>
+  <script src="game.js?v=urbandash_v11"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -262,7 +262,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=9').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=11').catch(() => {});
       });
     }
 
