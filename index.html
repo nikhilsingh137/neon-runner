@@ -5,43 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Subway Runner 3D - Jake Skater Boy</title>
 
-  <!-- Instant Cache Purge to prevent stale cached versions -->
+  <!-- Instant Cache Purge: Force clean reload of all cached files -->
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (var reg of registrations) {
-          reg.unregister();
-        }
-      });
-    }
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        for (var name of names) {
-          caches.delete(name);
-        }
-      });
-    }
+    (function() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (var r of regs) { r.unregister(); }
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (var name of names) { caches.delete(name); }
+        });
+      }
+    })();
   </script>
 
-  <!-- PWA & Mobile Web App Meta -->
   <meta name="description" content="3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!">
   <meta name="theme-color" content="#38bdf8">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Subway Runner">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=subway3d_final">
+  <link rel="stylesheet" href="style.css?v=subway3d_v5">
 </head>
 <body>
   <div id="game-container">
     <!-- WebGL 3D Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Transparent Touch Swipe Area -->
+    <!-- Transparent Touch Swipe Layer -->
     <div id="touch-overlay"></div>
 
     <!-- In-Game Heads-Up Display (HUD) -->
@@ -54,7 +45,7 @@
 
       <!-- Top Right: Speed, Coins -->
       <div class="hud-top-right">
-        <div class="hud-speed-badge" id="hud-speed">38 KM/H</div>
+        <div class="hud-speed-badge" id="hud-speed">48 KM/H</div>
         <div class="hud-credits-badge">
           <span>🪙</span>
           <span id="hud-credits">0</span>
@@ -64,10 +55,10 @@
       <!-- Pause Trigger -->
       <button class="btn-icon-pause" id="btn-pause" title="Pause Game">⏸</button>
 
-      <!-- Bottom Interactive Controls & Overdrive Gauge -->
+      <!-- Bottom Interactive Controls & Hoverboard Boost Gauge -->
       <div class="hud-bottom-bar">
         <div class="overdrive-wrapper">
-          <span class="hud-label">⚡ HOVERBOARD BOOST CHARGE</span>
+          <span class="hud-label">🛹 HOVERBOARD BOOST CHARGE</span>
           <div class="overdrive-bar-track">
             <div id="hud-overdrive-fill" class="overdrive-bar-fill"></div>
           </div>
@@ -109,10 +100,10 @@
 
       <div class="instructions-tip">
         📱 <span>SWIPE ANYWHERE ON SCREEN:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to switch railway tracks<br>
-        ⬆ <span>Swipe UP</span> to JUMP over hurdles<br>
-        ⬇ <span>Swipe DOWN</span> to SLIDE/ROLL under overhead beams<br>
-        🛹 Tap <span>BOOST</span> to fly on Jake's Hoverboard!
+        ⬅ ➡ <span>Swipe Left / Right</span> to change railway tracks<br>
+        ⬆ <span>Swipe UP</span> to JUMP over hurdles & onto train roofs<br>
+        ⬇ <span>Swipe DOWN</span> to SLIDE under overhead beams<br>
+        🛹 Tap <span>BOOST</span> or double-tap to ride Jake's Hoverboard!
       </div>
     </div>
 
@@ -151,7 +142,7 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=subway3d_final"></script>
-  <script src="game.js?v=subway3d_final"></script>
+  <script src="audio.js?v=subway3d_v5"></script>
+  <script src="game.js?v=subway3d_v5"></script>
 </body>
 </html>
