@@ -5,27 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Subway Runner 3D - Jake Skater Boy</title>
 
-  <!-- Instant Cache Purge: Force clean reload of all cached files -->
+  <!-- Automatic Live Version Sync & Cache Purge -->
   <script>
     (function() {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          for (var r of regs) { r.unregister(); }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (var name of names) { caches.delete(name); }
-        });
-      }
+      var LATEST_VERSION = 'v6_jake_3d_final';
+      try {
+        if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
+          localStorage.setItem('subway_v_tag', LATEST_VERSION);
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) { caches.delete(k); });
+            });
+          }
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+          }
+          if (!window.location.search.includes('v=')) {
+            window.location.replace(window.location.pathname + '?v=' + Date.now());
+          }
+        }
+      } catch (e) {}
     })();
   </script>
 
   <meta name="description" content="3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!">
   <meta name="theme-color" content="#38bdf8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Subway Runner">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=subway3d_v5">
+  <link rel="stylesheet" href="style.css?v=subway3d_v6">
 </head>
 <body>
   <div id="game-container">
@@ -98,12 +114,17 @@
         <span>⚡ PLAY NOW</span>
       </button>
 
+      <!-- Install App Button (When opened in Chrome via link) -->
+      <button class="cyber-btn install" id="btn-install-app">
+        <span>📲 INSTALL APP</span>
+      </button>
+
       <div class="instructions-tip">
         📱 <span>SWIPE ANYWHERE ON SCREEN:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to change railway tracks<br>
+        ⬅ ➡ <span>Swipe Left / Right</span> to change 1 track at a time<br>
         ⬆ <span>Swipe UP</span> to JUMP over hurdles & onto train roofs<br>
         ⬇ <span>Swipe DOWN</span> to SLIDE under overhead beams<br>
-        🛹 Tap <span>BOOST</span> or double-tap to ride Jake's Hoverboard!
+        🛹 Tap <span>BOOST</span> to ride Jake's Hoverboard!
       </div>
     </div>
 
@@ -142,7 +163,52 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=subway3d_v5"></script>
-  <script src="game.js?v=subway3d_v5"></script>
+  <script src="audio.js?v=subway3d_v6"></script>
+  <script src="game.js?v=subway3d_v6"></script>
+
+  <!-- PWA Chrome Install Trigger Handler -->
+  <script>
+    let deferredInstallPrompt = null;
+    const installBtn = document.getElementById('btn-install-app');
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js?v=6').catch(() => {});
+      });
+    }
+
+    // Chrome beforeinstallprompt event listener
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (installBtn) {
+        installBtn.style.display = 'flex';
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            installBtn.style.display = 'none';
+          }
+          deferredInstallPrompt = null;
+        } else {
+          // If already in installed standalone PWA or browser doesn't support event:
+          alert('📱 In Chrome: Tap the top-right menu (⋮) and select "Install app" or "Add to Home screen" to install!');
+        }
+      });
+    }
+
+    // Hide install button if app is already running as installed standalone PWA
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        if (installBtn) installBtn.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>

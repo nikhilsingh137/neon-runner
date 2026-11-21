@@ -1,24 +1,45 @@
-// Auto-expiring service worker that purges old caches
-const CACHE_NAME = 'subway-runner-v3d';
+// Network-First Service Worker for Chrome PWA Installation & Instant Live Updates
+const CACHE_NAME = 'subway-runner-v6-live';
 
-self.addEventListener('install', (event) => {
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './style.css',
+  './game.js',
+  './audio.js',
+  './manifest.json',
+  './libs/three.min.js'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
+  );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((k) => caches.delete(k))
       );
     })
   );
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  // Always fetch latest from network to prevent stale cached versions
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+// Network-First: Always fetch freshest files from network so user never gets stuck with old code
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    fetch(e.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

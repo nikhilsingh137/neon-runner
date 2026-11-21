@@ -1,12 +1,12 @@
 {
-  "name": "Neon Velocity: Cyberpunk Runner",
-  "short_name": "NeonVelocity",
+  "name": "Subway Runner 3D: Jake Skater Boy",
+  "short_name": "SubwayRunner",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#070114",
-  "theme_color": "#070114",
+  "background_color": "#38bdf8",
+  "theme_color": "#38bdf8",
   "orientation": "portrait",
-  "description": "High-octane 60FPS 3D Cyberpunk Endless Runner with synthwave audio and garage upgrades.",
+  "description": "3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!",
   "icons": [
     {
       "src": "icons/icon-192.png",

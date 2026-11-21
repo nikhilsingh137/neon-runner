@@ -650,48 +650,46 @@
       else if (e.key === 'Shift') triggerBoost();
     });
 
-    // Mobile Touch Gesture Detector (Instant Touchmove Response)
+    // Mobile Touch Gesture Detector (1 Swipe = Exactly 1 Track Switch, never skips middle!)
     const overlay = document.getElementById('touch-overlay');
     let touchStartX = 0;
     let touchStartY = 0;
-    let isSwiping = false;
+    let hasSwipedInCurrentTouch = false;
 
     overlay.addEventListener('touchstart', (e) => {
       if (e.touches.length > 0) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
-        isSwiping = true;
+        hasSwipedInCurrentTouch = false;
       }
     }, { passive: true });
 
     overlay.addEventListener('touchmove', (e) => {
-      if (!isSwiping || !state.running || state.paused) return;
+      if (hasSwipedInCurrentTouch || !state.running || state.paused) return;
       if (e.touches.length > 0) {
         const dx = e.touches[0].clientX - touchStartX;
         const dy = e.touches[0].clientY - touchStartY;
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        // Instant trigger threshold (16px) for lightning-fast mobile reaction
-        if (absX > 16 || absY > 16) {
+        // Require 22px clear intentional swipe
+        if (absX > 22 || absY > 22) {
+          hasSwipedInCurrentTouch = true; // Lock gesture: Exactly 1 lane switch per swipe!
           if (absX > absY) {
-            // Horizontal Swipe: Move Tracks
+            // Move 1 lane only: Left (-1) -> Center (0) -> Right (1)
             if (dx > 0) moveLane(1);
             else moveLane(-1);
           } else {
-            // Vertical Swipe: Jump or Slide
+            // Jump or Slide
             if (dy < 0) doJump();
             else doSlide();
           }
-          // Reset touch anchor for fluid multi-swiping without finger release!
-          touchStartX = e.touches[0].clientX;
-          touchStartY = e.touches[0].clientY;
         }
       }
     }, { passive: true });
 
     overlay.addEventListener('touchend', () => {
-      isSwiping = false;
+      hasSwipedInCurrentTouch = false;
     }, { passive: true });
 
     // Virtual Buttons

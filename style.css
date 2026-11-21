@@ -378,6 +378,21 @@ html, body {
   box-shadow: 0 6px 0 #be123c;
 }
 
+.cyber-btn.install {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  box-shadow: 0 6px 0 #075985, 0 10px 20px rgba(2, 132, 199, 0.35);
+  font-size: 16px;
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.cyber-btn.install:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #075985;
+}
+
 .instructions-tip {
   margin-top: 14px;
   font-size: 12px;
