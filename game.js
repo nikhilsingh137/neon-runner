@@ -42,24 +42,31 @@
     magnetTimer: 0,
     jetpackTimer: 0,
     hasShield: false,
-    // Control Mode: 'swipe' (clean screen) or 'buttons' (virtual buttons)
-    controlMode: localStorage.getItem('urban_dash_control_mode') || 'swipe'
+    storedMagnets: 0,
+    storedJetpacks: 0,
+    // Settings
+    controlMode: localStorage.getItem('urban_dash_control_mode') || 'swipe',
+    theme: localStorage.getItem('urban_dash_theme') || 'dark'
   };
 
-  // Saved Stats
-  let savedData = {
+  // Career Records & High Scores (HS)
+  let careerStats = {
     highScore: 0,
-    totalCoins: 0
+    totalCoins: 0,
+    maxDistance: 0,
+    totalRuns: 0,
+    totalMagnets: 0,
+    totalJetpacks: 0
   };
 
   try {
-    const raw = localStorage.getItem('urban_dash_data');
-    if (raw) savedData = Object.assign(savedData, JSON.parse(raw));
+    const raw = localStorage.getItem('urban_dash_career_stats');
+    if (raw) careerStats = Object.assign(careerStats, JSON.parse(raw));
   } catch (e) {}
 
-  function saveData() {
+  function saveCareerStats() {
     try {
-      localStorage.setItem('urban_dash_data', JSON.stringify(savedData));
+      localStorage.setItem('urban_dash_career_stats', JSON.stringify(careerStats));
     } catch (e) {}
   }
 
@@ -70,6 +77,7 @@
   let tracksGroup, obstacles = [], coins = [], powerups = [];
   let clock = new THREE.Clock();
   let runAnimTime = 0;
+  let hemiLight, sunLight;
 
   // DOM Elements
   const container = document.getElementById('game-container');
@@ -85,6 +93,135 @@
   const badgeJetpack = document.getElementById('badge-jetpack');
   const timerJetpack = document.getElementById('timer-jetpack');
   const badgeShield = document.getElementById('badge-shield');
+
+  // Quick-Use Power-Up Tray Elements
+  const slotMagnet = document.getElementById('slot-magnet');
+  const slotJetpack = document.getElementById('slot-jetpack');
+  const slotMagnetCount = document.getElementById('slot-magnet-count');
+  const slotJetpackCount = document.getElementById('slot-jetpack-count');
+  const slotMagnetStatus = document.getElementById('slot-magnet-status');
+  const slotJetpackStatus = document.getElementById('slot-jetpack-status');
+  const hudToast = document.getElementById('hud-toast-msg');
+  let toastTimer = null;
+
+  function showToast(msg) {
+    if (!hudToast) return;
+    hudToast.textContent = msg;
+    hudToast.classList.remove('hidden');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      hudToast.classList.add('hidden');
+    }, 2200);
+  }
+
+  function updatePowerupSlotsUI() {
+    if (slotMagnet && slotMagnetCount && slotMagnetStatus) {
+      slotMagnetCount.textContent = state.storedMagnets;
+      if (state.storedMagnets > 0) {
+        slotMagnet.disabled = false;
+        slotMagnetStatus.textContent = 'READY! TAP';
+      } else {
+        slotMagnet.disabled = true;
+        slotMagnetStatus.textContent = 'STORED: 0';
+      }
+    }
+    if (slotJetpack && slotJetpackCount && slotJetpackStatus) {
+      slotJetpackCount.textContent = state.storedJetpacks;
+      if (state.storedJetpacks > 0) {
+        slotJetpack.disabled = false;
+        slotJetpackStatus.textContent = 'READY! FLY';
+      } else {
+        slotJetpack.disabled = true;
+        slotJetpackStatus.textContent = 'STORED: 0';
+      }
+    }
+  }
+
+  function useStoredMagnet() {
+    if (!state.running || state.paused || state.storedMagnets <= 0) return;
+    state.storedMagnets--;
+    state.magnetTimer = 12.0;
+    updatePowerupSlotsUI();
+    showToast('🧲 CHUMBAK MAGNET ACTIVATED!');
+    if (window.soundEngine) window.soundEngine.playPowerupSFX();
+  }
+
+  function useStoredJetpack() {
+    if (!state.running || state.paused || state.storedJetpacks <= 0) return;
+    state.storedJetpacks--;
+    state.jetpackTimer = 10.0;
+    updatePowerupSlotsUI();
+    showToast('🚀 JETPACK BLAST OFF!');
+    if (window.soundEngine) window.soundEngine.playPowerupSFX();
+  }
+
+  // Career Stats & High Score UI Updater
+  function updateCareerStatsUI() {
+    const elHs = document.getElementById('stats-high-score');
+    const elCoins = document.getElementById('stats-total-crystals');
+    const elDist = document.getElementById('stats-max-distance');
+    const elRuns = document.getElementById('stats-total-runs');
+    const elMags = document.getElementById('stats-total-magnets');
+    const elJets = document.getElementById('stats-total-jetpacks');
+
+    if (elHs) elHs.textContent = careerStats.highScore;
+    if (elCoins) elCoins.textContent = careerStats.totalCoins;
+    if (elDist) elDist.textContent = careerStats.maxDistance + ' m';
+    if (elRuns) elRuns.textContent = careerStats.totalRuns;
+    if (elMags) elMags.textContent = careerStats.totalMagnets;
+    if (elJets) elJets.textContent = careerStats.totalJetpacks;
+
+    const menuHighScore = document.getElementById('menu-high-score');
+    const menuCredits = document.getElementById('menu-credits');
+    if (menuHighScore) menuHighScore.textContent = careerStats.highScore;
+    if (menuCredits) menuCredits.textContent = careerStats.totalCoins;
+  }
+
+  // Visual Theme Engine (Dark Cyber Night vs Bright Solar Day)
+  function applyTheme(theme) {
+    state.theme = theme;
+    localStorage.setItem('urban_dash_theme', theme);
+
+    const optDark = document.getElementById('opt-theme-dark');
+    const optBright = document.getElementById('opt-theme-bright');
+
+    if (theme === 'bright') {
+      document.body.classList.add('theme-bright');
+      document.body.classList.remove('theme-dark');
+      if (optBright) optBright.classList.add('active');
+      if (optDark) optDark.classList.remove('active');
+      if (scene) {
+        scene.background = new THREE.Color(0x38bdf8);
+        if (scene.fog) scene.fog.color.setHex(0x38bdf8);
+      }
+      if (hemiLight) {
+        hemiLight.color.setHex(0xffffff);
+        hemiLight.groundColor.setHex(0x94a3b8);
+      }
+      if (sunLight) {
+        sunLight.color.setHex(0xfffbeb);
+        sunLight.intensity = 1.4;
+      }
+    } else {
+      // Dark cyber night
+      document.body.classList.remove('theme-bright');
+      document.body.classList.add('theme-dark');
+      if (optDark) optDark.classList.add('active');
+      if (optBright) optBright.classList.remove('active');
+      if (scene) {
+        scene.background = new THREE.Color(0x060913);
+        if (scene.fog) scene.fog.color.setHex(0x060913);
+      }
+      if (hemiLight) {
+        hemiLight.color.setHex(0x38bdf8);
+        hemiLight.groundColor.setHex(0x0284c7);
+      }
+      if (sunLight) {
+        sunLight.color.setHex(0x00f5d4);
+        sunLight.intensity = 1.1;
+      }
+    }
+  }
 
   // Screens & Modals
   const startScreen = document.getElementById('start-screen');
@@ -153,11 +290,11 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     // Sunlight & Ambience
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 0.95);
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 0.95);
     hemiLight.position.set(0, 60, 0);
     scene.add(hemiLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
+    sunLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
     sunLight.position.set(20, 50, 25);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
@@ -174,6 +311,11 @@
     const rimLight = new THREE.DirectionalLight(0x00f5d4, 0.85);
     rimLight.position.set(-15, 25, -35);
     scene.add(rimLight);
+
+    // Apply Active Visual Theme & Controls
+    applyTheme(state.theme);
+    updateCareerStatsUI();
+    updatePowerupSlotsUI();
 
     // Build World & Hero
     buildMetroEnvironment();
@@ -606,41 +748,60 @@
     }
   }
 
-  // --- HURDLES & OVERHEAD BEAMS ---
+  // --- SCI-FI BARRIERS: ELECTRIC PLASMA GATE & OVERHEAD LASER GANTRY ---
   function createHurdleObstacle(laneIndex, zPos) {
     const hurdleGroup = new THREE.Group();
     const laneX = LANES[laneIndex];
     hurdleGroup.position.set(laneX, 0, zPos);
 
-    const barGeom = new THREE.BoxGeometry(2.3, 0.35, 0.25);
-    const bar = new THREE.Mesh(barGeom, new THREE.MeshLambertMaterial({ color: 0xef4444 }));
+    // High-tech Electric Plasma Barricade (Jump Over!)
+    const barGeom = new THREE.BoxGeometry(2.35, 0.38, 0.28);
+    const barMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444,
+      emissive: 0xff3366,
+      emissiveIntensity: 0.6,
+      roughness: 0.2,
+      metalness: 0.8
+    });
+    const bar = new THREE.Mesh(barGeom, barMat);
     bar.position.y = 0.95;
     bar.castShadow = true;
     hurdleGroup.add(bar);
 
-    [-0.6, 0, 0.6].forEach((sx) => {
+    // Hazard Stripes & Laser Core
+    [-0.7, 0, 0.7].forEach((sx) => {
       const stripe = new THREE.Mesh(
-        new THREE.BoxGeometry(0.3, 0.36, 0.27),
-        new THREE.MeshLambertMaterial({ color: 0xffffff })
+        new THREE.BoxGeometry(0.3, 0.4, 0.3),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
       );
       stripe.position.set(sx, 0.95, 0);
       hurdleGroup.add(stripe);
     });
 
-    const legGeom = new THREE.CylinderGeometry(0.08, 0.08, 1.1, 8);
-    const legMat = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
+    const plasmaCore = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 2.3, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00f5d4 })
+    );
+    plasmaCore.rotation.z = Math.PI / 2;
+    plasmaCore.position.set(0, 0.95, 0.16);
+    hurdleGroup.add(plasmaCore);
+
+    // Heavy Titanium Magnetic Pylons
+    const legGeom = new THREE.CylinderGeometry(0.12, 0.16, 1.15, 8);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
     const legL = new THREE.Mesh(legGeom, legMat);
-    legL.position.set(-1.05, 0.55, 0);
+    legL.position.set(-1.12, 0.58, 0);
+    legL.castShadow = true;
     const legR = legL.clone();
-    legR.position.x = 1.05;
+    legR.position.x = 1.12;
     hurdleGroup.add(legL);
     hurdleGroup.add(legR);
 
     hurdleGroup.userData = {
       type: 'hurdle',
       lane: laneIndex,
-      width: 2.3,
-      height: 1.1,
+      width: 2.35,
+      height: 1.15,
       depth: 0.4
     };
 
@@ -653,25 +814,62 @@
     const laneX = LANES[laneIndex];
     beamGroup.position.set(laneX, 0, zPos);
 
-    const beamGeom = new THREE.BoxGeometry(2.5, 1.6, 0.35);
-    const beam = new THREE.Mesh(beamGeom, new THREE.MeshLambertMaterial({ color: 0xf59e0b }));
-    beam.position.y = 2.45;
-    beam.castShadow = true;
-    beamGroup.add(beam);
+    // Cyber Overhead Laser Gantry (Must Duck / Slide Under - "jhukna padhta hai")
+    const gantryGeom = new THREE.BoxGeometry(2.55, 1.5, 0.38);
+    const gantryMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.3,
+      metalness: 0.7
+    });
+    const gantry = new THREE.Mesh(gantryGeom, gantryMat);
+    gantry.position.y = 2.45;
+    gantry.castShadow = true;
+    beamGroup.add(gantry);
 
-    const postGeom = new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8);
-    const postMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
+    // Amber Laser Security Warning Plate
+    const plateGeom = new THREE.BoxGeometry(2.2, 0.5, 0.42);
+    const plateMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.5
+    });
+    const plate = new THREE.Mesh(plateGeom, plateMat);
+    plate.position.set(0, 2.55, 0);
+    beamGroup.add(plate);
+
+    // Holographic Down Arrow Indicating "SLIDE UNDER / DUCK"
+    const arrowGeom = new THREE.ConeGeometry(0.22, 0.35, 4);
+    const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    [-0.6, 0, 0.6].forEach((ax) => {
+      const arrow = new THREE.Mesh(arrowGeom, arrowMat);
+      arrow.position.set(ax, 2.55, 0.23);
+      arrow.rotation.z = Math.PI; // pointing down
+      beamGroup.add(arrow);
+    });
+
+    // Intense Red Clearance Laser Beam along the bottom
+    const laserBeam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8),
+      new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    );
+    laserBeam.rotation.z = Math.PI / 2;
+    laserBeam.position.set(0, 1.7, 0);
+    beamGroup.add(laserBeam);
+
+    // Carbon Reinforced Vertical Stanchions
+    const postGeom = new THREE.CylinderGeometry(0.12, 0.14, 3.4, 8);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
     const postL = new THREE.Mesh(postGeom, postMat);
-    postL.position.set(-1.25, 1.7, 0);
+    postL.position.set(-1.28, 1.7, 0);
     const postR = postL.clone();
-    postR.position.x = 1.25;
+    postR.position.x = 1.28;
     beamGroup.add(postL);
     beamGroup.add(postR);
 
     beamGroup.userData = {
       type: 'overhead',
       lane: laneIndex,
-      width: 2.5,
+      width: 2.55,
       height: 3.4,
       slideClearance: 1.65,
       depth: 0.4
@@ -756,7 +954,7 @@
     powerups.push(jetpackGroup);
   }
 
-  // --- FAIR PACING SPAWNER (60-80m) ---
+  // --- ORIGINAL DYNAMIC TRACK SPAWNER ---
   let nextSpawnZ = -45;
 
   function spawnWorldPattern() {
@@ -764,9 +962,10 @@
       const roll = Math.random();
       const openLane = Math.floor(Math.random() * 3);
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
+      const otherLane = 3 - openLane - obstacleLane;
 
-      // Spawn Power-Ups periodically (15% chance for Magnet or Jetpack in open lane!)
-      if (Math.random() < 0.18) {
+      // Spawn Power-Ups periodically (18% chance for Chumbak Magnet or Jetpack in open lane!)
+      if (Math.random() < 0.20) {
         if (Math.random() < 0.5) {
           createMagnetPowerup(openLane, nextSpawnZ + 8);
         } else {
@@ -774,33 +973,52 @@
         }
       }
 
-      if (roll < 0.42) {
-        // Monorail train (50% chance ramp)
-        const hasRamp = Math.random() < 0.5;
+      if (roll < 0.38) {
+        // Pattern 1: Sleek Maglev Bullet Transit (50% chance ramp)
+        const hasRamp = Math.random() < 0.55;
         createMonorailObstacle(obstacleLane, nextSpawnZ, hasRamp);
 
         // Ground crystals in open lane
         for (let cz = -2; cz <= 3; cz++) {
           createCrystal(openLane, nextSpawnZ + cz * 3.5, 1.2);
         }
-        nextSpawnZ -= 65;
-      } else if (roll < 0.72) {
-        // Hurdle
-        createHurdleObstacle(obstacleLane, nextSpawnZ);
-
-        // High crystal jump arc
-        createCrystal(obstacleLane, nextSpawnZ + 3.5, 1.4);
-        createCrystal(obstacleLane, nextSpawnZ, 3.4);
-        createCrystal(obstacleLane, nextSpawnZ - 3.5, 1.4);
-        nextSpawnZ -= 55;
-      } else {
-        // Overhead beam
+        nextSpawnZ -= 64;
+      } else if (roll < 0.60) {
+        // Pattern 2: Cyber Overhead Laser Gantry (Must Duck / Slide Under - "jhukna padhta hai")
         createOverheadSlideObstacle(obstacleLane, nextSpawnZ);
 
+        // Low crystals encouraging ducking/sliding
         for (let cz = -2; cz <= 2; cz++) {
           createCrystal(obstacleLane, nextSpawnZ + cz * 2.8, 0.55);
         }
-        nextSpawnZ -= 55;
+        // Also crystals in open lane
+        for (let cz = -1; cz <= 2; cz++) {
+          createCrystal(openLane, nextSpawnZ + cz * 3.2, 1.2);
+        }
+        nextSpawnZ -= 52;
+      } else if (roll < 0.82) {
+        // Pattern 3: High-Tech Electric Plasma Barricade (Jump Over!)
+        createHurdleObstacle(obstacleLane, nextSpawnZ);
+
+        // High crystal jump arc rewarding player
+        createCrystal(obstacleLane, nextSpawnZ + 3.8, 1.4);
+        createCrystal(obstacleLane, nextSpawnZ, 3.4);
+        createCrystal(obstacleLane, nextSpawnZ - 3.8, 1.4);
+        nextSpawnZ -= 52;
+      } else {
+        // Pattern 4: Parkour Rhythm Agility Combo (Jump ➔ Slide / Duck!)
+        createHurdleObstacle(obstacleLane, nextSpawnZ);
+        createCrystal(obstacleLane, nextSpawnZ, 3.4);
+
+        // Followed 18m later by an overhead laser gantry
+        createOverheadSlideObstacle(obstacleLane, nextSpawnZ - 18);
+        createCrystal(obstacleLane, nextSpawnZ - 18, 0.55);
+
+        // Open lane clear path
+        for (let cz = -3; cz <= 3; cz++) {
+          createCrystal(openLane, nextSpawnZ - 9 + cz * 3.2, 1.2);
+        }
+        nextSpawnZ -= 72;
       }
     }
   }
@@ -815,6 +1033,8 @@
       else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') doJump();
       else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') doSlide();
       else if (e.key === 'Shift') triggerBoost();
+      else if (e.key === 'e' || e.key === 'E') useStoredMagnet();
+      else if (e.key === 'q' || e.key === 'Q') useStoredJetpack();
     });
 
     // Mobile Swipe Gesture (1 Gesture = Exactly 1 Lane Switch)
@@ -913,6 +1133,7 @@
     const openSettingsBtn = document.getElementById('btn-open-settings');
     if (openSettingsBtn) {
       openSettingsBtn.addEventListener('click', () => {
+        updateCareerStatsUI();
         settingsModal.classList.remove('hidden');
       });
     }
@@ -931,12 +1152,23 @@
       });
     }
 
+    // Theme Option Toggles
+    const optDark = document.getElementById('opt-theme-dark');
+    if (optDark) optDark.addEventListener('click', () => applyTheme('dark'));
+
+    const optBright = document.getElementById('opt-theme-bright');
+    if (optBright) optBright.addEventListener('click', () => applyTheme('bright'));
+
     // Control Option Toggles
     const optSwipe = document.getElementById('opt-ctrl-swipe');
     if (optSwipe) optSwipe.addEventListener('click', () => applyControlMode('swipe'));
 
     const optButtons = document.getElementById('opt-ctrl-buttons');
     if (optButtons) optButtons.addEventListener('click', () => applyControlMode('buttons'));
+
+    // Power-Up Inventory Slot Buttons
+    bindBtn('slot-magnet', useStoredMagnet);
+    bindBtn('slot-jetpack', useStoredJetpack);
 
     // Audio Buttons
     const toggleSound = () => {
@@ -1027,6 +1259,9 @@
     state.magnetTimer = 0;
     state.jetpackTimer = 0;
     state.hasShield = false;
+    state.storedMagnets = 0;
+    state.storedJetpacks = 0;
+    updatePowerupSlotsUI();
 
     obstacles.forEach((obs) => scene.remove(obs));
     obstacles = [];
@@ -1063,10 +1298,16 @@
       window.soundEngine.playCrashSFX();
     }
 
-    const isNewRecord = state.score > savedData.highScore;
-    if (isNewRecord) savedData.highScore = Math.floor(state.score);
-    savedData.totalCoins += state.coins;
-    saveData();
+    // Update Career Stats & High Score
+    careerStats.totalRuns = (careerStats.totalRuns || 0) + 1;
+    careerStats.totalCoins = (careerStats.totalCoins || 0) + state.coins;
+    careerStats.maxDistance = Math.max(careerStats.maxDistance || 0, Math.floor(state.distance));
+    const isNewRecord = state.score > (careerStats.highScore || 0);
+    if (isNewRecord) {
+      careerStats.highScore = Math.floor(state.score);
+    }
+    saveCareerStats();
+    updateCareerStatsUI();
 
     hud.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
@@ -1138,15 +1379,14 @@
     for (let obs of obstacles) {
       if (obs.userData.type === 'train') {
         const laneX = LANES[obs.userData.lane];
-        if (Math.abs(state.playerX - laneX) < 1.3) {
-          const zRel = obs.position.z - playerGroup.position.z;
-          if (zRel > obs.userData.backZ && zRel < obs.userData.frontZ) {
-            if (obs.userData.hasRamp && zRel > obs.userData.depth / 2) {
-              const rampProgress = (obs.userData.frontZ - zRel) / 5.5;
-              activeRoofGround = Math.max(activeRoofGround, rampProgress * TRAIN_HEIGHT);
-            } else {
-              activeRoofGround = Math.max(activeRoofGround, TRAIN_HEIGHT);
-            }
+        if (Math.abs(state.playerX - laneX) < 1.15) {
+          const zPos = obs.position.z;
+          // Ramp approach:
+          if (obs.userData.hasRamp && zPos >= -18.5 && zPos < -13.0) {
+            const rampProgress = (zPos + 18.5) / 5.5;
+            activeRoofGround = Math.max(activeRoofGround, rampProgress * TRAIN_HEIGHT);
+          } else if (zPos >= -13.0 && zPos <= 13.0) {
+            activeRoofGround = Math.max(activeRoofGround, TRAIN_HEIGHT);
           }
         }
       }
@@ -1268,11 +1508,21 @@
       if (dist < 1.8 && !p.userData.collected) {
         p.userData.collected = true;
         if (p.userData.type === 'magnet') {
-          state.magnetTimer = 12.0;
+          state.storedMagnets++;
+          careerStats.totalMagnets = (careerStats.totalMagnets || 0) + 1;
+          saveCareerStats();
+          updateCareerStatsUI();
+          updatePowerupSlotsUI();
+          showToast('+1 🧲 CHUMBAK STORED! TAP HUD TO USE');
         } else if (p.userData.type === 'jetpack') {
-          state.jetpackTimer = 10.0;
+          state.storedJetpacks++;
+          careerStats.totalJetpacks = (careerStats.totalJetpacks || 0) + 1;
+          saveCareerStats();
+          updateCareerStatsUI();
+          updatePowerupSlotsUI();
+          showToast('+1 🚀 JETPACK STORED! TAP HUD TO FLY');
         }
-        if (window.soundEngine) window.soundEngine.playPowerupSFX();
+        if (window.soundEngine) window.soundEngine.playCoinSFX();
         scene.remove(p);
         powerups.splice(i, 1);
         continue;
@@ -1334,20 +1584,42 @@
     if (state.jetpackTimer > 0) return false;
 
     const laneX = LANES[obs.userData.lane];
-    if (Math.abs(state.playerX - laneX) > 1.1) return false;
+    // Check if player is horizontally in the obstacle's lane
+    if (Math.abs(state.playerX - laneX) > 1.05) return false;
 
-    const zDist = obs.position.z - playerGroup.position.z;
+    const zPos = obs.position.z;
 
     if (obs.userData.type === 'train') {
-      if (obs.userData.hasRamp) return false;
-      if (state.playerY >= TRAIN_HEIGHT - 0.3) return false;
-      if (zDist > 0 && zDist < 1.3) return true;
+      // If train has front ramp, player climbs up smoothly without crash
+      if (obs.userData.hasRamp && zPos >= -19.0 && zPos <= -12.5) {
+        return false;
+      }
+
+      // Check if player is on the roof
+      if (state.playerY >= TRAIN_HEIGHT - 0.35) {
+        return false; // Safely running on the roof
+      }
+
+      // If player is below roof level and inside the train longitudinally:
+      if (zPos >= -12.5 && zPos <= 12.0) {
+        return true; // CRASH! Hit the train (head-on or side impact)!
+      }
     } else if (obs.userData.type === 'hurdle') {
-      if (state.isJumping && state.playerY > 0.35) return false;
-      if (Math.abs(zDist) < 0.85 && state.playerY < 0.85) return true;
+      // Low plasma barrier: player must jump over!
+      if (Math.abs(zPos) < 0.85) {
+        if (state.isJumping && state.playerY >= 0.75) {
+          return false; // Cleared hurdle!
+        }
+        return true; // CRASH! Hit hurdle barrier!
+      }
     } else if (obs.userData.type === 'overhead') {
-      if (state.isSliding) return false;
-      if (Math.abs(zDist) < 0.85 && state.playerY > 0.3) return true;
+      // Overhead beam: player MUST slide/duck ("jhukna padhta hai")!
+      if (Math.abs(zPos) < 0.85) {
+        if (state.isSliding && state.playerY < 0.35) {
+          return false; // Ducked safely under beam!
+        }
+        return true; // CRASH! Did not slide/duck, hit head on overhead beam!
+      }
     }
 
     return false;

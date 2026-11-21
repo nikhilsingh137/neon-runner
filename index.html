@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v11_urbandash_live';
+      var LATEST_VERSION = 'v12_urbandash_ultra';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v11">
+  <link rel="stylesheet" href="style.css?v=urbandash_v12">
 </head>
 <body>
   <div id="game-container">
@@ -79,6 +79,30 @@
           <span>💎</span>
           <span id="hud-credits">0</span>
         </div>
+      </div>
+
+      <!-- Floating Toast Message for Power-Up Pickup & Alerts -->
+      <div id="hud-toast-msg" class="hud-toast-msg hidden"></div>
+
+      <!-- Quick-Use Power-Up Tray (Stores Magnets & Jetpacks to use manually!) -->
+      <div class="hud-powerup-tray" id="hud-powerup-tray">
+        <button class="powerup-inventory-slot" id="slot-magnet" title="Use Chumbak Magnet (Key: E)" disabled>
+          <div class="slot-icon-box">🧲</div>
+          <div class="slot-info">
+            <span class="slot-name">CHUMBAK</span>
+            <span class="slot-status" id="slot-magnet-status">STORED: 0</span>
+          </div>
+          <span class="slot-badge" id="slot-magnet-count">0</span>
+        </button>
+
+        <button class="powerup-inventory-slot" id="slot-jetpack" title="Use Jetpack Fly Thing (Key: Q)" disabled>
+          <div class="slot-icon-box">🚀</div>
+          <div class="slot-info">
+            <span class="slot-name">JETPACK</span>
+            <span class="slot-status" id="slot-jetpack-status">STORED: 0</span>
+          </div>
+          <span class="slot-badge" id="slot-jetpack-count">0</span>
+        </button>
       </div>
 
       <!-- Top Right Action Buttons: Pause & Home -->
@@ -138,12 +162,12 @@
       </button>
 
       <div class="instructions-tip">
-        📱 <span>SWIPE ANYWHERE ON SCREEN:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to change tracks<br>
-        ⬆ <span>Swipe UP</span> to jump barriers & fly onto monorails<br>
-        ⬇ <span>Swipe DOWN</span> to slide under low beams<br>
-        🧲 Pick up <span>MAGNET (Chumbak)</span> to pull all crystals!<br>
-        🚀 Pick up <span>JETPACK</span> to fly high across the city skyline!
+        📱 <span>HOW TO PLAY & POWER-UPS:</span><br>
+        ⬅ ➡ <span>Swipe Left / Right</span> to change magnetic tracks<br>
+        ⬆ <span>Swipe UP</span> to jump over low barriers & leap onto trains<br>
+        ⬇ <span>Swipe DOWN</span> to slide & duck under overhead cyber beams<br>
+        🧲 <span>Chumbak Magnet</span> & 🚀 <span>Jetpack</span> are stored when collected!<br>
+        ⚡ Tap their on-screen HUD button or press <b>E / Q</b> to use when YOU want!
       </div>
     </div>
 
@@ -155,6 +179,18 @@
           <button class="btn-hud-icon" id="btn-close-settings">✕</button>
         </div>
 
+        <div class="settings-section-title">VISUAL THEME</div>
+        <div class="control-options-group">
+          <div class="control-toggle-card active" id="opt-theme-dark">
+            <div class="control-toggle-title">🌙 Cyber Dark Night</div>
+            <div class="control-toggle-desc">Midnight neon skyline & cyber lighting</div>
+          </div>
+          <div class="control-toggle-card" id="opt-theme-bright">
+            <div class="control-toggle-title">☀️ Bright Solar Day</div>
+            <div class="control-toggle-desc">Daylight sky, sunny metro & crystal clarity</div>
+          </div>
+        </div>
+
         <div class="settings-section-title">CONTROL SCHEME</div>
         <div class="control-options-group">
           <div class="control-toggle-card active" id="opt-ctrl-swipe">
@@ -164,6 +200,34 @@
           <div class="control-toggle-card" id="opt-ctrl-buttons">
             <div class="control-toggle-title">🕹️ Touch Buttons</div>
             <div class="control-toggle-desc">On-screen tap buttons (◀ ▲ ▼ ▶)</div>
+          </div>
+        </div>
+
+        <div class="settings-section-title">🏆 CAREER RECORDS & STATS (HS)</div>
+        <div class="career-stats-card">
+          <div class="career-stat-row">
+            <span class="career-stat-label">👑 ALL-TIME HIGH SCORE (HS)</span>
+            <span class="career-stat-val" id="stats-high-score">0</span>
+          </div>
+          <div class="career-stat-row">
+            <span class="career-stat-label">💎 TOTAL CRYSTALS COLLECTED</span>
+            <span class="career-stat-val" id="stats-total-crystals">0</span>
+          </div>
+          <div class="career-stat-row">
+            <span class="career-stat-label">📏 LONGEST DISTANCE RECORD</span>
+            <span class="career-stat-val" id="stats-max-distance">0 m</span>
+          </div>
+          <div class="career-stat-row">
+            <span class="career-stat-label">🏃 RUNS PLAYED</span>
+            <span class="career-stat-val" id="stats-total-runs">0</span>
+          </div>
+          <div class="career-stat-row">
+            <span class="career-stat-label">🧲 CHUMBAK MAGNETS FOUND</span>
+            <span class="career-stat-val" id="stats-total-magnets">0</span>
+          </div>
+          <div class="career-stat-row">
+            <span class="career-stat-label">🚀 JETPACKS COLLECTED</span>
+            <span class="career-stat-val" id="stats-total-jetpacks">0</span>
           </div>
         </div>
 
@@ -243,8 +307,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v11"></script>
-  <script src="game.js?v=urbandash_v11"></script>
+  <script src="audio.js?v=urbandash_v12"></script>
+  <script src="game.js?v=urbandash_v12"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -262,7 +326,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=11').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=12').catch(() => {});
       });
     }
 
