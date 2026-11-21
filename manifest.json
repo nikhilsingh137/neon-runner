@@ -1,12 +1,17 @@
 {
+  "id": "subway-runner-3d-jake",
   "name": "Subway Runner 3D: Jake Skater Boy",
   "short_name": "SubwayRunner",
-  "start_url": "./index.html",
+  "start_url": "https://nikhilsingh137.github.io/neon-runner/",
+  "scope": "https://nikhilsingh137.github.io/neon-runner/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "background_color": "#38bdf8",
   "theme_color": "#38bdf8",
   "orientation": "portrait",
   "description": "3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!",
+  "categories": ["games", "arcade"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",

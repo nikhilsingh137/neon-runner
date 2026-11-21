@@ -161,20 +161,47 @@
     </div>
   </div>
 
+    <!-- INSTALL GUIDE MODAL -->
+    <div id="install-guide-modal" class="screen-overlay hidden">
+      <div class="garage-modal" style="max-width: 360px;">
+        <h2 class="game-title" style="font-size: 28px; margin-bottom: 8px;">📱 INSTALL APP</h2>
+        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 18px; line-height: 1.5;">
+          Play Subway Runner directly from your Home Screen with 60FPS full-screen:
+        </p>
+        <div style="text-align: left; background: rgba(255,255,255,0.06); padding: 14px 16px; border-radius: 14px; font-size: 13px; line-height: 1.7; color: #f8fafc; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 20px;">
+          1. Tap Chrome's menu (<b>⋮ 3 dots</b>) at top right ↗<br>
+          2. Tap <b>"Install app"</b> or <b>"Add to Home screen"</b><br>
+          3. Tap <b>"Install"</b> — Subway Runner icon is added to your phone!
+        </div>
+        <button class="cyber-btn" id="btn-close-install-guide">
+          <span>👍 GOT IT!</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=subway3d_v7"></script>
-  <script src="game.js?v=subway3d_v7"></script>
+  <script src="audio.js?v=subway3d_v8"></script>
+  <script src="game.js?v=subway3d_v8"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
     let deferredInstallPrompt = null;
     const installBtn = document.getElementById('btn-install-app');
+    const installGuideModal = document.getElementById('install-guide-modal');
+    const closeGuideBtn = document.getElementById('btn-close-install-guide');
+
+    if (closeGuideBtn) {
+      closeGuideBtn.addEventListener('click', () => {
+        installGuideModal.classList.add('hidden');
+      });
+    }
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=7').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=8').catch(() => {});
       });
     }
 
@@ -197,8 +224,10 @@
           }
           deferredInstallPrompt = null;
         } else {
-          // If already in installed standalone PWA or browser doesn't support event:
-          alert('📱 In Chrome: Tap the top-right menu (⋮) and select "Install app" or "Add to Home screen" to install!');
+          // Show visual step-by-step install guide modal
+          if (installGuideModal) {
+            installGuideModal.classList.remove('hidden');
+          }
         }
       });
     }
