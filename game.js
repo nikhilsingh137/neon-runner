@@ -1,5 +1,6 @@
 /**
- * Cyberpunk Human Parkour Runner - 60FPS 3D Kinetic Character & Obstacle Engine
+ * Subway City Runner 3D - High Quality Kinetic Character & Subway Trains Engine
+ * Built in the vibrant, colorful aesthetic of Subway Surfers (Jake style runner, trains, tracks, coins)
  */
 
 (function () {
@@ -7,84 +8,78 @@
 
   // --- CONFIGURATION ---
   const FOV = 320;
-  const CAMERA_HEIGHT = 180;
-  const ROAD_WIDTH = 1000;
-  const LANES = [-280, 0, 280]; // Left, Center, Right
+  const CAMERA_HEIGHT = 195;
+  const ROAD_WIDTH = 960;
+  const LANES = [-260, 0, 260]; // 3 Railway Tracks: Left, Center, Right
 
-  // Sector Themes
-  const SECTORS = [
+  // Subway Environment Themes (Vibrant & Bright)
+  const THEMES = [
     {
-      name: "DOWNTOWN METROPOLIS",
-      skyTop: "#08011a",
-      skyBottom: "#1f0938",
-      roadColor: "#14151b",
-      gridColor: "#00f3ff",
-      accentColor: "#ff007f",
-      sunTop: "#ffe600",
-      sunBottom: "#ff007f",
-      fogColor: "#140529"
+      name: "CENTRAL METRO YARD",
+      skyTop: "#3a88e9",
+      skyBottom: "#87ceeb",
+      groundColor: "#424754",
+      railColor: "#b0b8c6",
+      tieColor: "#5c4033",
+      accentColor: "#e52b2b"
     },
     {
-      name: "NEON INDUSTRIAL DOCKS",
-      skyTop: "#02120e",
-      skyBottom: "#062b23",
-      roadColor: "#111716",
-      gridColor: "#00ff88",
-      accentColor: "#00f3ff",
-      sunTop: "#aaff00",
-      sunBottom: "#00ff88",
-      fogColor: "#041c16"
+      name: "GOLDEN HOUR TUNNEL",
+      skyTop: "#f97316",
+      skyBottom: "#fed7aa",
+      groundColor: "#403939",
+      railColor: "#cbd5e1",
+      tieColor: "#453227",
+      accentColor: "#fbbf24"
     },
     {
-      name: "SUNSET HIGHWAY",
-      skyTop: "#17021b",
-      skyBottom: "#3b092b",
-      roadColor: "#1c141d",
-      gridColor: "#ff5500",
-      accentColor: "#ffe600",
-      sunTop: "#ffea00",
-      sunBottom: "#ff0055",
-      fogColor: "#29041a"
+      name: "NEON CITY STATION",
+      skyTop: "#1e1b4b",
+      skyBottom: "#4338ca",
+      groundColor: "#1e2430",
+      railColor: "#38bdf8",
+      tieColor: "#262338",
+      accentColor: "#ec4899"
     }
   ];
 
-  // Runner Outfits
-  const RUNNER_SKINS = [
+  // Character Skins
+  const CHARACTERS = [
     {
-      id: "cybersuit",
-      name: "NEON SPRINTER",
-      jacketColor: "#00f3ff",
-      pantsColor: "#121420",
-      shoesColor: "#00f3ff",
-      glowColor: "#00f3ff",
+      id: "jake",
+      name: "JAKE (SKATER BOY)",
+      capColor: "#e52b2b",
+      hairColor: "#6b4226",
+      vestColor: "#1d4ed8",
+      shirtColor: "#ffffff",
+      jeansColor: "#2563eb",
+      shoesColor: "#dc2626",
+      backpackColor: "#16a34a",
       price: 0
     },
     {
-      id: "crimson",
-      name: "CRIMSON PHANTOM",
-      jacketColor: "#ff0055",
-      pantsColor: "#1a0814",
-      shoesColor: "#ff0055",
-      glowColor: "#ff0055",
-      price: 300
+      id: "tricky",
+      name: "TRICKY (BEANIE)",
+      capColor: "#ec4899",
+      hairColor: "#f59e0b",
+      vestColor: "#7c3aed",
+      shirtColor: "#f3f4f6",
+      jeansColor: "#475569",
+      shoesColor: "#f43f5e",
+      backpackColor: "#0ea5e9",
+      price: 350
     },
     {
-      id: "matrix",
-      name: "MATRIX GHOST",
-      jacketColor: "#00ff66",
-      pantsColor: "#081a0e",
-      shoesColor: "#00ff66",
-      glowColor: "#00ff66",
-      price: 700
-    },
-    {
-      id: "overlord",
-      name: "TITAN RUNNER",
-      jacketColor: "#ffaa00",
-      pantsColor: "#221a08",
-      shoesColor: "#ffe600",
-      glowColor: "#ffe600",
-      price: 1200
+      id: "fresh",
+      name: "FRESH (BOOMBOX)",
+      capColor: "#eab308",
+      hairColor: "#18181b",
+      vestColor: "#10b981",
+      shirtColor: "#0284c7",
+      jeansColor: "#1e293b",
+      shoesColor: "#f59e0b",
+      backpackColor: "#8b5cf6",
+      price: 800
     }
   ];
 
@@ -94,17 +89,17 @@
       credits: 0,
       highScore: 0,
       totalRuns: 0,
-      selectedSkin: "cybersuit",
-      unlockedSkins: ["cybersuit"],
+      selectedChar: "jake",
+      unlockedChars: ["jake"],
       upgrades: {
         magnet: 1,
-        shield: 1,
-        overdrive: 1,
+        hoverboard: 1,
+        boost: 1,
         multiplier: 1
       }
     };
     try {
-      const saved = localStorage.getItem("neon_parkour_player");
+      const saved = localStorage.getItem("subway_runner_player");
       return saved ? Object.assign(defaults, JSON.parse(saved)) : defaults;
     } catch (e) {
       return defaults;
@@ -113,7 +108,7 @@
 
   function savePlayerData() {
     try {
-      localStorage.setItem("neon_parkour_player", JSON.stringify(playerData));
+      localStorage.setItem("subway_runner_player", JSON.stringify(playerData));
     } catch (e) {
       console.warn(e);
     }
@@ -122,7 +117,7 @@
   const playerData = loadPlayerData();
 
   // --- GAME ENGINE ---
-  class Game {
+  class SubwayGame {
     constructor() {
       this.canvas = document.getElementById("gameCanvas");
       this.ctx = this.canvas.getContext("2d");
@@ -134,45 +129,44 @@
       this.width = 800;
       this.height = 1200;
       this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-      this.horizonY = this.height * 0.45;
+      this.horizonY = this.height * 0.42;
 
       // Camera
       this.cameraTilt = 0;
       this.shakeIntensity = 0;
       this.shakeDuration = 0;
 
-      // Human Runner State
+      // Character Physics
+      this.currentLane = 1; // 0: Left, 1: Center, 2: Right
       this.playerX = 0;
       this.targetPlayerX = 0;
-      this.playerY = 0; // Vertical height above road (jumping)
-      this.playerZ = 90;
+      this.playerY = 0; // Vertical height (Jump)
+      this.playerZ = 85;
       this.verticalVelocity = 0;
-      this.gravity = 2400;
+      this.gravity = 2500;
       this.isJumping = false;
       this.isSliding = false;
       this.slideTimer = 0;
-      this.slideDuration = 0.75;
-      
-      // Biomechanical Animation Cycles
+      this.slideDuration = 0.72;
+
+      // Running animation
       this.runCycle = 0;
-      this.stepCycle = 0;
       this.speed = 0;
-      this.baseSpeed = 700;
-      this.maxSpeed = 1500;
+      this.baseSpeed = 750;
+      this.maxSpeed = 1600;
       this.bankAngle = 0;
 
       // Gameplay Stats
       this.score = 0;
       this.displayScore = 0;
       this.distance = 0;
-      this.creditsThisRun = 0;
-      this.nearMisses = 0;
+      this.coinsThisRun = 0;
       this.multiplier = 1;
       this.multiplierTimer = 0;
       this.shields = 1;
       this.maxShields = 1;
 
-      // Overdrive (Hyper Sprint)
+      // Hoverboard / Boost mode
       this.overdriveEnergy = 0;
       this.maxOverdriveEnergy = 100;
       this.isOverdrive = false;
@@ -180,31 +174,28 @@
 
       // World Objects
       this.obstacles = [];
-      this.pickups = [];
+      this.coins = [];
       this.particles = [];
       this.floatingTexts = [];
-      this.streetLamps = [];
-      this.roadZOffset = 0;
+      this.trackZOffset = 0;
 
-      // Sector / City Theme
-      this.currentSectorIndex = 0;
-      this.sectorDistance = 0;
-      this.sectorLength = 3500;
+      // Theme
+      this.currentThemeIndex = 0;
+      this.themeDistance = 0;
+      this.themeLength = 3500;
 
-      // Timers & Spawning
+      // Timers
       this.lastTime = 0;
       this.spawnTimer = 0;
       this.coinSpawnTimer = 0;
 
       // Input State
-      this.keys = { left: false, right: false, up: false, down: false, boost: false };
       this.touchStartX = 0;
       this.touchStartY = 0;
       this.touchStartTime = 0;
 
       this.initDisplay();
       this.initEvents();
-      this.initStreetLamps();
       this.updateUI();
     }
 
@@ -218,31 +209,24 @@
         this.canvas.height = this.height * this.pixelRatio;
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.scale(this.pixelRatio, this.pixelRatio);
-        this.horizonY = this.height * 0.44;
+        this.horizonY = this.height * 0.42;
       };
       window.addEventListener("resize", resize);
       resize();
     }
 
-    initStreetLamps() {
-      this.streetLamps = [];
-      for (let z = 100; z < 1400; z += 200) {
-        this.streetLamps.push({ z });
-      }
-    }
-
     initEvents() {
       // Keyboard Controls
       window.addEventListener("keydown", (e) => {
-        if (["ArrowLeft", "KeyA"].includes(e.code)) this.steerLane(-1);
-        if (["ArrowRight", "KeyD"].includes(e.code)) this.steerLane(1);
-        if (["ArrowUp", "KeyW"].includes(e.code)) this.triggerJump();
-        if (["ArrowDown", "KeyS"].includes(e.code)) this.triggerSlide();
-        if (["Space"].includes(e.code)) this.activateOverdrive();
+        if (["ArrowLeft", "KeyA"].includes(e.code)) this.changeLane(-1);
+        if (["ArrowRight", "KeyD"].includes(e.code)) this.changeLane(1);
+        if (["ArrowUp", "KeyW"].includes(e.code)) this.jump();
+        if (["ArrowDown", "KeyS"].includes(e.code)) this.slide();
+        if (["Space"].includes(e.code)) this.activateHoverboard();
         if (["KeyP", "Escape"].includes(e.code)) this.togglePause();
       });
 
-      // Touch & Swipe Controls (High precision mobile gesture recognition)
+      // Mobile Touch Gesture Engine (Instant, Crisp Swipes like Subway Surfers)
       const touchArea = document.getElementById("touch-overlay") || this.canvas;
 
       touchArea.addEventListener("touchstart", (e) => {
@@ -263,34 +247,34 @@
         const absX = Math.abs(deltaX);
         const absY = Math.abs(deltaY);
 
-        // Swipe Gesture Detection
-        if (Math.max(absX, absY) > 25 && deltaTime < 400) {
+        // Fast swipe threshold
+        if (Math.max(absX, absY) > 20 && deltaTime < 450) {
           if (absX > absY) {
-            // Horizontal swipe (Left / Right lane change)
-            if (deltaX > 0) this.steerLane(1);
-            else this.steerLane(-1);
+            // Horizontal Swipe
+            if (deltaX > 0) this.changeLane(1);
+            else this.changeLane(-1);
           } else {
-            // Vertical swipe (Jump / Slide)
-            if (deltaY < 0) this.triggerJump();
-            else this.triggerSlide();
+            // Vertical Swipe
+            if (deltaY < 0) this.jump();
+            else this.slide();
           }
         }
       }, { passive: true });
 
-      // Virtual Mobile Buttons
+      // Virtual Buttons for Accessibility
       const btnLeft = document.getElementById("btn-left");
       const btnRight = document.getElementById("btn-right");
       const btnJump = document.getElementById("btn-jump");
       const btnSlide = document.getElementById("btn-slide");
       const btnBoost = document.getElementById("btn-boost");
 
-      if (btnLeft) btnLeft.addEventListener("click", () => this.steerLane(-1));
-      if (btnRight) btnRight.addEventListener("click", () => this.steerLane(1));
-      if (btnJump) btnJump.addEventListener("click", () => this.triggerJump());
-      if (btnSlide) btnSlide.addEventListener("click", () => this.triggerSlide());
-      if (btnBoost) btnBoost.addEventListener("click", () => this.activateOverdrive());
+      if (btnLeft) btnLeft.addEventListener("click", () => this.changeLane(-1));
+      if (btnRight) btnRight.addEventListener("click", () => this.changeLane(1));
+      if (btnJump) btnJump.addEventListener("click", () => this.jump());
+      if (btnSlide) btnSlide.addEventListener("click", () => this.slide());
+      if (btnBoost) btnBoost.addEventListener("click", () => this.activateHoverboard());
 
-      // Screen Buttons
+      // UI
       document.getElementById("btn-start").addEventListener("click", () => this.startGame());
       document.getElementById("btn-restart").addEventListener("click", () => this.startGame());
       document.getElementById("btn-pause").addEventListener("click", () => this.togglePause());
@@ -299,79 +283,71 @@
       document.getElementById("btn-close-garage").addEventListener("click", () => this.closeGarage());
       document.getElementById("btn-audio").addEventListener("click", () => this.toggleAudio());
       document.getElementById("btn-fullscreen").addEventListener("click", () => this.toggleFullscreen());
-      
+
       const btnShare = document.getElementById("btn-share");
       if (btnShare) btnShare.addEventListener("click", () => this.shareScore());
     }
 
-    steerLane(dir) {
+    changeLane(dir) {
       if (!this.isRunning || this.gameOver || this.isPaused) return;
       window.soundEngine.resumeContext();
-
-      // Find closest lane and shift
-      const currentTarget = this.targetPlayerX;
-      let targetIndex = 1; // Center default
-      if (currentTarget < -140) targetIndex = 0;
-      else if (currentTarget > 140) targetIndex = 2;
-
-      targetIndex = Math.max(0, Math.min(2, targetIndex + dir));
-      this.targetPlayerX = LANES[targetIndex];
+      this.currentLane = Math.max(0, Math.min(2, this.currentLane + dir));
+      this.targetPlayerX = LANES[this.currentLane];
     }
 
-    triggerJump() {
+    jump() {
       if (!this.isRunning || this.gameOver || this.isPaused) return;
       if (this.isJumping) return;
 
       this.isJumping = true;
-      this.isSliding = false; // Cancel slide on jump
-      this.verticalVelocity = 920; // Upward jump velocity
+      this.isSliding = false;
+      this.verticalVelocity = 960; // Parabolic jump arc
 
       window.soundEngine.playJumpSFX();
-      this.addFootstepPuff(this.playerX, 0, 8);
+      this.addDustPuff(this.playerX, 0, 8);
     }
 
-    triggerSlide() {
+    slide() {
       if (!this.isRunning || this.gameOver || this.isPaused) return;
 
       if (this.isJumping) {
-        // Fast drop if in mid-air
-        this.verticalVelocity = -1200;
+        // Fast drop straight down into a roll
+        this.verticalVelocity = -1400;
       }
 
       this.isSliding = true;
       this.slideTimer = this.slideDuration;
       window.soundEngine.playSlideSFX();
 
-      // Ground friction sparks
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 12; i++) {
         this.particles.push({
-          x: this.playerX + (Math.random() - 0.5) * 30,
+          x: this.playerX + (Math.random() - 0.5) * 25,
           y: -5,
           z: this.playerZ + Math.random() * 20,
-          vx: (Math.random() - 0.5) * 150,
-          vy: Math.random() * -60,
-          vz: 300 + Math.random() * 200,
-          life: 0.35,
-          maxLife: 0.35,
-          color: "#ffe600",
+          vx: (Math.random() - 0.5) * 120,
+          vy: Math.random() * -50,
+          vz: 350 + Math.random() * 150,
+          life: 0.3,
+          maxLife: 0.3,
+          color: "#e5e7eb",
           size: 4
         });
       }
     }
 
-    activateOverdrive() {
+    activateHoverboard() {
       if (this.overdriveEnergy < this.maxOverdriveEnergy || this.isOverdrive || this.gameOver) return;
       this.isOverdrive = true;
-      this.overdriveTimer = 6.0;
+      this.overdriveTimer = 6.5;
       this.overdriveEnergy = 0;
 
-      window.soundEngine.playCoinSFX(3);
-      this.triggerScreenShake(12, 0.4);
-      this.addFloatingText("HYPER SPEED!", 0, -80, "#ffe600", 2.2);
+      window.soundEngine.playCoinSFX(4);
+      this.triggerScreenShake(10, 0.3);
+      this.addFloatingText("HOVERBOARD BOOST!", 0, -80, "#ffe600", 2.0);
     }
 
-    getSkin() {
-      return RUNNER_SKINS.find(s => s.id === playerData.selectedSkin) || RUNNER_SKINS[0];
+    getChar() {
+      return CHARACTERS.find(c => c.id === playerData.selectedChar) || CHARACTERS[0];
     }
 
     startGame() {
@@ -383,6 +359,7 @@
       this.isPaused = false;
       this.gameOver = false;
 
+      this.currentLane = 1;
       this.playerX = 0;
       this.targetPlayerX = 0;
       this.playerY = 0;
@@ -391,18 +368,16 @@
       this.isSliding = false;
       this.slideTimer = 0;
       this.runCycle = 0;
-      this.stepCycle = 0;
 
       this.speed = this.baseSpeed;
       this.score = 0;
       this.displayScore = 0;
       this.distance = 0;
-      this.creditsThisRun = 0;
-      this.nearMisses = 0;
+      this.coinsThisRun = 0;
       this.multiplier = 1;
       this.multiplierTimer = 0;
 
-      const shieldUpgrade = playerData.upgrades.shield || 1;
+      const shieldUpgrade = playerData.upgrades.hoverboard || 1;
       this.maxShields = 1 + Math.floor((shieldUpgrade - 1) / 2);
       this.shields = this.maxShields;
 
@@ -411,11 +386,11 @@
       this.overdriveTimer = 0;
 
       this.obstacles = [];
-      this.pickups = [];
+      this.coins = [];
       this.particles = [];
       this.floatingTexts = [];
-      this.currentSectorIndex = 0;
-      this.sectorDistance = 0;
+      this.currentThemeIndex = 0;
+      this.themeDistance = 0;
 
       document.getElementById("start-screen").classList.add("hidden");
       document.getElementById("game-over-screen").classList.add("hidden");
@@ -463,22 +438,22 @@
       this.shakeDuration = duration;
     }
 
-    addFloatingText(text, x, y, color = "#00f3ff", scale = 1.0) {
-      this.floatingTexts.push({ text, x, y, color, scale, alpha: 1.0, life: 1.2 });
+    addFloatingText(text, x, y, color = "#ffe600", scale = 1.0) {
+      this.floatingTexts.push({ text, x, y, color, scale, alpha: 1.0, life: 1.1 });
     }
 
-    addFootstepPuff(x, y, count = 5) {
+    addDustPuff(x, y, count = 6) {
       for (let i = 0; i < count; i++) {
         this.particles.push({
-          x: x + (Math.random() - 0.5) * 16,
+          x: x + (Math.random() - 0.5) * 18,
           y: y,
           z: this.playerZ + Math.random() * 10,
-          vx: (Math.random() - 0.5) * 40,
-          vy: -Math.random() * 25,
-          vz: 250 + Math.random() * 100,
+          vx: (Math.random() - 0.5) * 35,
+          vy: -Math.random() * 20,
+          vz: 250 + Math.random() * 80,
           life: 0.3,
           maxLife: 0.3,
-          color: "rgba(255, 255, 255, 0.4)",
+          color: "rgba(255, 255, 255, 0.45)",
           size: 4
         });
       }
@@ -500,13 +475,13 @@
 
     // --- UPDATE ---
     update(dt) {
-      // 1. Horizontal Smooth Steering
-      const lerpSpeed = 16 * dt;
+      // 1. Snappy Lane Change Lerp
+      const lerpSpeed = 18 * dt;
       const prevX = this.playerX;
       this.playerX += (this.targetPlayerX - this.playerX) * lerpSpeed;
-      this.bankAngle = Math.max(-0.25, Math.min(0.25, (this.playerX - prevX) / 40));
+      this.bankAngle = Math.max(-0.2, Math.min(0.2, (this.playerX - prevX) / 30));
 
-      // 2. Jumping Physics
+      // 2. Jumping Arc Physics
       if (this.isJumping) {
         this.playerY += this.verticalVelocity * dt;
         this.verticalVelocity -= this.gravity * dt;
@@ -515,12 +490,12 @@
           this.playerY = 0;
           this.isJumping = false;
           this.verticalVelocity = 0;
-          this.addFootstepPuff(this.playerX, 0, 8);
+          this.addDustPuff(this.playerX, 0, 8);
           window.soundEngine.playFootstep();
         }
       }
 
-      // 3. Sliding Timer
+      // 3. Sliding
       if (this.isSliding) {
         this.slideTimer -= dt;
         if (this.slideTimer <= 0) {
@@ -528,46 +503,39 @@
         }
       }
 
-      // 4. Running Kinematics & Footstep Audio Sync
+      // 4. Running Cycle
       if (!this.isJumping && !this.isSliding) {
-        const runFreq = (this.speed / 700) * 14;
+        const runFreq = (this.speed / 750) * 15;
         const prevCycle = this.runCycle;
         this.runCycle += runFreq * dt;
 
-        // Detect foot strike on ground
         if (Math.sin(prevCycle) < 0 && Math.sin(this.runCycle) >= 0) {
           window.soundEngine.playFootstep();
-          this.addFootstepPuff(this.playerX + 10, 0, 3);
+          this.addDustPuff(this.playerX + 12, 0, 3);
         } else if (Math.sin(prevCycle) >= 0 && Math.sin(this.runCycle) < 0) {
           window.soundEngine.playFootstep();
-          this.addFootstepPuff(this.playerX - 10, 0, 3);
+          this.addDustPuff(this.playerX - 12, 0, 3);
         }
       }
 
       // 5. Speed & Distance
-      const targetSpeed = this.isOverdrive ? 1800 : Math.min(this.maxSpeed, this.baseSpeed + this.distance * 0.08);
+      const targetSpeed = this.isOverdrive ? 1800 : Math.min(this.maxSpeed, this.baseSpeed + this.distance * 0.09);
       this.speed += (targetSpeed - this.speed) * 3 * dt;
       this.distance += this.speed * dt * 0.1;
-      this.sectorDistance += this.speed * dt * 0.1;
+      this.themeDistance += this.speed * dt * 0.1;
 
-      if (this.sectorDistance >= this.sectorLength) {
-        this.sectorDistance = 0;
-        this.currentSectorIndex = (this.currentSectorIndex + 1) % SECTORS.length;
-        this.addFloatingText(SECTORS[this.currentSectorIndex].name, 0, -80, SECTORS[this.currentSectorIndex].accentColor, 1.8);
+      if (this.themeDistance >= this.themeLength) {
+        this.themeDistance = 0;
+        this.currentThemeIndex = (this.currentThemeIndex + 1) % THEMES.length;
+        this.addFloatingText(THEMES[this.currentThemeIndex].name, 0, -80, "#ffffff", 1.8);
       }
 
       // Score
-      this.score += (this.speed * 0.1) * this.multiplier * dt;
+      this.score += (this.speed * 0.12) * this.multiplier * dt;
       this.displayScore += (this.score - this.displayScore) * 10 * dt;
 
-      // Road Scroll
-      this.roadZOffset = (this.roadZOffset + this.speed * dt) % 120;
-
-      // Street Lamps
-      for (const lamp of this.streetLamps) {
-        lamp.z -= this.speed * dt;
-        if (lamp.z < 20) lamp.z += 1200;
-      }
+      // Railway Ties Scroll
+      this.trackZOffset = (this.trackZOffset + this.speed * dt) % 90;
 
       // Decay screen shake
       if (this.shakeDuration > 0) this.shakeDuration -= dt;
@@ -576,9 +544,7 @@
       // Overdrive decay
       if (this.isOverdrive) {
         this.overdriveTimer -= dt;
-        if (this.overdriveTimer <= 0) {
-          this.isOverdrive = false;
-        }
+        if (this.overdriveTimer <= 0) this.isOverdrive = false;
       }
 
       // Multiplier decay
@@ -592,7 +558,7 @@
 
       // Entities
       this.updateObstacles(dt);
-      this.updatePickups(dt);
+      this.updateCoins(dt);
       this.updateParticles(dt);
       this.updateFloatingTexts(dt);
       this.updateHUD();
@@ -600,50 +566,41 @@
 
     updateSpawners(dt) {
       this.spawnTimer -= dt;
-      const interval = Math.max(0.65, 1.35 - (this.distance * 0.00008));
+      const interval = Math.max(0.7, 1.4 - (this.distance * 0.00008));
       if (this.spawnTimer <= 0) {
-        this.spawnTimer = interval + Math.random() * 0.3;
-        this.spawnObstacle();
+        this.spawnTimer = interval + Math.random() * 0.35;
+        this.spawnSubwayObstacle();
       }
 
       this.coinSpawnTimer -= dt;
       if (this.coinSpawnTimer <= 0) {
-        this.coinSpawnTimer = 0.5 + Math.random() * 0.4;
-        this.spawnCoins();
+        this.coinSpawnTimer = 0.6 + Math.random() * 0.4;
+        this.spawnSubwayCoins();
       }
     }
 
-    spawnObstacle() {
-      // 4 Realistic Blockers:
-      // 1. "concrete": Heavy concrete road barrier (Dodge left/right)
-      // 2. "laser_gantry": High overhead laser gantry (SLIDE UNDER)
-      // 3. "hurdle": Low road construction barricade (JUMP OVER)
-      // 4. "crates": Stacked hazard crates (Dodge)
-      const types = ["concrete", "laser_gantry", "hurdle", "crates"];
+    spawnSubwayObstacle() {
+      // SUBWAY SURFERS OBSTACLES:
+      // 1. "train": Full 3D Red Subway Train Carriage (Dodge left/right)
+      // 2. "hurdle": Track barrier hurdle (JUMP OVER)
+      // 3. "overhead_barrier": Low-clearance track gantry with yellow stripes (SLIDE UNDER)
+      // 4. "track_sign": Railway signal post with flashing lights (Dodge)
+      const types = ["train", "hurdle", "overhead_barrier", "train", "track_sign"];
       const type = types[Math.floor(Math.random() * types.length)];
       const lane = LANES[Math.floor(Math.random() * LANES.length)];
-      const spawnZ = 1300;
+      const spawnZ = 1350;
 
-      if (type === "concrete") {
+      if (type === "train") {
         this.obstacles.push({
-          type: "concrete",
-          x: lane,
-          y: 0,
-          z: spawnZ,
-          width: 170,
-          height: 90,
-          hitRadius: 80,
-          passed: false
-        });
-      } else if (type === "laser_gantry") {
-        this.obstacles.push({
-          type: "laser_gantry",
+          type: "train",
           x: lane,
           y: 0,
           z: spawnZ,
           width: 220,
-          height: 160,
+          height: 180,
+          length: 380,
           hitRadius: 95,
+          color: "#e52b2b",
           passed: false
         });
       } else if (type === "hurdle") {
@@ -652,36 +609,45 @@
           x: lane,
           y: 0,
           z: spawnZ,
-          width: 180,
-          height: 50,
-          hitRadius: 75,
+          width: 200,
+          height: 55,
+          hitRadius: 85,
           passed: false
         });
-      } else if (type === "crates") {
+      } else if (type === "overhead_barrier") {
         this.obstacles.push({
-          type: "crates",
+          type: "overhead_barrier",
           x: lane,
           y: 0,
           z: spawnZ,
-          width: 160,
-          height: 120,
-          hitRadius: 80,
+          width: 220,
+          height: 160,
+          hitRadius: 90,
+          passed: false
+        });
+      } else if (type === "track_sign") {
+        this.obstacles.push({
+          type: "track_sign",
+          x: lane,
+          y: 0,
+          z: spawnZ,
+          width: 140,
+          height: 140,
+          hitRadius: 75,
           passed: false
         });
       }
     }
 
-    spawnCoins() {
+    spawnSubwayCoins() {
       const lane = LANES[Math.floor(Math.random() * LANES.length)];
-      const count = 3 + Math.floor(Math.random() * 3);
+      const count = 4 + Math.floor(Math.random() * 3);
       for (let i = 0; i < count; i++) {
-        this.pickups.push({
-          type: "coin",
+        this.coins.push({
           x: lane,
-          y: -30,
-          z: 1300 + (i * 90),
+          y: -35,
+          z: 1350 + (i * 85),
           radius: 26,
-          color: "#ffe600",
           rotation: 0
         });
       }
@@ -692,31 +658,28 @@
         const obs = this.obstacles[i];
         obs.z -= this.speed * dt;
 
-        // Collision Check
         const zDist = obs.z - this.playerZ;
         const xDist = Math.abs(obs.x - this.playerX);
 
-        if (!obs.passed && zDist <= 25 && zDist >= -40) {
+        if (!obs.passed && zDist <= 30 && zDist >= -40) {
           if (xDist < obs.hitRadius) {
-            // Check Action Avoidance (Jump / Slide)
             let avoided = false;
 
             if (obs.type === "hurdle" && this.playerY > 40) {
-              avoided = true; // Clean jump!
-              this.score += 200 * this.multiplier;
-              this.addFloatingText("VAULTED! +200", this.playerX, -80, "#00ff88", 1.4);
-            } else if (obs.type === "laser_gantry" && this.isSliding) {
-              avoided = true; // Clean slide!
-              this.score += 300 * this.multiplier;
-              this.addFloatingText("POWER SLIDE! +300", this.playerX, -50, "#ffe600", 1.5);
+              avoided = true; // Clean parkour jump!
+              this.score += 250 * this.multiplier;
+              this.addFloatingText("VAULT! +250", this.playerX, -80, "#22c55e", 1.4);
+            } else if (obs.type === "overhead_barrier" && this.isSliding) {
+              avoided = true; // Clean slide under bar!
+              this.score += 350 * this.multiplier;
+              this.addFloatingText("SLIDE! +350", this.playerX, -50, "#ffe600", 1.5);
             }
 
             if (!avoided) {
               obs.passed = true;
               this.handleCollision(obs);
             }
-          } else if (xDist < obs.hitRadius + 95) {
-            // Near Miss
+          } else if (xDist < obs.hitRadius + 90) {
             obs.passed = true;
             this.handleNearMiss(obs);
           }
@@ -726,68 +689,64 @@
       }
     }
 
-    updatePickups(dt) {
+    updateCoins(dt) {
       const magnetLevel = playerData.upgrades.magnet || 1;
-      const magnetRadius = 200 + (magnetLevel * 50);
+      const magnetRadius = 220 + (magnetLevel * 50);
 
-      for (let i = this.pickups.length - 1; i >= 0; i--) {
-        const p = this.pickups[i];
-        p.z -= this.speed * dt;
-        p.rotation += 4 * dt;
+      for (let i = this.coins.length - 1; i >= 0; i--) {
+        const c = this.coins[i];
+        c.z -= this.speed * dt;
+        c.rotation += 4 * dt;
 
         // Magnet attraction
-        const dx = this.playerX - p.x;
-        const dz = this.playerZ - p.z;
+        const dx = this.playerX - c.x;
+        const dz = this.playerZ - c.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        if (dist < magnetRadius && p.z > this.playerZ) {
-          const pull = (1 - dist / magnetRadius) * 2400 * dt;
-          p.x += (dx / dist) * pull;
+        if (dist < magnetRadius && c.z > this.playerZ) {
+          const pull = (1 - dist / magnetRadius) * 2600 * dt;
+          c.x += (dx / dist) * pull;
         }
 
         // Collection
-        if (Math.abs(p.z - this.playerZ) < 50 && Math.abs(p.x - this.playerX) < 65) {
-          this.creditsThisRun++;
+        if (Math.abs(c.z - this.playerZ) < 55 && Math.abs(c.x - this.playerX) < 65) {
+          this.coinsThisRun++;
           playerData.credits++;
           savePlayerData();
 
           this.score += 100 * this.multiplier;
-          this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 5);
+          this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 6);
 
           window.soundEngine.playCoinSFX(this.multiplier);
-          this.addFloatingText("+1 CR", p.x, -50, "#ffe600", 1.1);
+          this.addFloatingText("+1 COIN", c.x, -50, "#ffe600", 1.1);
 
-          this.pickups.splice(i, 1);
+          this.coins.splice(i, 1);
           continue;
         }
 
-        if (p.z < -60) this.pickups.splice(i, 1);
+        if (c.z < -60) this.coins.splice(i, 1);
       }
     }
 
     handleNearMiss(obs) {
-      this.nearMisses++;
-      this.score += 250 * this.multiplier;
-      this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 10);
-
+      this.score += 200 * this.multiplier;
+      this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 8);
       if (this.multiplier < 8) {
         this.multiplier++;
         this.multiplierTimer = 4.0;
       }
-
-      this.addFloatingText(`CLOSE CALL! x${this.multiplier}`, this.playerX, -80, "#ff007f", 1.5);
-      this.triggerScreenShake(5, 0.15);
+      this.addFloatingText(`DODGE! x${this.multiplier}`, this.playerX, -80, "#38bdf8", 1.4);
+      this.triggerScreenShake(4, 0.12);
     }
 
     handleCollision(obs) {
       if (this.isOverdrive) {
-        // Smash through in hyper speed!
         this.score += 500 * this.multiplier;
-        this.addFloatingText("SMASH! +500", obs.x, -70, "#ffe600", 1.8);
+        this.addFloatingText("TRAIN SMASH! +500", obs.x, -70, "#ffe600", 1.8);
         window.soundEngine.playCrashSFX();
         this.triggerScreenShake(14, 0.3);
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 25; i++) {
           this.particles.push({
             x: obs.x,
             y: 0,
@@ -797,21 +756,20 @@
             vz: (Math.random() - 0.5) * 600,
             life: 0.6,
             maxLife: 0.6,
-            color: "#ffaa00",
+            color: "#e52b2b",
             size: 6
           });
         }
         return;
       }
 
-      // Normal hit
       this.shields--;
       this.multiplier = 1;
 
       if (this.shields > 0) {
         this.triggerScreenShake(12, 0.3);
         window.soundEngine.playCrashSFX();
-        this.addFloatingText("SHIELD DAMAGED!", this.playerX, -80, "#ff0055", 1.6);
+        this.addFloatingText("BOARD BROKEN!", this.playerX, -80, "#ef4444", 1.6);
       } else {
         this.triggerGameOver();
       }
@@ -836,8 +794,8 @@
         document.getElementById("game-over-screen").classList.remove("hidden");
         document.getElementById("final-score").textContent = finalScore.toLocaleString();
         document.getElementById("final-distance").textContent = `${Math.floor(this.distance)} m`;
-        document.getElementById("final-credits").textContent = `+${this.creditsThisRun}`;
-        document.getElementById("final-nearmiss").textContent = `${this.nearMisses}`;
+        document.getElementById("final-credits").textContent = `+${this.coinsThisRun}`;
+        document.getElementById("final-nearmiss").textContent = `${this.coinsThisRun} Coins`;
 
         const badge = document.getElementById("new-record-badge");
         if (badge) badge.style.display = isNew ? "inline-block" : "none";
@@ -845,9 +803,9 @@
     }
 
     shareScore() {
-      const text = `🏃 I ran ${Math.floor(this.distance)}m in Neon Velocity with a score of ${Math.floor(this.score).toLocaleString()}! Can you beat my record? Play now:`;
+      const text = `🏃 I scored ${Math.floor(this.score).toLocaleString()} in Subway Runner! Can you beat Jake's record? Play live now:`;
       if (navigator.share) {
-        navigator.share({ title: "Neon Velocity", text, url: window.location.href }).catch(() => {});
+        navigator.share({ title: "Subway Runner", text, url: window.location.href }).catch(() => {});
       } else {
         navigator.clipboard.writeText(`${text} ${window.location.href}`);
         alert("Score copied to clipboard! Share it with friends.");
@@ -877,7 +835,7 @@
           continue;
         }
         ft.y -= 40 * dt;
-        ft.alpha = ft.life / 1.2;
+        ft.alpha = ft.life / 1.1;
       }
     }
 
@@ -896,7 +854,7 @@
       const btnBoost = document.getElementById("btn-boost");
       if (btnBoost) {
         btnBoost.classList.toggle("glow", pct >= 100 || this.isOverdrive);
-        btnBoost.textContent = this.isOverdrive ? "HYPER!" : "BOOST";
+        btnBoost.textContent = this.isOverdrive ? "FLYING!" : "BOARD";
       }
 
       const multTag = document.getElementById("hud-multiplier");
@@ -927,7 +885,7 @@
 
     render() {
       const ctx = this.ctx;
-      const sector = SECTORS[this.currentSectorIndex];
+      const theme = THEMES[this.currentThemeIndex];
 
       let shakeX = 0, shakeY = 0;
       if (this.shakeIntensity > 0) {
@@ -938,162 +896,156 @@
       ctx.save();
       ctx.translate(shakeX, shakeY);
 
-      // 1. Sky & Glowing Retrosun
-      this.renderSky(sector);
+      // 1. Vibrant Sky & Clouds
+      this.renderSky(theme);
 
-      // 2. City Skyline with Lit Windows & Billboards
-      this.renderCitySkyline(sector);
+      // 2. City Station Backdrop & Buildings
+      this.renderStationCity(theme);
 
-      // 3. Realistic Asphalt Highway & Lane Markings
-      this.renderHighway(sector);
+      // 3. 3D Subway Railway Tracks & Wooden Ties
+      this.renderSubwayTracks(theme);
 
-      // 4. Flanking Street Lamp Cones
-      this.renderStreetLamps(sector);
+      // 4. World Objects (3D Red Trains, Hurdles, Coins)
+      this.renderEntities(theme);
 
-      // 5. World Objects (Obstacles, Coins, Particles)
-      this.renderWorldEntities(sector);
+      // 5. Stylized Subway Surfers Boy Runner (Jake with backwards cap, hoodie, jeans, sneakers & backpack)
+      this.renderJakeRunner();
 
-      // 6. Real Kinematic Human Runner
-      this.renderHumanRunner();
-
-      // 7. Floating UI Texts
+      // 6. Floating UI Texts
       this.renderFloatingTexts();
 
-      // 8. Overdrive Speed Warp FX
+      // 7. Overdrive Hoverboard FX
       if (this.isOverdrive) {
-        this.renderOverdriveVFX();
+        this.renderHoverboardVFX();
       }
 
       ctx.restore();
     }
 
-    renderSky(sector) {
+    renderSky(theme) {
       const ctx = this.ctx;
       const grad = ctx.createLinearGradient(0, 0, 0, this.horizonY);
-      grad.addColorStop(0, sector.skyTop);
-      grad.addColorStop(1, sector.skyBottom);
+      grad.addColorStop(0, theme.skyTop);
+      grad.addColorStop(1, theme.skyBottom);
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, this.width, this.horizonY);
 
-      // Glowing Cyber Sun
-      const sunR = Math.min(this.width * 0.18, 80);
-      const sunX = this.width * 0.5;
-      const sunY = this.horizonY - sunR * 0.45;
-
-      const sunGrad = ctx.createLinearGradient(0, sunY - sunR, 0, sunY + sunR);
-      sunGrad.addColorStop(0, sector.sunTop);
-      sunGrad.addColorStop(0.7, sector.sunBottom);
-      sunGrad.addColorStop(1, "transparent");
-
-      ctx.save();
-      ctx.fillStyle = sunGrad;
-      ctx.beginPath();
-      ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Synthwave horizontal slats
-      ctx.fillStyle = sector.skyBottom;
-      for (let i = 0; i < 5; i++) {
-        const sy = sunY + (i / 5) * sunR;
-        ctx.fillRect(sunX - sunR - 5, sy, (sunR + 5) * 2, (i + 1) * 2.5);
+      // Fluffy Cartoon Clouds
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      const clouds = [
+        { x: this.width * 0.2, y: this.horizonY * 0.35, r: 35 },
+        { x: this.width * 0.75, y: this.horizonY * 0.25, r: 45 }
+      ];
+      for (const c of clouds) {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.arc(c.x + c.r * 0.7, c.y - c.r * 0.2, c.r * 0.8, 0, Math.PI * 2);
+        ctx.arc(c.x - c.r * 0.6, c.y, c.r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.restore();
     }
 
-    renderCitySkyline(sector) {
+    renderStationCity(theme) {
       const ctx = this.ctx;
       ctx.save();
       const horizon = this.horizonY;
-      const parallax = -this.playerX * 0.04;
+      const parallax = -this.playerX * 0.03;
 
-      const buildingW = 40;
-      const total = Math.ceil(this.width / buildingW) + 4;
+      // Colorful Subway Station Skyline & Overpasses
+      const bWidth = 48;
+      const count = Math.ceil(this.width / bWidth) + 4;
+      const colors = ["#cbd5e1", "#94a3b8", "#64748b", "#cbd5e1", "#e2e8f0"];
 
-      ctx.fillStyle = "#090414";
-      for (let i = -2; i < total; i++) {
-        const bx = i * buildingW + (parallax % buildingW);
-        const seed = Math.sin(i * 43758.5453);
-        const bh = 40 + Math.abs(seed) * 120;
+      for (let i = -2; i < count; i++) {
+        const bx = i * bWidth + (parallax % bWidth);
+        const seed = Math.sin(i * 1234.56);
+        const bh = 50 + Math.abs(seed) * 110;
+        const color = colors[Math.abs(Math.floor(seed * 10)) % colors.length];
 
-        ctx.fillRect(bx, horizon - bh, buildingW - 2, bh);
+        ctx.fillStyle = color;
+        ctx.fillRect(bx, horizon - bh, bWidth - 3, bh);
 
-        // Lit Windows
-        if (Math.abs(seed) > 0.3) {
-          ctx.fillStyle = sector.gridColor;
-          ctx.globalAlpha = 0.6;
-          for (let wy = horizon - bh + 15; wy < horizon - 10; wy += 14) {
-            ctx.fillRect(bx + 6, wy, 4, 6);
-            ctx.fillRect(bx + 18, wy, 4, 6);
-          }
-          ctx.fillStyle = "#090414";
-          ctx.globalAlpha = 1.0;
+        // Windows
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.7;
+        for (let wy = horizon - bh + 14; wy < horizon - 8; wy += 16) {
+          ctx.fillRect(bx + 8, wy, 8, 9);
+          ctx.fillRect(bx + 24, wy, 8, 9);
         }
-
-        // Antenna with flashing beacon
-        if (i % 3 === 0) {
-          ctx.strokeStyle = "#ff0055";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(bx + buildingW * 0.5, horizon - bh);
-          ctx.lineTo(bx + buildingW * 0.5, horizon - bh - 20);
-          ctx.stroke();
-
-          ctx.fillStyle = "#ff0055";
-          ctx.beginPath();
-          ctx.arc(bx + buildingW * 0.5, horizon - bh - 20, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        ctx.globalAlpha = 1.0;
       }
 
       ctx.restore();
     }
 
-    renderHighway(sector) {
+    renderSubwayTracks(theme) {
       const ctx = this.ctx;
       ctx.save();
 
-      // Dark asphalt surface
-      const roadGrad = ctx.createLinearGradient(0, this.horizonY, 0, this.height);
-      roadGrad.addColorStop(0, "#08090d");
-      roadGrad.addColorStop(1, sector.roadColor);
-      ctx.fillStyle = roadGrad;
+      // Gravel Ballast Ground Bed
+      const groundGrad = ctx.createLinearGradient(0, this.horizonY, 0, this.height);
+      groundGrad.addColorStop(0, "#333842");
+      groundGrad.addColorStop(1, theme.groundColor);
+      ctx.fillStyle = groundGrad;
       ctx.fillRect(0, this.horizonY, this.width, this.height - this.horizonY);
 
-      // Curbs & Highway Guardrails
-      const maxZ = 1200;
-      const pLeftNear = this.project(-ROAD_WIDTH * 0.5, 0, 20);
-      const pLeftFar = this.project(-ROAD_WIDTH * 0.5, 0, maxZ);
-      const pRightNear = this.project(ROAD_WIDTH * 0.5, 0, 20);
-      const pRightFar = this.project(ROAD_WIDTH * 0.5, 0, maxZ);
+      const maxZ = 1350;
 
-      // Neon Guardrail glow
-      ctx.strokeStyle = sector.accentColor;
-      ctx.lineWidth = 4;
-      ctx.shadowColor = sector.accentColor;
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.moveTo(pLeftNear.x, pLeftNear.y);
-      ctx.lineTo(pLeftFar.x, pLeftFar.y);
-      ctx.moveTo(pRightNear.x, pRightNear.y);
-      ctx.lineTo(pRightFar.x, pRightFar.y);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      // Wooden Cross-Ties (Railway Sleepers across tracks)
+      const tieStep = 45;
+      for (let z = (this.trackZOffset % tieStep); z < maxZ; z += tieStep) {
+        const pL = this.project(-ROAD_WIDTH * 0.48, 0, z);
+        const pR = this.project(ROAD_WIDTH * 0.48, 0, z);
+        const alpha = Math.max(0, 1 - (z / maxZ));
 
-      // Dashed Lane Dividers (Realistic 3 lanes)
-      const dividers = [-ROAD_WIDTH * 0.17, ROAD_WIDTH * 0.17];
-      ctx.lineWidth = 2.5;
+        ctx.strokeStyle = theme.tieColor;
+        ctx.lineWidth = Math.max(2, 6 * pL.scale);
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(pL.x, pL.y);
+        ctx.lineTo(pR.x, pR.y);
+        ctx.stroke();
+      }
 
-      for (const divX of dividers) {
-        for (let z = (this.roadZOffset % 80); z < maxZ; z += 80) {
-          const p1 = this.project(divX, 0, z);
-          const p2 = this.project(divX, 0, z + 35);
-          const alpha = Math.max(0, 1 - (z / maxZ));
+      // 3 Pairs of Metallic Steel Rails (One pair for each lane)
+      const railGauges = [
+        // Left Lane Dual Rails
+        [-310, -210],
+        // Center Lane Dual Rails
+        [-50, 50],
+        // Right Lane Dual Rails
+        [210, 310]
+      ];
 
+      for (const pair of railGauges) {
+        for (const railX of pair) {
+          const pNear = this.project(railX, 0, 20);
+          const pFar = this.project(railX, 0, maxZ);
+
+          // Rail Shadow
+          ctx.strokeStyle = "rgba(0,0,0,0.4)";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(pNear.x + 2, pNear.y + 1);
+          ctx.lineTo(pFar.x + 1, pFar.y);
+          ctx.stroke();
+
+          // Steel Rail Top
+          ctx.strokeStyle = theme.railColor;
+          ctx.lineWidth = 3.5;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(pNear.x, pNear.y);
+          ctx.lineTo(pFar.x, pFar.y);
+          ctx.stroke();
+
+          // Shiny highlight
           ctx.strokeStyle = "#ffffff";
-          ctx.globalAlpha = alpha * 0.7;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.6;
           ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
+          ctx.moveTo(pNear.x, pNear.y - 1);
+          ctx.lineTo(pFar.x, pFar.y);
           ctx.stroke();
         }
       }
@@ -1101,51 +1053,10 @@
       ctx.restore();
     }
 
-    renderStreetLamps(sector) {
-      const ctx = this.ctx;
-      ctx.save();
-
-      for (const lamp of this.streetLamps) {
-        const sides = [-ROAD_WIDTH * 0.55, ROAD_WIDTH * 0.55];
-        for (const sideX of sides) {
-          const base = this.project(sideX, 0, lamp.z);
-          const top = this.project(sideX, -160, lamp.z);
-          if (base.scale <= 0) continue;
-
-          // Lamp Post
-          ctx.strokeStyle = "#444a59";
-          ctx.lineWidth = Math.max(2, 3 * base.scale);
-          ctx.beginPath();
-          ctx.moveTo(base.x, base.y);
-          ctx.lineTo(top.x, top.y);
-          ctx.stroke();
-
-          // Glowing Lamp Head
-          ctx.fillStyle = sector.gridColor;
-          ctx.shadowColor = sector.gridColor;
-          ctx.shadowBlur = 12 * base.scale;
-          ctx.beginPath();
-          ctx.arc(top.x, top.y, 4 * base.scale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Volumetric Light Cone on Road
-          ctx.fillStyle = "rgba(0, 243, 255, 0.05)";
-          ctx.beginPath();
-          ctx.moveTo(top.x, top.y);
-          ctx.lineTo(base.x - 40 * base.scale, base.y);
-          ctx.lineTo(base.x + 40 * base.scale, base.y);
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-
-      ctx.restore();
-    }
-
-    renderWorldEntities(sector) {
+    renderEntities(theme) {
       const entities = [];
       for (const obs of this.obstacles) entities.push({ type: "obs", data: obs, z: obs.z });
-      for (const coin of this.pickups) entities.push({ type: "coin", data: coin, z: coin.z });
+      for (const coin of this.coins) entities.push({ type: "coin", data: coin, z: coin.z });
       for (const p of this.particles) entities.push({ type: "p", data: p, z: p.z });
 
       entities.sort((a, b) => b.z - a.z);
@@ -1166,125 +1077,138 @@
       const w = obs.width * proj.scale;
       const h = obs.height * proj.scale;
 
-      if (obs.type === "concrete") {
-        // 3D Concrete Jersey Barrier with Hazard Stripes
-        ctx.fillStyle = "#2c2d36"; // Concrete grey
-        ctx.strokeStyle = "#15161c";
-        ctx.lineWidth = Math.max(1.5, 2 * proj.scale);
+      if (obs.type === "train") {
+        // 3D RED SUBWAY TRAIN CARRIAGE (Subway Surfers iconic red/silver train)
+        // Body Drop Shadow
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fillRect(proj.x - w * 0.5, proj.y - 4, w, 10 * proj.scale);
 
-        // Trapezoidal 3D barrier
+        // Train Front Cab
+        ctx.fillStyle = "#e52b2b"; // Vibrant Train Red
+        ctx.strokeStyle = "#991b1b";
+        ctx.lineWidth = Math.max(2, 3 * proj.scale);
+
+        // Rounded Front Nose
         ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.45, proj.y);
-        ctx.lineTo(proj.x - w * 0.35, proj.y - h);
-        ctx.lineTo(proj.x + w * 0.35, proj.y - h);
-        ctx.lineTo(proj.x + w * 0.45, proj.y);
-        ctx.closePath();
+        ctx.roundRect(proj.x - w * 0.48, proj.y - h, w * 0.96, h, [12 * proj.scale, 12 * proj.scale, 4, 4]);
         ctx.fill();
         ctx.stroke();
 
-        // Diagonal Yellow/Black Hazard Stripes
-        ctx.save();
-        ctx.clip();
-        ctx.fillStyle = "#ffe600";
-        const stripeW = 18 * proj.scale;
-        for (let sx = proj.x - w; sx < proj.x + w; sx += stripeW * 2) {
+        // Train Roof Corrugated Ribs
+        ctx.fillStyle = "#991b1b";
+        ctx.fillRect(proj.x - w * 0.44, proj.y - h, w * 0.88, 14 * proj.scale);
+
+        // Silver / White Accent Stripe
+        ctx.fillStyle = "#f1f5f9";
+        ctx.fillRect(proj.x - w * 0.48, proj.y - h * 0.55, w * 0.96, 20 * proj.scale);
+
+        // Windshield Glass with Reflection
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(proj.x - w * 0.38, proj.y - h * 0.88, w * 0.76, 38 * proj.scale);
+
+        // Windshield Glint
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = Math.max(1, 2 * proj.scale);
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.32, proj.y - h * 0.84);
+        ctx.lineTo(proj.x - w * 0.1, proj.y - h * 0.52);
+        ctx.stroke();
+
+        // Dual Glowing Headlights
+        ctx.fillStyle = "#fef08a";
+        ctx.shadowColor = "#fef08a";
+        ctx.shadowBlur = 14 * proj.scale;
+        ctx.beginPath();
+        ctx.arc(proj.x - w * 0.32, proj.y - h * 0.28, 9 * proj.scale, 0, Math.PI * 2);
+        ctx.arc(proj.x + w * 0.32, proj.y - h * 0.28, 9 * proj.scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Front Cowcatcher Grille
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(proj.x - w * 0.4, proj.y - 12 * proj.scale, w * 0.8, 10 * proj.scale);
+
+      } else if (obs.type === "hurdle") {
+        // Red and White Striped Track Hurdle (JUMP OVER)
+        ctx.fillStyle = "#e52b2b";
+        ctx.strokeStyle = "#7f1d1d";
+        ctx.lineWidth = Math.max(1.5, 2.5 * proj.scale);
+
+        // Barrier Board
+        ctx.fillRect(proj.x - w * 0.46, proj.y - h, w * 0.92, h * 0.55);
+        ctx.strokeRect(proj.x - w * 0.46, proj.y - h, w * 0.92, h * 0.55);
+
+        // Alternating White Stripes
+        ctx.fillStyle = "#ffffff";
+        const sw = w * 0.16;
+        ctx.fillRect(proj.x - w * 0.3, proj.y - h, sw, h * 0.55);
+        ctx.fillRect(proj.x + w * 0.1, proj.y - h, sw, h * 0.55);
+
+        // Steel Support Legs
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = Math.max(2, 3.5 * proj.scale);
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.38, proj.y - h * 0.4);
+        ctx.lineTo(proj.x - w * 0.44, proj.y);
+        ctx.moveTo(proj.x + w * 0.38, proj.y - h * 0.4);
+        ctx.lineTo(proj.x + w * 0.44, proj.y);
+        ctx.stroke();
+
+      } else if (obs.type === "overhead_barrier") {
+        // Overhead Yellow/Black Signal Arch (SLIDE UNDER)
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = Math.max(2, 4 * proj.scale);
+
+        // Posts
+        ctx.strokeRect(proj.x - w * 0.48, proj.y - h, 14 * proj.scale, h);
+        ctx.strokeRect(proj.x + w * 0.48 - 14 * proj.scale, proj.y - h, 14 * proj.scale, h);
+
+        // Overhead Signboard
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(proj.x - w * 0.48, proj.y - h, w * 0.96, 26 * proj.scale);
+
+        // "SLIDE" Text
+        ctx.fillStyle = "#facc15";
+        ctx.font = `900 ${Math.max(9, Math.floor(13 * proj.scale))}px 'Orbitron', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("▼ SLIDE ▼", proj.x, proj.y - h + 18 * proj.scale);
+
+        // Yellow/Black Hazard Striped Clearance Bar
+        const barY = proj.y - h * 0.46;
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(proj.x - w * 0.48, barY, w * 0.96, 14 * proj.scale);
+
+        ctx.fillStyle = "#000000";
+        for (let bx = proj.x - w * 0.48; bx < proj.x + w * 0.48; bx += 18 * proj.scale) {
           ctx.beginPath();
-          ctx.moveTo(sx, proj.y);
-          ctx.lineTo(sx + stripeW, proj.y);
-          ctx.lineTo(sx + stripeW + 15 * proj.scale, proj.y - h);
-          ctx.lineTo(sx + 15 * proj.scale, proj.y - h);
+          ctx.moveTo(bx, barY);
+          ctx.lineTo(bx + 8 * proj.scale, barY);
+          ctx.lineTo(bx + 14 * proj.scale, barY + 14 * proj.scale);
+          ctx.lineTo(bx + 6 * proj.scale, barY + 14 * proj.scale);
           ctx.closePath();
           ctx.fill();
         }
-        ctx.restore();
 
-        // Amber Hazard Strobe on Top
-        ctx.fillStyle = "#ff9900";
-        ctx.shadowColor = "#ff9900";
-        ctx.shadowBlur = 10 * proj.scale;
-        ctx.beginPath();
-        ctx.arc(proj.x, proj.y - h - 6 * proj.scale, 5 * proj.scale, 0, Math.PI * 2);
-        ctx.fill();
-
-      } else if (obs.type === "laser_gantry") {
-        // High Overhead Laser Gantry (Must SLIDE under)
-        ctx.strokeStyle = "#5a6275";
+      } else if (obs.type === "track_sign") {
+        // Railway Signal Light Post
+        ctx.strokeStyle = "#334155";
         ctx.lineWidth = Math.max(2, 4 * proj.scale);
-
-        // Left & Right steel pillars
-        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, 14 * proj.scale, h);
-        ctx.strokeRect(proj.x + w * 0.5 - 14 * proj.scale, proj.y - h, 14 * proj.scale, h);
-
-        // Overhead truss
-        ctx.fillStyle = "#1e222d";
-        ctx.fillRect(proj.x - w * 0.5, proj.y - h, w, 22 * proj.scale);
-        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, w, 22 * proj.scale);
-
-        // "SLIDE" Warning Sign
-        ctx.fillStyle = "#ff0055";
-        ctx.font = `bold ${Math.max(8, Math.floor(11 * proj.scale))}px 'Orbitron', sans-serif`;
-        ctx.textAlign = "center";
-        ctx.fillText("▼ SLIDE ▼", proj.x, proj.y - h + 15 * proj.scale);
-
-        // High Electric Hazard Laser Beam (at runner chest height)
-        const beamY = proj.y - h * 0.42;
-        ctx.strokeStyle = "#ff0055";
-        ctx.lineWidth = Math.max(3, 5 * proj.scale);
-        ctx.shadowColor = "#ff0055";
-        ctx.shadowBlur = 15 * proj.scale;
         ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.48, beamY);
-        ctx.lineTo(proj.x + w * 0.48, beamY);
+        ctx.moveTo(proj.x, proj.y);
+        ctx.lineTo(proj.x, proj.y - h);
         ctx.stroke();
 
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = Math.max(1, 2 * proj.scale);
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(proj.x - 14 * proj.scale, proj.y - h - 35 * proj.scale, 28 * proj.scale, 42 * proj.scale);
+
+        // Blinking Red Signal
+        ctx.fillStyle = "#ef4444";
+        ctx.shadowColor = "#ef4444";
+        ctx.shadowBlur = 12 * proj.scale;
         ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.48, beamY);
-        ctx.lineTo(proj.x + w * 0.48, beamY);
-        ctx.stroke();
-
-      } else if (obs.type === "hurdle") {
-        // Low Construction Sawhorse Hurdle (Must JUMP over)
-        ctx.fillStyle = "#ff5500";
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = Math.max(1.5, 2 * proj.scale);
-
-        // Horizontal hurdle board
-        ctx.fillRect(proj.x - w * 0.45, proj.y - h, w * 0.9, h * 0.55);
-        ctx.strokeRect(proj.x - w * 0.45, proj.y - h, w * 0.9, h * 0.55);
-
-        // White alternating stripes
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(proj.x - w * 0.25, proj.y - h, w * 0.15, h * 0.55);
-        ctx.fillRect(proj.x + w * 0.1, proj.y - h, w * 0.15, h * 0.55);
-
-        // Legs
-        ctx.strokeStyle = "#222";
-        ctx.lineWidth = Math.max(2, 3 * proj.scale);
-        ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.4, proj.y - h * 0.4);
-        ctx.lineTo(proj.x - w * 0.48, proj.y);
-        ctx.moveTo(proj.x + w * 0.4, proj.y - h * 0.4);
-        ctx.lineTo(proj.x + w * 0.48, proj.y);
-        ctx.stroke();
-
-      } else if (obs.type === "crates") {
-        // Heavy Industrial Cargo Box
-        ctx.fillStyle = "#1e283b";
-        ctx.strokeStyle = "#00f3ff";
-        ctx.lineWidth = Math.max(1.5, 2.5 * proj.scale);
-
-        ctx.fillRect(proj.x - w * 0.4, proj.y - h, w * 0.8, h);
-        ctx.strokeRect(proj.x - w * 0.4, proj.y - h, w * 0.8, h);
-
-        // Inner bracing
-        ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.4, proj.y - h);
-        ctx.lineTo(proj.x + w * 0.4, proj.y);
-        ctx.moveTo(proj.x + w * 0.4, proj.y - h);
-        ctx.lineTo(proj.x - w * 0.4, proj.y);
-        ctx.stroke();
+        ctx.arc(proj.x, proj.y - h - 14 * proj.scale, 7 * proj.scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
       }
 
       ctx.restore();
@@ -1298,19 +1222,31 @@
       ctx.translate(proj.x, proj.y);
 
       const r = coin.radius * proj.scale;
-      const spinScale = Math.cos(coin.rotation); // 3D rotating coin effect
+      const spin = Math.cos(coin.rotation);
 
-      ctx.shadowColor = coin.color;
-      ctx.shadowBlur = 10 * proj.scale;
+      // Gold Coin Glow
+      ctx.shadowColor = "#facc15";
+      ctx.shadowBlur = 12 * proj.scale;
 
-      ctx.fillStyle = "#ffe600";
+      // Outer Rim
+      ctx.fillStyle = "#facc15";
       ctx.beginPath();
-      ctx.ellipse(0, 0, Math.max(1, Math.abs(r * spinScale)), r, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, Math.max(1, Math.abs(r * spin)), r, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = Math.max(1, 2 * proj.scale);
-      ctx.stroke();
+      // Inner Star Emblem
+      if (Math.abs(spin) > 0.4) {
+        ctx.fillStyle = "#ca8a04";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, Math.max(1, Math.abs(r * 0.7 * spin)), r * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.max(6, Math.floor(10 * proj.scale))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("★", 0, 0);
+      }
 
       ctx.restore();
     }
@@ -1328,172 +1264,240 @@
       ctx.restore();
     }
 
-    // --- REAL-TYPE KINEMATIC HUMAN RUNNER RENDERING ---
-    renderHumanRunner() {
-      const skin = this.getSkin();
+    // --- STYLIZED SUBWAY SURFERS CHARACTER (JAKE WITH BACKWARDS CAP & HOODIE) ---
+    renderJakeRunner() {
+      const skin = this.getChar();
       const proj = this.project(this.playerX, -this.playerY, this.playerZ);
       const groundProj = this.project(this.playerX, 0, this.playerZ);
       const ctx = this.ctx;
 
       ctx.save();
 
-      // 1. Soft Dynamic Drop Shadow on Road
-      const shadowScale = Math.max(0.3, 1 - (this.playerY / 300));
-      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+      // 1. Drop Shadow on Ground
+      const shadowScale = Math.max(0.35, 1 - (this.playerY / 320));
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
-      ctx.ellipse(groundProj.x, groundProj.y - 2, 28 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
+      ctx.ellipse(groundProj.x, groundProj.y - 2, 28 * shadowScale, 10 * shadowScale, 0, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.translate(proj.x, proj.y);
-      ctx.rotate(this.bankAngle); // Lean into turns
+      ctx.rotate(this.bankAngle);
 
-      const s = 1.35; // Character scale
+      const s = 1.45; // Hero scale
       const cycle = this.runCycle;
 
-      // Kinematic Body Part Angles based on running cycle
-      let legAngleL = Math.sin(cycle) * 0.7;
+      // Kinematic running angles
+      let legAngleL = Math.sin(cycle) * 0.75;
       let legAngleR = -legAngleL;
-      let armAngleL = -legAngleL * 0.85; // Arms swing opposite to legs
+      let armAngleL = -legAngleL * 0.9;
       let armAngleR = -armAngleL;
-      let torsoBob = Math.sin(cycle * 2) * 3; // Natural vertical bounce
-      let torsoAngle = 0.08; // Slight forward athletic lean
+      let torsoBob = Math.sin(cycle * 2) * 3.5;
+      let torsoAngle = 0.08;
 
-      // JUMPING POSE
+      // JUMP POSE
       if (this.isJumping) {
-        legAngleL = 0.6; // Legs tucked up
-        legAngleR = 0.8;
-        armAngleL = -0.7; // Arms up
-        armAngleR = -0.7;
-        torsoBob = -5;
+        legAngleL = 0.65;
+        legAngleR = 0.85;
+        armAngleL = -0.8;
+        armAngleR = -0.8;
+        torsoBob = -6;
       }
 
-      // SLIDING POSE
+      // SLIDE POSE
       if (this.isSliding) {
-        legAngleL = 1.2; // Legs extended forward
-        legAngleR = 1.1;
-        armAngleL = 0.9;
-        armAngleR = 0.9;
-        torsoBob = 35; // Dropped low to ground
-        torsoAngle = -0.5; // Leaning back on slide
+        legAngleL = 1.25;
+        legAngleR = 1.15;
+        armAngleL = 0.85;
+        armAngleR = 0.85;
+        torsoBob = 36;
+        torsoAngle = -0.45;
       }
 
-      const mainGlow = this.isOverdrive ? "#ffe600" : skin.glowColor;
-      ctx.shadowColor = mainGlow;
-      ctx.shadowBlur = this.isOverdrive ? 25 : 12;
-
-      // --- LEGS (Drawn behind torso) ---
-      const hipY = -38 * s + torsoBob;
+      // --- LEGS (JEANS & SNEAKERS) ---
+      const hipY = -40 * s + torsoBob;
 
       // Left Leg
       ctx.save();
-      ctx.translate(-7 * s, hipY);
+      ctx.translate(-8 * s, hipY);
       ctx.rotate(legAngleL);
-      // Thigh
-      ctx.fillStyle = skin.pantsColor;
-      ctx.fillRect(-4 * s, 0, 8 * s, 20 * s);
-      // Shin & Foot
-      ctx.translate(0, 18 * s);
-      const kneeBendL = this.isJumping ? -1.0 : Math.max(0, -legAngleL * 0.8);
-      ctx.rotate(kneeBendL);
-      ctx.fillRect(-3.5 * s, 0, 7 * s, 20 * s);
-      // Sneaker
-      ctx.fillStyle = skin.shoesColor;
-      ctx.fillRect(-4 * s, 17 * s, 10 * s, 7 * s);
-      // Glowing Sole
-      ctx.fillStyle = mainGlow;
-      ctx.fillRect(-4 * s, 22 * s, 10 * s, 3 * s);
+      // Denim Thigh
+      ctx.fillStyle = skin.jeansColor;
+      ctx.fillRect(-5 * s, 0, 10 * s, 21 * s);
+      // Shin & Cuffed Hem
+      ctx.translate(0, 19 * s);
+      const kneeL = this.isJumping ? -1.1 : Math.max(0, -legAngleL * 0.85);
+      ctx.rotate(kneeL);
+      ctx.fillStyle = skin.jeansColor;
+      ctx.fillRect(-4.5 * s, 0, 9 * s, 20 * s);
+      // Rolled Jean Cuff
+      ctx.fillStyle = "#93c5fd";
+      ctx.fillRect(-5 * s, 16 * s, 10 * s, 4 * s);
+      // Chunky Skate Sneaker
+      ctx.fillStyle = skin.shoesColor; // Red body
+      ctx.fillRect(-5 * s, 19 * s, 12 * s, 8 * s);
+      // White Toe Cap & Rubber Sole
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(-5 * s, 24 * s, 12 * s, 4 * s);
+      ctx.fillRect(4 * s, 19 * s, 4 * s, 7 * s);
       ctx.restore();
 
       // Right Leg
       ctx.save();
-      ctx.translate(7 * s, hipY);
+      ctx.translate(8 * s, hipY);
       ctx.rotate(legAngleR);
-      // Thigh
-      ctx.fillStyle = skin.pantsColor;
-      ctx.fillRect(-4 * s, 0, 8 * s, 20 * s);
-      // Shin & Foot
-      ctx.translate(0, 18 * s);
-      const kneeBendR = this.isJumping ? -1.2 : Math.max(0, -legAngleR * 0.8);
-      ctx.rotate(kneeBendR);
-      ctx.fillRect(-3.5 * s, 0, 7 * s, 20 * s);
-      // Sneaker
+      // Denim Thigh
+      ctx.fillStyle = skin.jeansColor;
+      ctx.fillRect(-5 * s, 0, 10 * s, 21 * s);
+      // Shin & Cuffed Hem
+      ctx.translate(0, 19 * s);
+      const kneeR = this.isJumping ? -1.3 : Math.max(0, -legAngleR * 0.85);
+      ctx.rotate(kneeR);
+      ctx.fillStyle = skin.jeansColor;
+      ctx.fillRect(-4.5 * s, 0, 9 * s, 20 * s);
+      // Rolled Jean Cuff
+      ctx.fillStyle = "#93c5fd";
+      ctx.fillRect(-5 * s, 16 * s, 10 * s, 4 * s);
+      // Chunky Skate Sneaker
       ctx.fillStyle = skin.shoesColor;
-      ctx.fillRect(-4 * s, 17 * s, 10 * s, 7 * s);
-      // Glowing Sole
-      ctx.fillStyle = mainGlow;
-      ctx.fillRect(-4 * s, 22 * s, 10 * s, 3 * s);
+      ctx.fillRect(-5 * s, 19 * s, 12 * s, 8 * s);
+      // White Toe Cap & Rubber Sole
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(-5 * s, 24 * s, 12 * s, 4 * s);
+      ctx.fillRect(4 * s, 19 * s, 4 * s, 7 * s);
       ctx.restore();
 
-      // --- TORSO & SPINE ---
+      // --- TORSO, BACKPACK & ARMS ---
       ctx.save();
       ctx.translate(0, hipY);
       ctx.rotate(torsoAngle);
 
-      // Athletic Cyber Jacket / Vest
-      ctx.fillStyle = skin.jacketColor;
-      ctx.strokeStyle = "#111";
+      // Green Subway Backpack (Jake's spray can bag)
+      ctx.fillStyle = skin.backpackColor;
+      ctx.strokeStyle = "#14532d";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(-13 * s, 0);
-      ctx.lineTo(-16 * s, -30 * s); // Left shoulder
-      ctx.lineTo(16 * s, -30 * s);  // Right shoulder
-      ctx.lineTo(13 * s, 0);        // Right waist
-      ctx.closePath();
+      ctx.roundRect(-14 * s, -28 * s, 28 * s, 24 * s, 6 * s);
       ctx.fill();
       ctx.stroke();
 
-      // Cyber Spine Neon Stripe
-      ctx.fillStyle = mainGlow;
-      ctx.fillRect(-2 * s, -28 * s, 4 * s, 26 * s);
+      // Spray Paint Can Top poking out
+      ctx.fillStyle = "#e52b2b";
+      ctx.fillRect(-8 * s, -33 * s, 6 * s, 6 * s);
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(2 * s, -33 * s, 6 * s, 6 * s);
+
+      // Blue Denim Hoodie / Vest
+      ctx.fillStyle = skin.vestColor;
+      ctx.beginPath();
+      ctx.moveTo(-14 * s, 0);
+      ctx.lineTo(-17 * s, -31 * s);
+      ctx.lineTo(17 * s, -31 * s);
+      ctx.lineTo(14 * s, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // White Tee Undershirt
+      ctx.fillStyle = skin.shirtColor;
+      ctx.fillRect(-6 * s, -28 * s, 12 * s, 24 * s);
 
       // --- ARMS ---
       // Left Arm
       ctx.save();
-      ctx.translate(-15 * s, -28 * s);
+      ctx.translate(-16 * s, -29 * s);
       ctx.rotate(armAngleL);
-      ctx.fillStyle = skin.jacketColor;
-      ctx.fillRect(-3.5 * s, 0, 7 * s, 18 * s);
-      // Forearm & Hand
-      ctx.translate(0, 16 * s);
+      // White sleeve
+      ctx.fillStyle = skin.shirtColor;
+      ctx.fillRect(-4 * s, 0, 8 * s, 14 * s);
+      // Forearm (Skin tone)
+      ctx.translate(0, 13 * s);
       ctx.rotate(Math.max(0.2, armAngleL * 0.5));
-      ctx.fillStyle = "#ffcc99"; // Skin tone hands
-      ctx.fillRect(-3 * s, 0, 6 * s, 14 * s);
+      ctx.fillStyle = "#fbcfe8"; // Skin tone
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 14 * s);
+      // Red Wristband & Hand
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(-4 * s, 8 * s, 8 * s, 4 * s);
       ctx.restore();
 
       // Right Arm
       ctx.save();
-      ctx.translate(15 * s, -28 * s);
+      ctx.translate(16 * s, -29 * s);
       ctx.rotate(armAngleR);
-      ctx.fillStyle = skin.jacketColor;
-      ctx.fillRect(-3.5 * s, 0, 7 * s, 18 * s);
-      // Forearm & Hand
-      ctx.translate(0, 16 * s);
+      ctx.fillStyle = skin.shirtColor;
+      ctx.fillRect(-4 * s, 0, 8 * s, 14 * s);
+      ctx.translate(0, 13 * s);
       ctx.rotate(Math.max(0.2, armAngleR * 0.5));
-      ctx.fillStyle = "#ffcc99";
-      ctx.fillRect(-3 * s, 0, 6 * s, 14 * s);
+      ctx.fillStyle = "#fbcfe8";
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 14 * s);
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(-4 * s, 8 * s, 8 * s, 4 * s);
       ctx.restore();
 
-      // --- HEAD & VISOR ---
+      // --- HEAD WITH BACKWARDS CAP (JAKE'S TRADEMARK) ---
       ctx.translate(0, -32 * s);
-      // Head base / Hair
-      ctx.fillStyle = "#1e1b29";
+
+      // Neck
+      ctx.fillStyle = "#fbcfe8";
+      ctx.fillRect(-4 * s, -5 * s, 8 * s, 6 * s);
+
+      // Brown Hair visible around neck & temples
+      ctx.fillStyle = skin.hairColor;
       ctx.beginPath();
-      ctx.arc(0, -9 * s, 10 * s, 0, Math.PI * 2);
+      ctx.arc(0, -11 * s, 12 * s, 0, Math.PI * 2);
       ctx.fill();
 
-      // Cyber Visor / Headband
-      ctx.fillStyle = mainGlow;
-      ctx.fillRect(-8 * s, -11 * s, 16 * s, 5 * s);
+      // Ears
+      ctx.fillStyle = "#fbcfe8";
+      ctx.beginPath();
+      ctx.arc(-11 * s, -11 * s, 3.5 * s, 0, Math.PI * 2);
+      ctx.arc(11 * s, -11 * s, 3.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Backwards Baseball Cap (Red Cap Dome)
+      ctx.fillStyle = skin.capColor;
+      ctx.beginPath();
+      ctx.arc(0, -13 * s, 11 * s, Math.PI, 0); // Upper dome
+      ctx.closePath();
+      ctx.fill();
+
+      // Backwards Cap Visor extending backwards
+      ctx.fillStyle = "#991b1b";
+      ctx.beginPath();
+      ctx.roundRect(-8 * s, -12 * s, 16 * s, 5 * s, 2 * s);
+      ctx.fill();
+
+      // White Cap Button on Top
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, -24 * s, 2.5 * s, 0, Math.PI * 2);
+      ctx.fill();
 
       ctx.restore(); // End torso
 
-      // Energy Shield Dome (if active)
-      if (this.shields > 0) {
-        ctx.strokeStyle = this.shields > 1 ? "rgba(0, 243, 255, 0.7)" : "rgba(255, 0, 127, 0.7)";
-        ctx.lineWidth = 2.5;
+      // Hoverboard under feet (when boost is active)
+      if (this.isOverdrive) {
+        ctx.fillStyle = "#facc15";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(0, -40 * s + torsoBob, 28 * s, 46 * s, 0, 0, Math.PI * 2);
+        ctx.roundRect(-18 * s, 20 * s + torsoBob, 36 * s, 8 * s, 4 * s);
+        ctx.fill();
         ctx.stroke();
+
+        // Rainbow thruster jets
+        for (let i = 0; i < 4; i++) {
+          this.particles.push({
+            x: this.playerX + (Math.random() - 0.5) * 20,
+            y: 0,
+            z: this.playerZ + 15,
+            vx: (Math.random() - 0.5) * 50,
+            vy: 30,
+            vz: 400 + Math.random() * 200,
+            life: 0.3,
+            maxLife: 0.3,
+            color: Math.random() > 0.5 ? "#f43f5e" : "#38bdf8",
+            size: 5
+          });
+        }
       }
 
       ctx.restore();
@@ -1515,7 +1519,7 @@
       }
     }
 
-    renderOverdriveVFX() {
+    renderHoverboardVFX() {
       const ctx = this.ctx;
       ctx.save();
       const grad = ctx.createRadialGradient(
@@ -1523,13 +1527,13 @@
         this.width * 0.5, this.height * 0.5, this.width * 0.7
       );
       grad.addColorStop(0, "transparent");
-      grad.addColorStop(1, "rgba(255, 230, 0, 0.28)");
+      grad.addColorStop(1, "rgba(250, 204, 21, 0.25)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, this.width, this.height);
       ctx.restore();
     }
 
-    // --- GARAGE / WARDROBE ---
+    // --- GARAGE / CHARACTERS MENU ---
     openGarage() {
       window.soundEngine.playClickSFX();
       document.getElementById("start-screen").classList.add("hidden");
@@ -1547,19 +1551,19 @@
     renderGarageContent() {
       document.getElementById("garage-credits").textContent = playerData.credits;
 
-      // Skins
+      // Characters
       const list = document.getElementById("garage-ships-list");
       list.innerHTML = "";
-      RUNNER_SKINS.forEach(skin => {
-        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        const isSelected = playerData.selectedSkin === skin.id;
+      CHARACTERS.forEach(char => {
+        const isUnlocked = playerData.unlockedChars.includes(char.id);
+        const isSelected = playerData.selectedChar === char.id;
 
         const card = document.createElement("div");
         card.className = `cyber-card ${isSelected ? "selected" : ""}`;
         card.innerHTML = `
           <div class="card-header">
-            <span class="ship-name" style="color: ${skin.glowColor}">${skin.name}</span>
-            <span class="ship-badge">${isSelected ? "EQUIPPED" : isUnlocked ? "OWNED" : `${skin.price} CR`}</span>
+            <span class="ship-name" style="color: ${char.capColor}">${char.name}</span>
+            <span class="ship-badge">${isSelected ? "EQUIPPED" : isUnlocked ? "OWNED" : `${char.price} COINS`}</span>
           </div>
           <button class="cyber-btn sm ${isSelected ? "active" : ""}">
             ${isSelected ? "CURRENT" : isUnlocked ? "SELECT" : "UNLOCK"}
@@ -1569,18 +1573,18 @@
         card.querySelector("button").addEventListener("click", () => {
           window.soundEngine.playClickSFX();
           if (isUnlocked) {
-            playerData.selectedSkin = skin.id;
+            playerData.selectedChar = char.id;
             savePlayerData();
             this.renderGarageContent();
           } else {
-            if (playerData.credits >= skin.price) {
-              playerData.credits -= skin.price;
-              playerData.unlockedSkins.push(skin.id);
-              playerData.selectedSkin = skin.id;
+            if (playerData.credits >= char.price) {
+              playerData.credits -= char.price;
+              playerData.unlockedChars.push(char.id);
+              playerData.selectedChar = char.id;
               savePlayerData();
               this.renderGarageContent();
             } else {
-              alert("Collect more Cyber Credits during your runs!");
+              alert("Collect more gold coins on the subway tracks!");
             }
           }
         });
@@ -1592,10 +1596,10 @@
       const upList = document.getElementById("garage-upgrades-list");
       upList.innerHTML = "";
       const upgrades = [
-        { key: "magnet", name: "MAGNET SNEAKERS", desc: "Sucks in nearby gold coins automatically" },
-        { key: "shield", name: "SHIELD ARMOR", desc: "Absorbs crash damage without failing" },
-        { key: "overdrive", name: "HYPER SPRINT BOOSTER", desc: "Longer invincibility overdrive duration" },
-        { key: "multiplier", name: "SCORE MULTIPLIER", desc: "Increases credit gain rate" }
+        { key: "magnet", name: "COIN MAGNET", desc: "Attracts all gold coins across railway tracks" },
+        { key: "hoverboard", name: "HOVERBOARD ARMOR", desc: "Saves you from a crash without game over" },
+        { key: "boost", name: "SUPER SNEAKERS", desc: "Increases jump height and slide speed" },
+        { key: "multiplier", name: "2X MULTIPLIER", desc: "Doubles score rate on runs" }
       ];
 
       upgrades.forEach(u => {
@@ -1615,7 +1619,7 @@
             </div>
           </div>
           <button class="cyber-btn sm ${isMax ? "disabled" : ""}" ${isMax ? "disabled" : ""}>
-            ${isMax ? "MAX" : `UPGRADE (${cost} CR)`}
+            ${isMax ? "MAX" : `UPGRADE (${cost} COINS)`}
           </button>
         `;
 
@@ -1628,7 +1632,7 @@
               savePlayerData();
               this.renderGarageContent();
             } else {
-              alert("Collect more credits to upgrade!");
+              alert("Collect more coins to upgrade!");
             }
           });
         }
@@ -1646,6 +1650,6 @@
   }
 
   window.addEventListener("DOMContentLoaded", () => {
-    window.game = new Game();
+    window.game = new SubwayGame();
   });
 })();

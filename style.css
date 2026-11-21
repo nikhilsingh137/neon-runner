@@ -52,26 +52,9 @@ html, body {
   height: 100%;
 }
 
-/* Scanline and CRT overlay for authentic retro arcade feel */
+/* CRT scanlines disabled for clean, bright Subway Surfers 3D graphics */
 .scanlines {
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.25) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.03),
-    rgba(0, 255, 0, 0.01),
-    rgba(0, 0, 255, 0.03)
-  );
-  background-size: 100% 4px, 6px 100%;
-  z-index: 10;
-  opacity: 0.7;
+  display: none !important;
 }
 
 /* Touch Control Layer for smooth drag control on mobile */
