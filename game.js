@@ -1,173 +1,164 @@
 /**
- * Cyberpunk Neon Velocity - 60FPS Mobile-First 3D Perspective Arcade Runner
+ * Cyberpunk Human Parkour Runner - 60FPS 3D Kinetic Character & Obstacle Engine
  */
 
 (function () {
   'use strict';
 
-  // --- GAME CONFIG & STATE ---
-  const CANVAS_WIDTH = 800;
-  const CANVAS_HEIGHT = 1200; // High resolution base, will scale dynamically
-  const FOV = 300;
-  const CAMERA_HEIGHT = 160;
-  const ROAD_WIDTH = 1200;
+  // --- CONFIGURATION ---
+  const FOV = 320;
+  const CAMERA_HEIGHT = 180;
+  const ROAD_WIDTH = 1000;
+  const LANES = [-280, 0, 280]; // Left, Center, Right
 
-  // Sectors / Biomes
+  // Sector Themes
   const SECTORS = [
     {
-      name: "NEO TOKYO SECTOR 01",
-      horizonColor: "#ff007f",
+      name: "DOWNTOWN METROPOLIS",
       skyTop: "#08011a",
-      skyBottom: "#20083b",
+      skyBottom: "#1f0938",
+      roadColor: "#14151b",
       gridColor: "#00f3ff",
       accentColor: "#ff007f",
-      sunColor1: "#ff007f",
-      sunColor2: "#ffe600"
+      sunTop: "#ffe600",
+      sunBottom: "#ff007f",
+      fogColor: "#140529"
     },
     {
-      name: "OUTRUN HIGHWAY SECTOR 02",
-      horizonColor: "#ff5500",
-      skyTop: "#120024",
-      skyBottom: "#3d0b28",
-      gridColor: "#ff0055",
-      accentColor: "#ffaa00",
-      sunColor1: "#ff0055",
-      sunColor2: "#ff9900"
-    },
-    {
-      name: "CYBER MATRIX SECTOR 03",
-      horizonColor: "#00ff66",
-      skyTop: "#011208",
-      skyBottom: "#042918",
+      name: "NEON INDUSTRIAL DOCKS",
+      skyTop: "#02120e",
+      skyBottom: "#062b23",
+      roadColor: "#111716",
       gridColor: "#00ff88",
-      accentColor: "#00ffcc",
-      sunColor1: "#00ff88",
-      sunColor2: "#aaff00"
+      accentColor: "#00f3ff",
+      sunTop: "#aaff00",
+      sunBottom: "#00ff88",
+      fogColor: "#041c16"
     },
     {
-      name: "HYPER NEXUS SECTOR 04",
-      horizonColor: "#a200ff",
-      skyTop: "#0b001a",
-      skyBottom: "#28004f",
-      gridColor: "#bf00ff",
-      accentColor: "#00d9ff",
-      sunColor1: "#d000ff",
-      sunColor2: "#00ffff"
+      name: "SUNSET HIGHWAY",
+      skyTop: "#17021b",
+      skyBottom: "#3b092b",
+      roadColor: "#1c141d",
+      gridColor: "#ff5500",
+      accentColor: "#ffe600",
+      sunTop: "#ffea00",
+      sunBottom: "#ff0055",
+      fogColor: "#29041a"
     }
   ];
 
-  // Ship Models
-  const SHIPS = [
+  // Runner Outfits
+  const RUNNER_SKINS = [
     {
-      id: "specter",
-      name: "SPECTER-01",
-      desc: "Balanced tactical fighter with agile turning response.",
-      price: 0,
-      speedBonus: 1.0,
-      agility: 1.0,
-      shields: 1,
-      magnetBonus: 1.0,
-      color: "#00f3ff"
+      id: "cybersuit",
+      name: "NEON SPRINTER",
+      jacketColor: "#00f3ff",
+      pantsColor: "#121420",
+      shoesColor: "#00f3ff",
+      glowColor: "#00f3ff",
+      price: 0
     },
     {
-      id: "phantom",
-      name: "APEX PHANTOM",
-      desc: "Lightweight aerodynamic chassis with hyper-speed thrusters.",
-      price: 250,
-      speedBonus: 1.25,
-      agility: 1.15,
-      shields: 1,
-      magnetBonus: 1.1,
-      color: "#ff007f"
+      id: "crimson",
+      name: "CRIMSON PHANTOM",
+      jacketColor: "#ff0055",
+      pantsColor: "#1a0814",
+      shoesColor: "#ff0055",
+      glowColor: "#ff0055",
+      price: 300
     },
     {
-      id: "viper",
-      name: "VIPER X",
-      desc: "Twin-turbine interceptor with wide cyber-magnet array.",
-      price: 600,
-      speedBonus: 1.15,
-      agility: 1.35,
-      shields: 2,
-      magnetBonus: 1.6,
-      color: "#00ff66"
+      id: "matrix",
+      name: "MATRIX GHOST",
+      jacketColor: "#00ff66",
+      pantsColor: "#081a0e",
+      shoesColor: "#00ff66",
+      glowColor: "#00ff66",
+      price: 700
     },
     {
-      id: "titan",
-      name: "TITAN DREADNOUGHT",
-      desc: "Heavy armored cruiser built to smash through energy barriers.",
-      price: 1200,
-      speedBonus: 1.1,
-      agility: 0.9,
-      shields: 3,
-      magnetBonus: 1.4,
-      color: "#ffaa00"
+      id: "overlord",
+      name: "TITAN RUNNER",
+      jacketColor: "#ffaa00",
+      pantsColor: "#221a08",
+      shoesColor: "#ffe600",
+      glowColor: "#ffe600",
+      price: 1200
     }
   ];
 
-  // Local Storage Data Management
+  // Storage
   function loadPlayerData() {
-    const defaultData = {
+    const defaults = {
       credits: 0,
       highScore: 0,
       totalRuns: 0,
-      selectedShip: "specter",
-      unlockedShips: ["specter"],
+      selectedSkin: "cybersuit",
+      unlockedSkins: ["cybersuit"],
       upgrades: {
         magnet: 1,
         shield: 1,
         overdrive: 1,
         multiplier: 1
-      },
-      trailColor: "#00f3ff"
+      }
     };
-
     try {
-      const saved = localStorage.getItem("neon_velocity_player");
-      return saved ? Object.assign(defaultData, JSON.parse(saved)) : defaultData;
+      const saved = localStorage.getItem("neon_parkour_player");
+      return saved ? Object.assign(defaults, JSON.parse(saved)) : defaults;
     } catch (e) {
-      return defaultData;
+      return defaults;
     }
   }
 
   function savePlayerData() {
     try {
-      localStorage.setItem("neon_velocity_player", JSON.stringify(playerData));
+      localStorage.setItem("neon_parkour_player", JSON.stringify(playerData));
     } catch (e) {
-      console.warn("Could not save to localStorage:", e);
+      console.warn(e);
     }
   }
 
   const playerData = loadPlayerData();
 
-  // --- GAME ENGINE CLASS ---
+  // --- GAME ENGINE ---
   class Game {
     constructor() {
       this.canvas = document.getElementById("gameCanvas");
       this.ctx = this.canvas.getContext("2d");
-      
+
       this.isRunning = false;
       this.isPaused = false;
       this.gameOver = false;
-      
-      this.width = CANVAS_WIDTH;
-      this.height = CANVAS_HEIGHT;
-      this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
-      // Camera & Horizon
-      this.horizonY = this.height * 0.44;
+      this.width = 800;
+      this.height = 1200;
+      this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      this.horizonY = this.height * 0.45;
+
+      // Camera
       this.cameraTilt = 0;
       this.shakeIntensity = 0;
       this.shakeDuration = 0;
 
-      // Player State
+      // Human Runner State
       this.playerX = 0;
       this.targetPlayerX = 0;
-      this.playerY = 0;
-      this.playerZ = 80;
+      this.playerY = 0; // Vertical height above road (jumping)
+      this.playerZ = 90;
+      this.verticalVelocity = 0;
+      this.gravity = 2400;
+      this.isJumping = false;
+      this.isSliding = false;
+      this.slideTimer = 0;
+      this.slideDuration = 0.75;
+      
+      // Biomechanical Animation Cycles
+      this.runCycle = 0;
+      this.stepCycle = 0;
       this.speed = 0;
-      this.baseSpeed = 750;
-      this.maxSpeed = 1600;
-      this.steeringForce = 0;
+      this.baseSpeed = 700;
+      this.maxSpeed = 1500;
       this.bankAngle = 0;
 
       // Gameplay Stats
@@ -181,7 +172,7 @@
       this.shields = 1;
       this.maxShields = 1;
 
-      // Overdrive System
+      // Overdrive (Hyper Sprint)
       this.overdriveEnergy = 0;
       this.maxOverdriveEnergy = 100;
       this.isOverdrive = false;
@@ -192,28 +183,28 @@
       this.pickups = [];
       this.particles = [];
       this.floatingTexts = [];
-      this.speedLines = [];
-
-      // Sector / Theme
-      this.currentSectorIndex = 0;
-      this.sectorDistance = 0;
-      this.sectorLength = 4000;
-
-      // Time & Spawning
-      this.lastTime = 0;
-      this.spawnTimer = 0;
-      this.pickupSpawnTimer = 0;
+      this.streetLamps = [];
       this.roadZOffset = 0;
 
+      // Sector / City Theme
+      this.currentSectorIndex = 0;
+      this.sectorDistance = 0;
+      this.sectorLength = 3500;
+
+      // Timers & Spawning
+      this.lastTime = 0;
+      this.spawnTimer = 0;
+      this.coinSpawnTimer = 0;
+
       // Input State
-      this.keys = { left: false, right: false, boost: false };
-      this.touchX = null;
-      this.touchStartX = null;
-      this.touchActive = false;
+      this.keys = { left: false, right: false, up: false, down: false, boost: false };
+      this.touchStartX = 0;
+      this.touchStartY = 0;
+      this.touchStartTime = 0;
 
       this.initDisplay();
       this.initEvents();
-      this.initSpeedLines();
+      this.initStreetLamps();
       this.updateUI();
     }
 
@@ -221,100 +212,85 @@
       const resize = () => {
         const container = document.getElementById("game-container");
         const rect = container.getBoundingClientRect();
-        
         this.width = rect.width;
         this.height = rect.height;
         this.canvas.width = this.width * this.pixelRatio;
         this.canvas.height = this.height * this.pixelRatio;
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.scale(this.pixelRatio, this.pixelRatio);
-        
         this.horizonY = this.height * 0.44;
       };
-
       window.addEventListener("resize", resize);
       resize();
+    }
+
+    initStreetLamps() {
+      this.streetLamps = [];
+      for (let z = 100; z < 1400; z += 200) {
+        this.streetLamps.push({ z });
+      }
     }
 
     initEvents() {
       // Keyboard Controls
       window.addEventListener("keydown", (e) => {
-        if (["ArrowLeft", "KeyA"].includes(e.code)) this.keys.left = true;
-        if (["ArrowRight", "KeyD"].includes(e.code)) this.keys.right = true;
-        if (["Space", "ArrowUp", "KeyW"].includes(e.code)) {
-          this.activateOverdrive();
-        }
-        if (e.code === "KeyP" || e.code === "Escape") {
-          this.togglePause();
-        }
+        if (["ArrowLeft", "KeyA"].includes(e.code)) this.steerLane(-1);
+        if (["ArrowRight", "KeyD"].includes(e.code)) this.steerLane(1);
+        if (["ArrowUp", "KeyW"].includes(e.code)) this.triggerJump();
+        if (["ArrowDown", "KeyS"].includes(e.code)) this.triggerSlide();
+        if (["Space"].includes(e.code)) this.activateOverdrive();
+        if (["KeyP", "Escape"].includes(e.code)) this.togglePause();
       });
 
-      window.addEventListener("keyup", (e) => {
-        if (["ArrowLeft", "KeyA"].includes(e.code)) this.keys.left = false;
-        if (["ArrowRight", "KeyD"].includes(e.code)) this.keys.right = false;
-      });
-
-      // Touch Controls (Smooth Drag on Screen)
+      // Touch & Swipe Controls (High precision mobile gesture recognition)
       const touchArea = document.getElementById("touch-overlay") || this.canvas;
 
-      const handleTouchStart = (e) => {
+      touchArea.addEventListener("touchstart", (e) => {
         if (!this.isRunning || this.gameOver || this.isPaused) return;
         const touch = e.touches[0];
-        this.touchActive = true;
         this.touchStartX = touch.clientX;
-        this.touchX = touch.clientX;
-      };
+        this.touchStartY = touch.clientY;
+        this.touchStartTime = performance.now();
+      }, { passive: false });
 
-      const handleTouchMove = (e) => {
-        if (!this.touchActive) return;
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - this.touchX;
-        this.touchX = touch.clientX;
+      touchArea.addEventListener("touchend", (e) => {
+        if (!this.isRunning || this.gameOver || this.isPaused) return;
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - this.touchStartX;
+        const deltaY = touch.clientY - this.touchStartY;
+        const deltaTime = performance.now() - this.touchStartTime;
 
-        // Sensitively map swipe motion to target X
-        const sensitivity = 2.4;
-        this.targetPlayerX += deltaX * sensitivity;
-        this.targetPlayerX = Math.max(-ROAD_WIDTH * 0.46, Math.min(ROAD_WIDTH * 0.46, this.targetPlayerX));
-        
-        e.preventDefault();
-      };
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
 
-      const handleTouchEnd = () => {
-        this.touchActive = false;
-      };
+        // Swipe Gesture Detection
+        if (Math.max(absX, absY) > 25 && deltaTime < 400) {
+          if (absX > absY) {
+            // Horizontal swipe (Left / Right lane change)
+            if (deltaX > 0) this.steerLane(1);
+            else this.steerLane(-1);
+          } else {
+            // Vertical swipe (Jump / Slide)
+            if (deltaY < 0) this.triggerJump();
+            else this.triggerSlide();
+          }
+        }
+      }, { passive: true });
 
-      touchArea.addEventListener("touchstart", handleTouchStart, { passive: false });
-      touchArea.addEventListener("touchmove", handleTouchMove, { passive: false });
-      touchArea.addEventListener("touchend", handleTouchEnd, { passive: true });
-      touchArea.addEventListener("touchcancel", handleTouchEnd, { passive: true });
-
-      // On-screen Virtual Buttons (for players who prefer tapping buttons)
+      // Virtual Mobile Buttons
       const btnLeft = document.getElementById("btn-left");
       const btnRight = document.getElementById("btn-right");
+      const btnJump = document.getElementById("btn-jump");
+      const btnSlide = document.getElementById("btn-slide");
       const btnBoost = document.getElementById("btn-boost");
 
-      if (btnLeft && btnRight) {
-        const bindButton = (el, key) => {
-          el.addEventListener("touchstart", (e) => { e.preventDefault(); this.keys[key] = true; });
-          el.addEventListener("touchend", () => { this.keys[key] = false; });
-          el.addEventListener("mousedown", () => { this.keys[key] = true; });
-          el.addEventListener("mouseup", () => { this.keys[key] = false; });
-        };
-        bindButton(btnLeft, "left");
-        bindButton(btnRight, "right");
-      }
+      if (btnLeft) btnLeft.addEventListener("click", () => this.steerLane(-1));
+      if (btnRight) btnRight.addEventListener("click", () => this.steerLane(1));
+      if (btnJump) btnJump.addEventListener("click", () => this.triggerJump());
+      if (btnSlide) btnSlide.addEventListener("click", () => this.triggerSlide());
+      if (btnBoost) btnBoost.addEventListener("click", () => this.activateOverdrive());
 
-      if (btnBoost) {
-        btnBoost.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          this.activateOverdrive();
-        });
-        btnBoost.addEventListener("click", () => {
-          this.activateOverdrive();
-        });
-      }
-
-      // UI Buttons
+      // Screen Buttons
       document.getElementById("btn-start").addEventListener("click", () => this.startGame());
       document.getElementById("btn-restart").addEventListener("click", () => this.startGame());
       document.getElementById("btn-pause").addEventListener("click", () => this.togglePause());
@@ -324,28 +300,78 @@
       document.getElementById("btn-audio").addEventListener("click", () => this.toggleAudio());
       document.getElementById("btn-fullscreen").addEventListener("click", () => this.toggleFullscreen());
       
-      // Share button using native Web Share API
       const btnShare = document.getElementById("btn-share");
-      if (btnShare) {
-        btnShare.addEventListener("click", () => this.shareScore());
-      }
+      if (btnShare) btnShare.addEventListener("click", () => this.shareScore());
     }
 
-    initSpeedLines() {
-      this.speedLines = [];
-      for (let i = 0; i < 40; i++) {
-        this.speedLines.push({
-          x: (Math.random() - 0.5) * ROAD_WIDTH * 1.5,
-          y: Math.random() * -200,
-          z: Math.random() * 1200,
-          length: 50 + Math.random() * 150,
-          speed: 1 + Math.random() * 0.5
+    steerLane(dir) {
+      if (!this.isRunning || this.gameOver || this.isPaused) return;
+      window.soundEngine.resumeContext();
+
+      // Find closest lane and shift
+      const currentTarget = this.targetPlayerX;
+      let targetIndex = 1; // Center default
+      if (currentTarget < -140) targetIndex = 0;
+      else if (currentTarget > 140) targetIndex = 2;
+
+      targetIndex = Math.max(0, Math.min(2, targetIndex + dir));
+      this.targetPlayerX = LANES[targetIndex];
+    }
+
+    triggerJump() {
+      if (!this.isRunning || this.gameOver || this.isPaused) return;
+      if (this.isJumping) return;
+
+      this.isJumping = true;
+      this.isSliding = false; // Cancel slide on jump
+      this.verticalVelocity = 920; // Upward jump velocity
+
+      window.soundEngine.playJumpSFX();
+      this.addFootstepPuff(this.playerX, 0, 8);
+    }
+
+    triggerSlide() {
+      if (!this.isRunning || this.gameOver || this.isPaused) return;
+
+      if (this.isJumping) {
+        // Fast drop if in mid-air
+        this.verticalVelocity = -1200;
+      }
+
+      this.isSliding = true;
+      this.slideTimer = this.slideDuration;
+      window.soundEngine.playSlideSFX();
+
+      // Ground friction sparks
+      for (let i = 0; i < 15; i++) {
+        this.particles.push({
+          x: this.playerX + (Math.random() - 0.5) * 30,
+          y: -5,
+          z: this.playerZ + Math.random() * 20,
+          vx: (Math.random() - 0.5) * 150,
+          vy: Math.random() * -60,
+          vz: 300 + Math.random() * 200,
+          life: 0.35,
+          maxLife: 0.35,
+          color: "#ffe600",
+          size: 4
         });
       }
     }
 
-    getShipData() {
-      return SHIPS.find(s => s.id === playerData.selectedShip) || SHIPS[0];
+    activateOverdrive() {
+      if (this.overdriveEnergy < this.maxOverdriveEnergy || this.isOverdrive || this.gameOver) return;
+      this.isOverdrive = true;
+      this.overdriveTimer = 6.0;
+      this.overdriveEnergy = 0;
+
+      window.soundEngine.playCoinSFX(3);
+      this.triggerScreenShake(12, 0.4);
+      this.addFloatingText("HYPER SPEED!", 0, -80, "#ffe600", 2.2);
+    }
+
+    getSkin() {
+      return RUNNER_SKINS.find(s => s.id === playerData.selectedSkin) || RUNNER_SKINS[0];
     }
 
     startGame() {
@@ -353,18 +379,21 @@
       window.soundEngine.startMusic();
       window.soundEngine.playClickSFX();
 
-      const ship = this.getShipData();
-      
       this.isRunning = true;
       this.isPaused = false;
       this.gameOver = false;
-      
+
       this.playerX = 0;
       this.targetPlayerX = 0;
-      this.steeringForce = 0;
-      this.bankAngle = 0;
-      
-      this.speed = this.baseSpeed * ship.speedBonus;
+      this.playerY = 0;
+      this.verticalVelocity = 0;
+      this.isJumping = false;
+      this.isSliding = false;
+      this.slideTimer = 0;
+      this.runCycle = 0;
+      this.stepCycle = 0;
+
+      this.speed = this.baseSpeed;
       this.score = 0;
       this.displayScore = 0;
       this.distance = 0;
@@ -373,9 +402,8 @@
       this.multiplier = 1;
       this.multiplierTimer = 0;
 
-      // Shield levels based on ship and upgrade
       const shieldUpgrade = playerData.upgrades.shield || 1;
-      this.maxShields = ship.shields + Math.floor((shieldUpgrade - 1) / 2);
+      this.maxShields = 1 + Math.floor((shieldUpgrade - 1) / 2);
       this.shields = this.maxShields;
 
       this.overdriveEnergy = 0;
@@ -389,7 +417,6 @@
       this.currentSectorIndex = 0;
       this.sectorDistance = 0;
 
-      // Hide menus, show HUD
       document.getElementById("start-screen").classList.add("hidden");
       document.getElementById("game-over-screen").classList.add("hidden");
       document.getElementById("pause-screen").classList.add("hidden");
@@ -421,7 +448,6 @@
       const isMuted = window.soundEngine.toggleMute();
       const btn = document.getElementById("btn-audio");
       btn.innerHTML = isMuted ? "🔇 AUDIO: OFF" : "🔊 AUDIO: ON";
-      btn.classList.toggle("muted", isMuted);
     }
 
     toggleFullscreen() {
@@ -432,56 +458,35 @@
       }
     }
 
-    activateOverdrive() {
-      if (this.overdriveEnergy < this.maxOverdriveEnergy || this.isOverdrive || this.gameOver) return;
-      
-      this.isOverdrive = true;
-      const overdriveLevel = playerData.upgrades.overdrive || 1;
-      this.overdriveTimer = 5.0 + (overdriveLevel * 0.7); // Duration up to ~8.5 seconds
-      this.overdriveEnergy = 0;
-
-      window.soundEngine.playOverdriveSFX();
-      this.triggerScreenShake(14, 0.4);
-      this.addFloatingText("HYPER OVERDRIVE!", 0, -60, "#ffe600", 2.2);
-
-      // Burst of particles
-      for (let i = 0; i < 40; i++) {
-        this.particles.push({
-          x: this.playerX,
-          y: 0,
-          z: this.playerZ,
-          vx: (Math.random() - 0.5) * 800,
-          vy: (Math.random() - 0.5) * 400,
-          vz: (Math.random() - 0.5) * 600,
-          life: 0.8,
-          maxLife: 0.8,
-          color: "#ffe600",
-          size: 6
-        });
-      }
-    }
-
     triggerScreenShake(intensity, duration) {
       this.shakeIntensity = intensity;
       this.shakeDuration = duration;
     }
 
     addFloatingText(text, x, y, color = "#00f3ff", scale = 1.0) {
-      this.floatingTexts.push({
-        text,
-        x,
-        y,
-        color,
-        scale,
-        alpha: 1.0,
-        life: 1.2
-      });
+      this.floatingTexts.push({ text, x, y, color, scale, alpha: 1.0, life: 1.2 });
+    }
+
+    addFootstepPuff(x, y, count = 5) {
+      for (let i = 0; i < count; i++) {
+        this.particles.push({
+          x: x + (Math.random() - 0.5) * 16,
+          y: y,
+          z: this.playerZ + Math.random() * 10,
+          vx: (Math.random() - 0.5) * 40,
+          vy: -Math.random() * 25,
+          vz: 250 + Math.random() * 100,
+          life: 0.3,
+          maxLife: 0.3,
+          color: "rgba(255, 255, 255, 0.4)",
+          size: 4
+        });
+      }
     }
 
     // --- GAME LOOP ---
     loop(currentTime) {
       if (!this.isRunning || this.isPaused) return;
-
       const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
       this.lastTime = currentTime;
 
@@ -493,238 +498,193 @@
       }
     }
 
-    // --- UPDATE STATE ---
+    // --- UPDATE ---
     update(dt) {
-      const ship = this.getShipData();
-
-      // Steering Input Processing
-      const steerSpeed = 1600 * ship.agility;
-      if (this.keys.left) {
-        this.targetPlayerX -= steerSpeed * dt;
-      }
-      if (this.keys.right) {
-        this.targetPlayerX += steerSpeed * dt;
-      }
-
-      // Constrain within road boundary
-      const roadLimit = ROAD_WIDTH * 0.44;
-      this.targetPlayerX = Math.max(-roadLimit, Math.min(roadLimit, this.targetPlayerX));
-
-      // Smooth lerp to target position
-      const lerpFactor = 14 * dt;
+      // 1. Horizontal Smooth Steering
+      const lerpSpeed = 16 * dt;
       const prevX = this.playerX;
-      this.playerX += (this.targetPlayerX - this.playerX) * lerpFactor;
-      
-      // Calculate bank tilt based on lateral velocity
-      const lateralVelocity = (this.playerX - prevX) / dt;
-      this.bankAngle = Math.max(-0.45, Math.min(0.45, (lateralVelocity / 1500)));
-      this.cameraTilt = this.bankAngle * 0.5;
+      this.playerX += (this.targetPlayerX - this.playerX) * lerpSpeed;
+      this.bankAngle = Math.max(-0.25, Math.min(0.25, (this.playerX - prevX) / 40));
 
-      // Speed progression
-      const targetSpeed = (this.isOverdrive ? this.maxSpeed * 1.5 : Math.min(this.maxSpeed, this.baseSpeed + (this.distance * 0.08))) * ship.speedBonus;
-      this.speed += (targetSpeed - this.speed) * 4 * dt;
+      // 2. Jumping Physics
+      if (this.isJumping) {
+        this.playerY += this.verticalVelocity * dt;
+        this.verticalVelocity -= this.gravity * dt;
 
-      // Update distance and score
+        if (this.playerY <= 0) {
+          this.playerY = 0;
+          this.isJumping = false;
+          this.verticalVelocity = 0;
+          this.addFootstepPuff(this.playerX, 0, 8);
+          window.soundEngine.playFootstep();
+        }
+      }
+
+      // 3. Sliding Timer
+      if (this.isSliding) {
+        this.slideTimer -= dt;
+        if (this.slideTimer <= 0) {
+          this.isSliding = false;
+        }
+      }
+
+      // 4. Running Kinematics & Footstep Audio Sync
+      if (!this.isJumping && !this.isSliding) {
+        const runFreq = (this.speed / 700) * 14;
+        const prevCycle = this.runCycle;
+        this.runCycle += runFreq * dt;
+
+        // Detect foot strike on ground
+        if (Math.sin(prevCycle) < 0 && Math.sin(this.runCycle) >= 0) {
+          window.soundEngine.playFootstep();
+          this.addFootstepPuff(this.playerX + 10, 0, 3);
+        } else if (Math.sin(prevCycle) >= 0 && Math.sin(this.runCycle) < 0) {
+          window.soundEngine.playFootstep();
+          this.addFootstepPuff(this.playerX - 10, 0, 3);
+        }
+      }
+
+      // 5. Speed & Distance
+      const targetSpeed = this.isOverdrive ? 1800 : Math.min(this.maxSpeed, this.baseSpeed + this.distance * 0.08);
+      this.speed += (targetSpeed - this.speed) * 3 * dt;
       this.distance += this.speed * dt * 0.1;
       this.sectorDistance += this.speed * dt * 0.1;
-      
+
       if (this.sectorDistance >= this.sectorLength) {
         this.sectorDistance = 0;
         this.currentSectorIndex = (this.currentSectorIndex + 1) % SECTORS.length;
         this.addFloatingText(SECTORS[this.currentSectorIndex].name, 0, -80, SECTORS[this.currentSectorIndex].accentColor, 1.8);
       }
 
-      // Score accumulation based on speed and multiplier
-      const scoreGain = (this.speed * 0.1) * this.multiplier * dt;
-      this.score += scoreGain;
+      // Score
+      this.score += (this.speed * 0.1) * this.multiplier * dt;
       this.displayScore += (this.score - this.displayScore) * 10 * dt;
 
-      // Road texture scroll
-      this.roadZOffset = (this.roadZOffset + this.speed * dt) % 160;
+      // Road Scroll
+      this.roadZOffset = (this.roadZOffset + this.speed * dt) % 120;
 
-      // Screen shake decay
-      if (this.shakeDuration > 0) {
-        this.shakeDuration -= dt;
-      } else {
-        this.shakeIntensity = 0;
+      // Street Lamps
+      for (const lamp of this.streetLamps) {
+        lamp.z -= this.speed * dt;
+        if (lamp.z < 20) lamp.z += 1200;
       }
 
-      // Overdrive timer decay
+      // Decay screen shake
+      if (this.shakeDuration > 0) this.shakeDuration -= dt;
+      else this.shakeIntensity = 0;
+
+      // Overdrive decay
       if (this.isOverdrive) {
         this.overdriveTimer -= dt;
         if (this.overdriveTimer <= 0) {
           this.isOverdrive = false;
-          this.overdriveTimer = 0;
         }
       }
 
-      // Multiplier timer
+      // Multiplier decay
       if (this.multiplier > 1) {
         this.multiplierTimer -= dt;
-        if (this.multiplierTimer <= 0) {
-          this.multiplier = 1;
-        }
+        if (this.multiplierTimer <= 0) this.multiplier = 1;
       }
 
-      // Update Thruster Exhaust Particles
-      this.updateThrusterParticles(dt);
-
-      // Spawn Obstacles & Pickups
+      // Spawning
       this.updateSpawners(dt);
 
-      // Update Obstacles
+      // Entities
       this.updateObstacles(dt);
-
-      // Update Pickups
       this.updatePickups(dt);
-
-      // Update Particles
       this.updateParticles(dt);
-
-      // Update Floating Texts
       this.updateFloatingTexts(dt);
-
-      // Update HUD elements
       this.updateHUD();
     }
 
-    updateThrusterParticles(dt) {
-      const trailColor = playerData.trailColor || "#00f3ff";
-      const count = this.isOverdrive ? 4 : 2;
-
-      for (let i = 0; i < count; i++) {
-        this.particles.push({
-          x: this.playerX + (Math.random() - 0.5) * 30,
-          y: -10 + (Math.random() - 0.5) * 8,
-          z: this.playerZ + 20,
-          vx: (Math.random() - 0.5) * 80,
-          vy: 20 + Math.random() * 40,
-          vz: 400 + Math.random() * 300,
-          life: 0.35,
-          maxLife: 0.35,
-          color: this.isOverdrive ? "#ffe600" : trailColor,
-          size: 7 + Math.random() * 5
-        });
-      }
-    }
-
     updateSpawners(dt) {
-      // Obstacle Spawning
       this.spawnTimer -= dt;
-      const minInterval = 0.45;
-      const maxInterval = 1.25;
-      const currentInterval = Math.max(minInterval, maxInterval - (this.distance * 0.00008));
-
+      const interval = Math.max(0.65, 1.35 - (this.distance * 0.00008));
       if (this.spawnTimer <= 0) {
-        this.spawnTimer = currentInterval + Math.random() * 0.3;
-        this.spawnObstacleGroup();
+        this.spawnTimer = interval + Math.random() * 0.3;
+        this.spawnObstacle();
       }
 
-      // Pickup Spawning
-      this.pickupSpawnTimer -= dt;
-      if (this.pickupSpawnTimer <= 0) {
-        this.pickupSpawnTimer = 0.8 + Math.random() * 0.6;
-        this.spawnPickup();
+      this.coinSpawnTimer -= dt;
+      if (this.coinSpawnTimer <= 0) {
+        this.coinSpawnTimer = 0.5 + Math.random() * 0.4;
+        this.spawnCoins();
       }
     }
 
-    spawnObstacleGroup() {
-      const types = ["barrier", "pillar", "mine", "drone"];
-      const chosenType = types[Math.floor(Math.random() * types.length)];
-      const spawnZ = 1200;
+    spawnObstacle() {
+      // 4 Realistic Blockers:
+      // 1. "concrete": Heavy concrete road barrier (Dodge left/right)
+      // 2. "laser_gantry": High overhead laser gantry (SLIDE UNDER)
+      // 3. "hurdle": Low road construction barricade (JUMP OVER)
+      // 4. "crates": Stacked hazard crates (Dodge)
+      const types = ["concrete", "laser_gantry", "hurdle", "crates"];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const lane = LANES[Math.floor(Math.random() * LANES.length)];
+      const spawnZ = 1300;
 
-      const lanes = [-380, -190, 0, 190, 380];
-      const laneIndex = Math.floor(Math.random() * lanes.length);
-      const laneX = lanes[laneIndex];
-
-      if (chosenType === "barrier") {
-        // Horizontal laser barrier spanning 1 or 2 lanes
-        const width = 280;
+      if (type === "concrete") {
         this.obstacles.push({
-          type: "barrier",
-          x: laneX,
+          type: "concrete",
+          x: lane,
           y: 0,
           z: spawnZ,
-          width,
-          height: 60,
-          hitRadius: width * 0.45,
-          color: "#ff0055",
+          width: 170,
+          height: 90,
+          hitRadius: 80,
           passed: false
         });
-      } else if (chosenType === "pillar") {
-        // Tall cyber data spire
+      } else if (type === "laser_gantry") {
         this.obstacles.push({
-          type: "pillar",
-          x: laneX,
+          type: "laser_gantry",
+          x: lane,
           y: 0,
           z: spawnZ,
-          width: 90,
-          height: 180,
-          hitRadius: 55,
-          color: "#00ffff",
+          width: 220,
+          height: 160,
+          hitRadius: 95,
           passed: false
         });
-      } else if (chosenType === "mine") {
-        // Floating spinning EMP mine
+      } else if (type === "hurdle") {
         this.obstacles.push({
-          type: "mine",
-          x: laneX,
-          y: -40,
+          type: "hurdle",
+          x: lane,
+          y: 0,
           z: spawnZ,
-          width: 70,
-          height: 70,
-          hitRadius: 45,
-          color: "#ffaa00",
-          rotation: 0,
-          passed: false
-        });
-      } else if (chosenType === "drone") {
-        // Moving patrol drone shifting left and right
-        this.obstacles.push({
-          type: "drone",
-          x: laneX,
-          baseX: laneX,
-          y: -20,
-          z: spawnZ,
-          width: 100,
+          width: 180,
           height: 50,
-          hitRadius: 55,
-          color: "#ff00aa",
-          movePhase: Math.random() * Math.PI * 2,
-          moveSpeed: 3 + Math.random() * 2,
+          hitRadius: 75,
+          passed: false
+        });
+      } else if (type === "crates") {
+        this.obstacles.push({
+          type: "crates",
+          x: lane,
+          y: 0,
+          z: spawnZ,
+          width: 160,
+          height: 120,
+          hitRadius: 80,
           passed: false
         });
       }
     }
 
-    spawnPickup() {
-      const rand = Math.random();
-      let type = "credit";
-      let color = "#00f3ff";
-
-      if (rand < 0.65) {
-        type = "credit"; // Cyber coins
-        color = "#00f3ff";
-      } else if (rand < 0.90) {
-        type = "overdrive"; // Boost energy
-        color = "#ffe600";
-      } else {
-        type = "shield"; // Rare shield repair
-        color = "#00ff88";
+    spawnCoins() {
+      const lane = LANES[Math.floor(Math.random() * LANES.length)];
+      const count = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        this.pickups.push({
+          type: "coin",
+          x: lane,
+          y: -30,
+          z: 1300 + (i * 90),
+          radius: 26,
+          color: "#ffe600",
+          rotation: 0
+        });
       }
-
-      const lanes = [-350, -180, 0, 180, 350];
-      const laneX = lanes[Math.floor(Math.random() * lanes.length)];
-
-      this.pickups.push({
-        type,
-        x: laneX,
-        y: -30,
-        z: 1250,
-        radius: 35,
-        color,
-        rotation: 0
-      });
     }
 
     updateObstacles(dt) {
@@ -732,189 +692,127 @@
         const obs = this.obstacles[i];
         obs.z -= this.speed * dt;
 
-        if (obs.type === "drone") {
-          obs.movePhase += obs.moveSpeed * dt;
-          obs.x = obs.baseX + Math.sin(obs.movePhase) * 160;
-        } else if (obs.type === "mine") {
-          obs.rotation += 4 * dt;
-        }
-
-        // Collision & Near-Miss Detection
+        // Collision Check
         const zDist = obs.z - this.playerZ;
         const xDist = Math.abs(obs.x - this.playerX);
 
-        if (!obs.passed && zDist <= 20 && zDist >= -40) {
+        if (!obs.passed && zDist <= 25 && zDist >= -40) {
           if (xDist < obs.hitRadius) {
-            // DIRECT HIT
-            obs.passed = true;
-            this.handlePlayerCollision(obs);
-          } else if (xDist < obs.hitRadius + 110) {
-            // NEAR MISS! Reward risk-taking
+            // Check Action Avoidance (Jump / Slide)
+            let avoided = false;
+
+            if (obs.type === "hurdle" && this.playerY > 40) {
+              avoided = true; // Clean jump!
+              this.score += 200 * this.multiplier;
+              this.addFloatingText("VAULTED! +200", this.playerX, -80, "#00ff88", 1.4);
+            } else if (obs.type === "laser_gantry" && this.isSliding) {
+              avoided = true; // Clean slide!
+              this.score += 300 * this.multiplier;
+              this.addFloatingText("POWER SLIDE! +300", this.playerX, -50, "#ffe600", 1.5);
+            }
+
+            if (!avoided) {
+              obs.passed = true;
+              this.handleCollision(obs);
+            }
+          } else if (xDist < obs.hitRadius + 95) {
+            // Near Miss
             obs.passed = true;
             this.handleNearMiss(obs);
           }
         }
 
-        // Remove obstacles that moved far behind camera
-        if (obs.z < -100) {
-          this.obstacles.splice(i, 1);
-        }
+        if (obs.z < -100) this.obstacles.splice(i, 1);
       }
     }
 
     updatePickups(dt) {
-      const ship = this.getShipData();
       const magnetLevel = playerData.upgrades.magnet || 1;
-      const magnetRadius = (220 + (magnetLevel * 45)) * ship.magnetBonus;
+      const magnetRadius = 200 + (magnetLevel * 50);
 
       for (let i = this.pickups.length - 1; i >= 0; i--) {
-        const item = this.pickups[i];
-        item.z -= this.speed * dt;
-        item.rotation += 3 * dt;
+        const p = this.pickups[i];
+        p.z -= this.speed * dt;
+        p.rotation += 4 * dt;
 
         // Magnet attraction
-        const dx = this.playerX - item.x;
-        const dz = this.playerZ - item.z;
+        const dx = this.playerX - p.x;
+        const dz = this.playerZ - p.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        if (dist < magnetRadius && item.z > this.playerZ) {
-          const pullForce = (1 - dist / magnetRadius) * 2200 * dt;
-          item.x += (dx / dist) * pullForce;
+        if (dist < magnetRadius && p.z > this.playerZ) {
+          const pull = (1 - dist / magnetRadius) * 2400 * dt;
+          p.x += (dx / dist) * pull;
         }
 
-        // Collection detection
-        if (Math.abs(item.z - this.playerZ) < 45 && Math.abs(item.x - this.playerX) < item.radius + 40) {
-          this.collectPickup(item);
+        // Collection
+        if (Math.abs(p.z - this.playerZ) < 50 && Math.abs(p.x - this.playerX) < 65) {
+          this.creditsThisRun++;
+          playerData.credits++;
+          savePlayerData();
+
+          this.score += 100 * this.multiplier;
+          this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 5);
+
+          window.soundEngine.playCoinSFX(this.multiplier);
+          this.addFloatingText("+1 CR", p.x, -50, "#ffe600", 1.1);
+
           this.pickups.splice(i, 1);
           continue;
         }
 
-        // Remove if behind camera
-        if (item.z < -80) {
-          this.pickups.splice(i, 1);
-        }
-      }
-    }
-
-    collectPickup(item) {
-      if (item.type === "credit") {
-        const multUpgrade = playerData.upgrades.multiplier || 1;
-        const creditGain = Math.round(1 * (1 + (multUpgrade - 1) * 0.25));
-        
-        this.creditsThisRun += creditGain;
-        playerData.credits += creditGain;
-        savePlayerData();
-
-        this.score += 150 * this.multiplier;
-        this.addFloatingText(`+${creditGain} CR`, item.x, -50, "#00f3ff", 1.2);
-        window.soundEngine.playCollectSFX(this.multiplier);
-
-      } else if (item.type === "overdrive") {
-        this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 25);
-        this.score += 200 * this.multiplier;
-        this.addFloatingText("+25% OVERDRIVE", item.x, -60, "#ffe600", 1.3);
-        window.soundEngine.playCollectSFX(1.5);
-
-      } else if (item.type === "shield") {
-        if (this.shields < this.maxShields) {
-          this.shields++;
-          this.addFloatingText("SHIELD RESTORED!", item.x, -60, "#00ff88", 1.4);
-        } else {
-          this.score += 500 * this.multiplier;
-          this.addFloatingText("+500 PTS (MAX SHIELD)", item.x, -60, "#00ff88", 1.2);
-        }
-        window.soundEngine.playCollectSFX(2.0);
-      }
-
-      // Sparkles at collection point
-      for (let i = 0; i < 12; i++) {
-        this.particles.push({
-          x: item.x,
-          y: item.y,
-          z: item.z,
-          vx: (Math.random() - 0.5) * 300,
-          vy: (Math.random() - 0.5) * 300,
-          vz: (Math.random() - 0.5) * 300,
-          life: 0.4,
-          maxLife: 0.4,
-          color: item.color,
-          size: 5
-        });
+        if (p.z < -60) this.pickups.splice(i, 1);
       }
     }
 
     handleNearMiss(obs) {
       this.nearMisses++;
-      const bonus = 250 * this.multiplier;
-      this.score += bonus;
-      
-      // Boost overdrive on close calls
-      this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 8);
+      this.score += 250 * this.multiplier;
+      this.overdriveEnergy = Math.min(this.maxOverdriveEnergy, this.overdriveEnergy + 10);
 
-      // Increase multiplier (up to 8x)
       if (this.multiplier < 8) {
-        this.multiplier = Math.min(8, this.multiplier + 1);
-        this.multiplierTimer = 4.0; // 4 seconds to chain another near miss
+        this.multiplier++;
+        this.multiplierTimer = 4.0;
       }
 
-      this.addFloatingText(`NEAR MISS! x${this.multiplier}`, this.playerX, -70, "#ff00ff", 1.5);
-      window.soundEngine.playNearMissSFX();
-      this.triggerScreenShake(6, 0.15);
+      this.addFloatingText(`CLOSE CALL! x${this.multiplier}`, this.playerX, -80, "#ff007f", 1.5);
+      this.triggerScreenShake(5, 0.15);
     }
 
-    handlePlayerCollision(obs) {
+    handleCollision(obs) {
       if (this.isOverdrive) {
-        // SMASH THROUGH OBSTACLES IN OVERDRIVE!
+        // Smash through in hyper speed!
         this.score += 500 * this.multiplier;
-        this.addFloatingText("BARRIER SMASH! +500", obs.x, -60, "#ffe600", 1.6);
+        this.addFloatingText("SMASH! +500", obs.x, -70, "#ffe600", 1.8);
         window.soundEngine.playCrashSFX();
-        this.triggerScreenShake(12, 0.25);
+        this.triggerScreenShake(14, 0.3);
 
-        // Debris explosion
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 20; i++) {
           this.particles.push({
             x: obs.x,
-            y: obs.y,
+            y: 0,
             z: obs.z,
-            vx: (Math.random() - 0.5) * 700,
-            vy: (Math.random() - 0.5) * 500,
-            vz: (Math.random() - 0.5) * 700,
-            life: 0.7,
-            maxLife: 0.7,
-            color: obs.color,
+            vx: (Math.random() - 0.5) * 600,
+            vy: -Math.random() * 400,
+            vz: (Math.random() - 0.5) * 600,
+            life: 0.6,
+            maxLife: 0.6,
+            color: "#ffaa00",
             size: 6
           });
         }
         return;
       }
 
-      // NORMAL COLLISION
+      // Normal hit
       this.shields--;
-      this.multiplier = 1; // Reset multiplier streak
+      this.multiplier = 1;
 
       if (this.shields > 0) {
-        // Shield absorbed the impact
-        this.triggerScreenShake(14, 0.35);
-        window.soundEngine.playShieldBreakSFX();
-        this.addFloatingText("SHIELD DAMAGED!", this.playerX, -80, "#ff0055", 1.8);
-
-        // Shield shatter particles
-        for (let i = 0; i < 30; i++) {
-          this.particles.push({
-            x: this.playerX,
-            y: 0,
-            z: this.playerZ,
-            vx: (Math.random() - 0.5) * 600,
-            vy: (Math.random() - 0.5) * 400,
-            vz: (Math.random() - 0.5) * 600,
-            life: 0.6,
-            maxLife: 0.6,
-            color: "#00ffff",
-            size: 6
-          });
-        }
+        this.triggerScreenShake(12, 0.3);
+        window.soundEngine.playCrashSFX();
+        this.addFloatingText("SHIELD DAMAGED!", this.playerX, -80, "#ff0055", 1.6);
       } else {
-        // CRASH - GAME OVER
         this.triggerGameOver();
       }
     }
@@ -925,66 +823,34 @@
 
       window.soundEngine.stopMusic();
       window.soundEngine.playCrashSFX();
-      this.triggerScreenShake(25, 0.8);
+      this.triggerScreenShake(24, 0.7);
 
-      // Huge explosion
-      for (let i = 0; i < 70; i++) {
-        this.particles.push({
-          x: this.playerX,
-          y: 0,
-          z: this.playerZ,
-          vx: (Math.random() - 0.5) * 900,
-          vy: -Math.random() * 600,
-          vz: (Math.random() - 0.5) * 900,
-          life: 1.2,
-          maxLife: 1.2,
-          color: Math.random() > 0.5 ? "#ff0055" : "#ffe600",
-          size: 8
-        });
-      }
-
-      // High Score update
       const finalScore = Math.floor(this.score);
-      const isNewHighScore = finalScore > playerData.highScore;
-      if (isNewHighScore) {
-        playerData.highScore = finalScore;
-      }
+      const isNew = finalScore > playerData.highScore;
+      if (isNew) playerData.highScore = finalScore;
       playerData.totalRuns = (playerData.totalRuns || 0) + 1;
       savePlayerData();
 
-      // Show Game Over Modal
       setTimeout(() => {
         document.getElementById("hud").classList.add("hidden");
-        const gameOverScreen = document.getElementById("game-over-screen");
-        gameOverScreen.classList.remove("hidden");
-
+        document.getElementById("game-over-screen").classList.remove("hidden");
         document.getElementById("final-score").textContent = finalScore.toLocaleString();
         document.getElementById("final-distance").textContent = `${Math.floor(this.distance)} m`;
         document.getElementById("final-credits").textContent = `+${this.creditsThisRun}`;
         document.getElementById("final-nearmiss").textContent = `${this.nearMisses}`;
-        
+
         const badge = document.getElementById("new-record-badge");
-        if (badge) {
-          badge.style.display = isNewHighScore ? "inline-block" : "none";
-        }
-      }, 700);
+        if (badge) badge.style.display = isNew ? "inline-block" : "none";
+      }, 600);
     }
 
     shareScore() {
-      const finalScore = Math.floor(this.score);
-      const shareData = {
-        title: "Neon Velocity: Cyberpunk Runner",
-        text: `⚡ I scored ${finalScore.toLocaleString()} pts in Neon Velocity! Can you beat my high score? Play it live on your phone:`,
-        url: window.location.href
-      };
-
+      const text = `🏃 I ran ${Math.floor(this.distance)}m in Neon Velocity with a score of ${Math.floor(this.score).toLocaleString()}! Can you beat my record? Play now:`;
       if (navigator.share) {
-        navigator.share(shareData).catch(() => {});
+        navigator.share({ title: "Neon Velocity", text, url: window.location.href }).catch(() => {});
       } else {
-        // Fallback: Copy to clipboard
-        navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`).then(() => {
-          alert("Score and link copied to clipboard! Share it with your friends.");
-        }).catch(() => {});
+        navigator.clipboard.writeText(`${text} ${window.location.href}`);
+        alert("Score copied to clipboard! Share it with friends.");
       }
     }
 
@@ -996,7 +862,6 @@
           this.particles.splice(i, 1);
           continue;
         }
-
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.z += p.vz * dt;
@@ -1011,8 +876,7 @@
           this.floatingTexts.splice(i, 1);
           continue;
         }
-
-        ft.y -= 45 * dt; // Float upwards
+        ft.y -= 40 * dt;
         ft.alpha = ft.life / 1.2;
       }
     }
@@ -1022,7 +886,6 @@
       document.getElementById("hud-speed").textContent = `${Math.floor(this.speed)} KM/H`;
       document.getElementById("hud-credits").textContent = `${playerData.credits}`;
 
-      // Overdrive Gauge
       const pct = Math.min(100, (this.overdriveEnergy / this.maxOverdriveEnergy) * 100);
       const gauge = document.getElementById("hud-overdrive-fill");
       if (gauge) {
@@ -1030,21 +893,18 @@
         gauge.classList.toggle("ready", pct >= 100);
       }
 
-      // Boost Button State
       const btnBoost = document.getElementById("btn-boost");
       if (btnBoost) {
         btnBoost.classList.toggle("glow", pct >= 100 || this.isOverdrive);
-        btnBoost.textContent = this.isOverdrive ? "HYPER!!" : "BOOST";
+        btnBoost.textContent = this.isOverdrive ? "HYPER!" : "BOOST";
       }
 
-      // Multiplier Tag
       const multTag = document.getElementById("hud-multiplier");
       if (multTag) {
         multTag.textContent = `x${this.multiplier}`;
         multTag.style.display = this.multiplier > 1 ? "inline-block" : "none";
       }
 
-      // Shield Dots
       const shieldsContainer = document.getElementById("hud-shields");
       if (shieldsContainer) {
         shieldsContainer.innerHTML = "";
@@ -1056,14 +916,20 @@
       }
     }
 
-    // --- 3D PERSPECTIVE RENDERING ENGINE ---
+    // --- 3D PERSPECTIVE RENDERING ---
+    project(worldX, worldY, worldZ) {
+      const z = Math.max(worldZ, 1);
+      const scale = FOV / (FOV + z);
+      const screenX = (this.width * 0.5) + (worldX - this.playerX) * scale;
+      const screenY = this.horizonY + (CAMERA_HEIGHT + worldY) * scale;
+      return { x: screenX, y: screenY, scale };
+    }
+
     render() {
       const ctx = this.ctx;
       const sector = SECTORS[this.currentSectorIndex];
 
-      // Screen Shake offset
-      let shakeX = 0;
-      let shakeY = 0;
+      let shakeX = 0, shakeY = 0;
       if (this.shakeIntensity > 0) {
         shakeX = (Math.random() - 0.5) * this.shakeIntensity;
         shakeY = (Math.random() - 0.5) * this.shakeIntensity;
@@ -1072,28 +938,28 @@
       ctx.save();
       ctx.translate(shakeX, shakeY);
 
-      // 1. Draw Cyberpunk Gradient Sky & Sunset Sun
+      // 1. Sky & Glowing Retrosun
       this.renderSky(sector);
 
-      // 2. Draw Skyline Horizon & Neon Mountains
-      this.renderSkyline(sector);
+      // 2. City Skyline with Lit Windows & Billboards
+      this.renderCitySkyline(sector);
 
-      // 3. Draw 3D Perspective Road & Neon Grid
-      this.renderRoad(sector);
+      // 3. Realistic Asphalt Highway & Lane Markings
+      this.renderHighway(sector);
 
-      // 4. Draw Speed Streaks
-      this.renderSpeedLines();
+      // 4. Flanking Street Lamp Cones
+      this.renderStreetLamps(sector);
 
-      // 5. Sort and Draw 3D World Entities (Pickups, Obstacles, Particles, Player)
-      this.renderEntities(sector);
+      // 5. World Objects (Obstacles, Coins, Particles)
+      this.renderWorldEntities(sector);
 
-      // 6. Draw Player Cyber-Craft
-      this.renderPlayerShip();
+      // 6. Real Kinematic Human Runner
+      this.renderHumanRunner();
 
-      // 7. Draw Floating UI Texts
+      // 7. Floating UI Texts
       this.renderFloatingTexts();
 
-      // 8. Overdrive Screen Glow / Chromatic Warp
+      // 8. Overdrive Speed Warp FX
       if (this.isOverdrive) {
         this.renderOverdriveVFX();
       }
@@ -1109,407 +975,524 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, this.width, this.horizonY);
 
-      // Synthwave Retrosun
-      const sunRadius = Math.min(this.width * 0.16, 75);
-      const sunX = this.width * 0.5 + this.cameraTilt * 60;
-      const sunY = this.horizonY - sunRadius * 0.45;
+      // Glowing Cyber Sun
+      const sunR = Math.min(this.width * 0.18, 80);
+      const sunX = this.width * 0.5;
+      const sunY = this.horizonY - sunR * 0.45;
 
-      const sunGrad = ctx.createLinearGradient(0, sunY - sunRadius, 0, sunY + sunRadius);
-      sunGrad.addColorStop(0, sector.sunColor2);
-      sunGrad.addColorStop(0.7, sector.sunColor1);
+      const sunGrad = ctx.createLinearGradient(0, sunY - sunR, 0, sunY + sunR);
+      sunGrad.addColorStop(0, sector.sunTop);
+      sunGrad.addColorStop(0.7, sector.sunBottom);
       sunGrad.addColorStop(1, "transparent");
 
       ctx.save();
       ctx.fillStyle = sunGrad;
       ctx.beginPath();
-      ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+      ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
       ctx.fill();
 
-      // Sun horizontal slice blinders (classic 80s synthwave style)
+      // Synthwave horizontal slats
       ctx.fillStyle = sector.skyBottom;
-      const slices = 6;
-      for (let i = 0; i < slices; i++) {
-        const sliceY = sunY + (i / slices) * sunRadius;
-        const sliceH = (i + 1) * 2;
-        ctx.fillRect(sunX - sunRadius - 5, sliceY, (sunRadius + 5) * 2, sliceH);
+      for (let i = 0; i < 5; i++) {
+        const sy = sunY + (i / 5) * sunR;
+        ctx.fillRect(sunX - sunR - 5, sy, (sunR + 5) * 2, (i + 1) * 2.5);
       }
       ctx.restore();
     }
 
-    renderSkyline(sector) {
+    renderCitySkyline(sector) {
       const ctx = this.ctx;
       ctx.save();
-      
       const horizon = this.horizonY;
-      const parallaxX = -this.playerX * 0.05;
+      const parallax = -this.playerX * 0.04;
 
-      ctx.fillStyle = "#0c051a";
-      // Procedural silhouette buildings
-      const buildingWidth = 35;
-      const numBuildings = Math.ceil(this.width / buildingWidth) + 4;
-      
-      for (let i = -2; i < numBuildings; i++) {
-        const bx = i * buildingWidth + (parallaxX % buildingWidth);
-        const seed = Math.sin(i * 999);
-        const bh = 25 + Math.abs(seed) * 90;
-        
-        ctx.fillRect(bx, horizon - bh, buildingWidth - 2, bh);
+      const buildingW = 40;
+      const total = Math.ceil(this.width / buildingW) + 4;
 
-        // Cyber window dots
-        if (Math.abs(seed) > 0.4) {
+      ctx.fillStyle = "#090414";
+      for (let i = -2; i < total; i++) {
+        const bx = i * buildingW + (parallax % buildingW);
+        const seed = Math.sin(i * 43758.5453);
+        const bh = 40 + Math.abs(seed) * 120;
+
+        ctx.fillRect(bx, horizon - bh, buildingW - 2, bh);
+
+        // Lit Windows
+        if (Math.abs(seed) > 0.3) {
           ctx.fillStyle = sector.gridColor;
-          ctx.fillRect(bx + 6, horizon - bh + 15, 3, 3);
-          ctx.fillRect(bx + 16, horizon - bh + 30, 3, 3);
-          ctx.fillStyle = "#0c051a";
+          ctx.globalAlpha = 0.6;
+          for (let wy = horizon - bh + 15; wy < horizon - 10; wy += 14) {
+            ctx.fillRect(bx + 6, wy, 4, 6);
+            ctx.fillRect(bx + 18, wy, 4, 6);
+          }
+          ctx.fillStyle = "#090414";
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Antenna with flashing beacon
+        if (i % 3 === 0) {
+          ctx.strokeStyle = "#ff0055";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(bx + buildingW * 0.5, horizon - bh);
+          ctx.lineTo(bx + buildingW * 0.5, horizon - bh - 20);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ff0055";
+          ctx.beginPath();
+          ctx.arc(bx + buildingW * 0.5, horizon - bh - 20, 2.5, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
-      // Horizon glowing border line
-      ctx.strokeStyle = sector.horizonColor;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = sector.horizonColor;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(0, horizon);
-      ctx.lineTo(this.width, horizon);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
       ctx.restore();
     }
 
-    // Projects 3D world coordinates (x, y, z) into 2D canvas screen space
-    project(worldX, worldY, worldZ) {
-      const z = Math.max(worldZ, 1);
-      const scale = FOV / (FOV + z);
-      const screenX = (this.width * 0.5) + (worldX - this.playerX) * scale;
-      const screenY = this.horizonY + (CAMERA_HEIGHT + worldY) * scale;
-      return { x: screenX, y: screenY, scale };
-    }
-
-    renderRoad(sector) {
+    renderHighway(sector) {
       const ctx = this.ctx;
       ctx.save();
 
-      // Dark futuristic highway base
+      // Dark asphalt surface
       const roadGrad = ctx.createLinearGradient(0, this.horizonY, 0, this.height);
-      roadGrad.addColorStop(0, "#080214");
-      roadGrad.addColorStop(1, "#020008");
+      roadGrad.addColorStop(0, "#08090d");
+      roadGrad.addColorStop(1, sector.roadColor);
       ctx.fillStyle = roadGrad;
       ctx.fillRect(0, this.horizonY, this.width, this.height - this.horizonY);
 
-      // Moving Grid Horizontal Lines
-      const zStep = 40;
+      // Curbs & Highway Guardrails
       const maxZ = 1200;
-      ctx.lineWidth = 1.5;
+      const pLeftNear = this.project(-ROAD_WIDTH * 0.5, 0, 20);
+      const pLeftFar = this.project(-ROAD_WIDTH * 0.5, 0, maxZ);
+      const pRightNear = this.project(ROAD_WIDTH * 0.5, 0, 20);
+      const pRightFar = this.project(ROAD_WIDTH * 0.5, 0, maxZ);
 
-      for (let z = (this.roadZOffset % zStep); z < maxZ; z += zStep) {
-        const p1 = this.project(-ROAD_WIDTH * 0.55, 0, z);
-        const p2 = this.project(ROAD_WIDTH * 0.55, 0, z);
+      // Neon Guardrail glow
+      ctx.strokeStyle = sector.accentColor;
+      ctx.lineWidth = 4;
+      ctx.shadowColor = sector.accentColor;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(pLeftNear.x, pLeftNear.y);
+      ctx.lineTo(pLeftFar.x, pLeftFar.y);
+      ctx.moveTo(pRightNear.x, pRightNear.y);
+      ctx.lineTo(pRightFar.x, pRightFar.y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
 
-        const alpha = Math.max(0, 1 - (z / maxZ));
-        ctx.strokeStyle = sector.gridColor;
-        ctx.globalAlpha = alpha * (this.isOverdrive ? 0.9 : 0.6);
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-      }
+      // Dashed Lane Dividers (Realistic 3 lanes)
+      const dividers = [-ROAD_WIDTH * 0.17, ROAD_WIDTH * 0.17];
+      ctx.lineWidth = 2.5;
 
-      // Longitudinal Highway Lanes (Perspective rays towards horizon)
-      const lanes = [-0.5, -0.25, 0, 0.25, 0.5];
-      ctx.globalAlpha = 0.7;
+      for (const divX of dividers) {
+        for (let z = (this.roadZOffset % 80); z < maxZ; z += 80) {
+          const p1 = this.project(divX, 0, z);
+          const p2 = this.project(divX, 0, z + 35);
+          const alpha = Math.max(0, 1 - (z / maxZ));
 
-      for (const lane of lanes) {
-        const pNear = this.project(ROAD_WIDTH * lane, 0, 20);
-        const pFar = this.project(ROAD_WIDTH * lane, 0, maxZ);
-
-        ctx.strokeStyle = (lane === -0.5 || lane === 0.5) ? sector.accentColor : sector.gridColor;
-        ctx.lineWidth = (lane === -0.5 || lane === 0.5) ? 3 : 1.5;
-        
-        ctx.beginPath();
-        ctx.moveTo(pNear.x, pNear.y);
-        ctx.lineTo(pFar.x, pFar.y);
-        ctx.stroke();
+          ctx.strokeStyle = "#ffffff";
+          ctx.globalAlpha = alpha * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
       }
 
       ctx.restore();
     }
 
-    renderSpeedLines() {
+    renderStreetLamps(sector) {
       const ctx = this.ctx;
       ctx.save();
-      ctx.strokeStyle = this.isOverdrive ? "#ffe600" : "#00f3ff";
-      ctx.lineWidth = 2;
 
-      for (const line of this.speedLines) {
-        line.z -= this.speed * 0.016 * line.speed;
-        if (line.z < 20) line.z += 1200;
+      for (const lamp of this.streetLamps) {
+        const sides = [-ROAD_WIDTH * 0.55, ROAD_WIDTH * 0.55];
+        for (const sideX of sides) {
+          const base = this.project(sideX, 0, lamp.z);
+          const top = this.project(sideX, -160, lamp.z);
+          if (base.scale <= 0) continue;
 
-        const p1 = this.project(line.x, line.y, line.z);
-        const p2 = this.project(line.x, line.y, line.z + line.length);
+          // Lamp Post
+          ctx.strokeStyle = "#444a59";
+          ctx.lineWidth = Math.max(2, 3 * base.scale);
+          ctx.beginPath();
+          ctx.moveTo(base.x, base.y);
+          ctx.lineTo(top.x, top.y);
+          ctx.stroke();
 
-        const alpha = Math.min(1, Math.max(0, 1 - line.z / 1200)) * (this.isOverdrive ? 0.8 : 0.3);
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
+          // Glowing Lamp Head
+          ctx.fillStyle = sector.gridColor;
+          ctx.shadowColor = sector.gridColor;
+          ctx.shadowBlur = 12 * base.scale;
+          ctx.beginPath();
+          ctx.arc(top.x, top.y, 4 * base.scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Volumetric Light Cone on Road
+          ctx.fillStyle = "rgba(0, 243, 255, 0.05)";
+          ctx.beginPath();
+          ctx.moveTo(top.x, top.y);
+          ctx.lineTo(base.x - 40 * base.scale, base.y);
+          ctx.lineTo(base.x + 40 * base.scale, base.y);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
+
       ctx.restore();
     }
 
-    renderEntities(sector) {
-      // Collect all 3D objects to sort by depth (Z-buffer painters algorithm)
+    renderWorldEntities(sector) {
       const entities = [];
+      for (const obs of this.obstacles) entities.push({ type: "obs", data: obs, z: obs.z });
+      for (const coin of this.pickups) entities.push({ type: "coin", data: coin, z: coin.z });
+      for (const p of this.particles) entities.push({ type: "p", data: p, z: p.z });
 
-      // Obstacles
-      for (const obs of this.obstacles) {
-        entities.push({ type: "obstacle", data: obs, z: obs.z });
-      }
-
-      // Pickups
-      for (const item of this.pickups) {
-        entities.push({ type: "pickup", data: item, z: item.z });
-      }
-
-      // Particles
-      for (const p of this.particles) {
-        entities.push({ type: "particle", data: p, z: p.z });
-      }
-
-      // Sort furthest to nearest
       entities.sort((a, b) => b.z - a.z);
 
       for (const ent of entities) {
-        if (ent.type === "obstacle") {
-          this.renderSingleObstacle(ent.data);
-        } else if (ent.type === "pickup") {
-          this.renderSinglePickup(ent.data);
-        } else if (ent.type === "particle") {
-          this.renderSingleParticle(ent.data);
-        }
+        if (ent.type === "obs") this.renderObstacle(ent.data);
+        else if (ent.type === "coin") this.renderCoin(ent.data);
+        else if (ent.type === "p") this.renderParticle(ent.data);
       }
     }
 
-    renderSingleObstacle(obs) {
+    renderObstacle(obs) {
       const proj = this.project(obs.x, obs.y, obs.z);
       if (proj.scale <= 0) return;
-
       const ctx = this.ctx;
       ctx.save();
 
       const w = obs.width * proj.scale;
       const h = obs.height * proj.scale;
 
-      ctx.shadowColor = obs.color;
-      ctx.shadowBlur = 15 * proj.scale;
+      if (obs.type === "concrete") {
+        // 3D Concrete Jersey Barrier with Hazard Stripes
+        ctx.fillStyle = "#2c2d36"; // Concrete grey
+        ctx.strokeStyle = "#15161c";
+        ctx.lineWidth = Math.max(1.5, 2 * proj.scale);
 
-      if (obs.type === "barrier") {
-        // Glowing Laser Gate
-        ctx.fillStyle = "rgba(255, 0, 85, 0.25)";
-        ctx.strokeStyle = obs.color;
+        // Trapezoidal 3D barrier
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.45, proj.y);
+        ctx.lineTo(proj.x - w * 0.35, proj.y - h);
+        ctx.lineTo(proj.x + w * 0.35, proj.y - h);
+        ctx.lineTo(proj.x + w * 0.45, proj.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Diagonal Yellow/Black Hazard Stripes
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = "#ffe600";
+        const stripeW = 18 * proj.scale;
+        for (let sx = proj.x - w; sx < proj.x + w; sx += stripeW * 2) {
+          ctx.beginPath();
+          ctx.moveTo(sx, proj.y);
+          ctx.lineTo(sx + stripeW, proj.y);
+          ctx.lineTo(sx + stripeW + 15 * proj.scale, proj.y - h);
+          ctx.lineTo(sx + 15 * proj.scale, proj.y - h);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Amber Hazard Strobe on Top
+        ctx.fillStyle = "#ff9900";
+        ctx.shadowColor = "#ff9900";
+        ctx.shadowBlur = 10 * proj.scale;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y - h - 6 * proj.scale, 5 * proj.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (obs.type === "laser_gantry") {
+        // High Overhead Laser Gantry (Must SLIDE under)
+        ctx.strokeStyle = "#5a6275";
         ctx.lineWidth = Math.max(2, 4 * proj.scale);
 
-        // Frame posts
-        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, w, h);
-        ctx.fillRect(proj.x - w * 0.5, proj.y - h, w, h);
+        // Left & Right steel pillars
+        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, 14 * proj.scale, h);
+        ctx.strokeRect(proj.x + w * 0.5 - 14 * proj.scale, proj.y - h, 14 * proj.scale, h);
 
-        // Pulsing electric laser core
+        // Overhead truss
+        ctx.fillStyle = "#1e222d";
+        ctx.fillRect(proj.x - w * 0.5, proj.y - h, w, 22 * proj.scale);
+        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, w, 22 * proj.scale);
+
+        // "SLIDE" Warning Sign
+        ctx.fillStyle = "#ff0055";
+        ctx.font = `bold ${Math.max(8, Math.floor(11 * proj.scale))}px 'Orbitron', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("▼ SLIDE ▼", proj.x, proj.y - h + 15 * proj.scale);
+
+        // High Electric Hazard Laser Beam (at runner chest height)
+        const beamY = proj.y - h * 0.42;
+        ctx.strokeStyle = "#ff0055";
+        ctx.lineWidth = Math.max(3, 5 * proj.scale);
+        ctx.shadowColor = "#ff0055";
+        ctx.shadowBlur = 15 * proj.scale;
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.48, beamY);
+        ctx.lineTo(proj.x + w * 0.48, beamY);
+        ctx.stroke();
+
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = Math.max(1, 2 * proj.scale);
         ctx.beginPath();
-        ctx.moveTo(proj.x - w * 0.5, proj.y - h * 0.5);
-        ctx.lineTo(proj.x + w * 0.5, proj.y - h * 0.5);
+        ctx.moveTo(proj.x - w * 0.48, beamY);
+        ctx.lineTo(proj.x + w * 0.48, beamY);
         ctx.stroke();
 
-      } else if (obs.type === "pillar") {
-        // 3D Cyber Spire
-        ctx.fillStyle = "#0c051a";
-        ctx.strokeStyle = obs.color;
-        ctx.lineWidth = Math.max(2, 3 * proj.scale);
-
-        ctx.fillRect(proj.x - w * 0.5, proj.y - h, w, h);
-        ctx.strokeRect(proj.x - w * 0.5, proj.y - h, w, h);
-
-        // Glowing center chevron
-        ctx.fillStyle = obs.color;
-        ctx.beginPath();
-        ctx.moveTo(proj.x, proj.y - h * 0.8);
-        ctx.lineTo(proj.x + w * 0.3, proj.y - h * 0.5);
-        ctx.lineTo(proj.x - w * 0.3, proj.y - h * 0.5);
-        ctx.closePath();
-        ctx.fill();
-
-      } else if (obs.type === "mine") {
-        // Rotating Diamond EMP Mine
-        ctx.translate(proj.x, proj.y);
-        ctx.rotate(obs.rotation);
-
-        ctx.fillStyle = "rgba(255, 170, 0, 0.4)";
-        ctx.strokeStyle = obs.color;
-        ctx.lineWidth = Math.max(2, 3 * proj.scale);
-
-        const r = (w * 0.5);
-        ctx.beginPath();
-        ctx.moveTo(0, -r);
-        ctx.lineTo(r, 0);
-        ctx.lineTo(0, r);
-        ctx.lineTo(-r, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-      } else if (obs.type === "drone") {
-        // Futuristic Cyber Drone
-        ctx.fillStyle = "#120224";
-        ctx.strokeStyle = obs.color;
-        ctx.lineWidth = Math.max(2, 3 * proj.scale);
-
-        // Swept wings
-        ctx.beginPath();
-        ctx.moveTo(proj.x, proj.y - h);
-        ctx.lineTo(proj.x + w * 0.5, proj.y);
-        ctx.lineTo(proj.x + w * 0.2, proj.y - h * 0.4);
-        ctx.lineTo(proj.x - w * 0.2, proj.y - h * 0.4);
-        ctx.lineTo(proj.x - w * 0.5, proj.y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Engine glow
-        ctx.fillStyle = "#ff00ff";
-        ctx.beginPath();
-        ctx.arc(proj.x, proj.y - h * 0.3, 4 * proj.scale, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
-    }
-
-    renderSinglePickup(item) {
-      const proj = this.project(item.x, item.y, item.z);
-      if (proj.scale <= 0) return;
-
-      const ctx = this.ctx;
-      ctx.save();
-      ctx.translate(proj.x, proj.y);
-      ctx.rotate(item.rotation);
-
-      const r = item.radius * proj.scale;
-      ctx.shadowColor = item.color;
-      ctx.shadowBlur = 12 * proj.scale;
-
-      if (item.type === "credit") {
-        // Blue Diamond Crystal
-        ctx.fillStyle = item.color;
+      } else if (obs.type === "hurdle") {
+        // Low Construction Sawhorse Hurdle (Must JUMP over)
+        ctx.fillStyle = "#ff5500";
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = Math.max(1.5, 2 * proj.scale);
 
-        ctx.beginPath();
-        ctx.moveTo(0, -r);
-        ctx.lineTo(r * 0.7, 0);
-        ctx.lineTo(0, r);
-        ctx.lineTo(-r * 0.7, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        // Horizontal hurdle board
+        ctx.fillRect(proj.x - w * 0.45, proj.y - h, w * 0.9, h * 0.55);
+        ctx.strokeRect(proj.x - w * 0.45, proj.y - h, w * 0.9, h * 0.55);
 
-      } else if (item.type === "overdrive") {
-        // Glowing Energy Orb with Orbiting Ring
-        ctx.fillStyle = item.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
-        ctx.fill();
+        // White alternating stripes
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(proj.x - w * 0.25, proj.y - h, w * 0.15, h * 0.55);
+        ctx.fillRect(proj.x + w * 0.1, proj.y - h, w * 0.15, h * 0.55);
 
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2 * proj.scale;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r * 0.4, item.rotation * 2, 0, Math.PI * 2);
-        ctx.stroke();
-
-      } else if (item.type === "shield") {
-        // Shield Battery Cube
-        ctx.fillStyle = "rgba(0, 255, 136, 0.4)";
-        ctx.strokeStyle = item.color;
+        // Legs
+        ctx.strokeStyle = "#222";
         ctx.lineWidth = Math.max(2, 3 * proj.scale);
-        ctx.strokeRect(-r * 0.6, -r * 0.6, r * 1.2, r * 1.2);
-        ctx.fillRect(-r * 0.6, -r * 0.6, r * 1.2, r * 1.2);
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.4, proj.y - h * 0.4);
+        ctx.lineTo(proj.x - w * 0.48, proj.y);
+        ctx.moveTo(proj.x + w * 0.4, proj.y - h * 0.4);
+        ctx.lineTo(proj.x + w * 0.48, proj.y);
+        ctx.stroke();
+
+      } else if (obs.type === "crates") {
+        // Heavy Industrial Cargo Box
+        ctx.fillStyle = "#1e283b";
+        ctx.strokeStyle = "#00f3ff";
+        ctx.lineWidth = Math.max(1.5, 2.5 * proj.scale);
+
+        ctx.fillRect(proj.x - w * 0.4, proj.y - h, w * 0.8, h);
+        ctx.strokeRect(proj.x - w * 0.4, proj.y - h, w * 0.8, h);
+
+        // Inner bracing
+        ctx.beginPath();
+        ctx.moveTo(proj.x - w * 0.4, proj.y - h);
+        ctx.lineTo(proj.x + w * 0.4, proj.y);
+        ctx.moveTo(proj.x + w * 0.4, proj.y - h);
+        ctx.lineTo(proj.x - w * 0.4, proj.y);
+        ctx.stroke();
       }
 
       ctx.restore();
     }
 
-    renderSingleParticle(p) {
+    renderCoin(coin) {
+      const proj = this.project(coin.x, coin.y, coin.z);
+      if (proj.scale <= 0) return;
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.translate(proj.x, proj.y);
+
+      const r = coin.radius * proj.scale;
+      const spinScale = Math.cos(coin.rotation); // 3D rotating coin effect
+
+      ctx.shadowColor = coin.color;
+      ctx.shadowBlur = 10 * proj.scale;
+
+      ctx.fillStyle = "#ffe600";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, Math.max(1, Math.abs(r * spinScale)), r, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(1, 2 * proj.scale);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    renderParticle(p) {
       const proj = this.project(p.x, p.y, p.z);
       if (proj.scale <= 0) return;
-
       const ctx = this.ctx;
       ctx.save();
       ctx.globalAlpha = p.life / p.maxLife;
       ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 8 * proj.scale;
-
-      const size = Math.max(1, p.size * proj.scale);
       ctx.beginPath();
-      ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+      ctx.arc(proj.x, proj.y, Math.max(1, p.size * proj.scale), 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
-    renderPlayerShip() {
-      const ship = this.getShipData();
-      const proj = this.project(this.playerX, 0, this.playerZ);
+    // --- REAL-TYPE KINEMATIC HUMAN RUNNER RENDERING ---
+    renderHumanRunner() {
+      const skin = this.getSkin();
+      const proj = this.project(this.playerX, -this.playerY, this.playerZ);
+      const groundProj = this.project(this.playerX, 0, this.playerZ);
       const ctx = this.ctx;
 
       ctx.save();
-      ctx.translate(proj.x, proj.y);
-      ctx.rotate(this.bankAngle); // Dynamic 3D roll on turn
 
-      const s = 1.35; // Ship scale
-      const mainColor = this.isOverdrive ? "#ffe600" : (playerData.trailColor || ship.color);
-
-      ctx.shadowColor = mainColor;
-      ctx.shadowBlur = this.isOverdrive ? 30 : 18;
-
-      // 1. Sleek Cyber Fuselage Body
-      ctx.fillStyle = "#0c051a";
-      ctx.strokeStyle = mainColor;
-      ctx.lineWidth = 2.5;
-
+      // 1. Soft Dynamic Drop Shadow on Road
+      const shadowScale = Math.max(0.3, 1 - (this.playerY / 300));
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
       ctx.beginPath();
-      ctx.moveTo(0, -42 * s); // Cockpit nose point
-      ctx.lineTo(24 * s, 14 * s); // Right wing tip
-      ctx.lineTo(10 * s, 18 * s); // Right thruster notch
-      ctx.lineTo(0, 10 * s);      // Center engine base
-      ctx.lineTo(-10 * s, 18 * s); // Left thruster notch
-      ctx.lineTo(-24 * s, 14 * s); // Left wing tip
+      ctx.ellipse(groundProj.x, groundProj.y - 2, 28 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.translate(proj.x, proj.y);
+      ctx.rotate(this.bankAngle); // Lean into turns
+
+      const s = 1.35; // Character scale
+      const cycle = this.runCycle;
+
+      // Kinematic Body Part Angles based on running cycle
+      let legAngleL = Math.sin(cycle) * 0.7;
+      let legAngleR = -legAngleL;
+      let armAngleL = -legAngleL * 0.85; // Arms swing opposite to legs
+      let armAngleR = -armAngleL;
+      let torsoBob = Math.sin(cycle * 2) * 3; // Natural vertical bounce
+      let torsoAngle = 0.08; // Slight forward athletic lean
+
+      // JUMPING POSE
+      if (this.isJumping) {
+        legAngleL = 0.6; // Legs tucked up
+        legAngleR = 0.8;
+        armAngleL = -0.7; // Arms up
+        armAngleR = -0.7;
+        torsoBob = -5;
+      }
+
+      // SLIDING POSE
+      if (this.isSliding) {
+        legAngleL = 1.2; // Legs extended forward
+        legAngleR = 1.1;
+        armAngleL = 0.9;
+        armAngleR = 0.9;
+        torsoBob = 35; // Dropped low to ground
+        torsoAngle = -0.5; // Leaning back on slide
+      }
+
+      const mainGlow = this.isOverdrive ? "#ffe600" : skin.glowColor;
+      ctx.shadowColor = mainGlow;
+      ctx.shadowBlur = this.isOverdrive ? 25 : 12;
+
+      // --- LEGS (Drawn behind torso) ---
+      const hipY = -38 * s + torsoBob;
+
+      // Left Leg
+      ctx.save();
+      ctx.translate(-7 * s, hipY);
+      ctx.rotate(legAngleL);
+      // Thigh
+      ctx.fillStyle = skin.pantsColor;
+      ctx.fillRect(-4 * s, 0, 8 * s, 20 * s);
+      // Shin & Foot
+      ctx.translate(0, 18 * s);
+      const kneeBendL = this.isJumping ? -1.0 : Math.max(0, -legAngleL * 0.8);
+      ctx.rotate(kneeBendL);
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 20 * s);
+      // Sneaker
+      ctx.fillStyle = skin.shoesColor;
+      ctx.fillRect(-4 * s, 17 * s, 10 * s, 7 * s);
+      // Glowing Sole
+      ctx.fillStyle = mainGlow;
+      ctx.fillRect(-4 * s, 22 * s, 10 * s, 3 * s);
+      ctx.restore();
+
+      // Right Leg
+      ctx.save();
+      ctx.translate(7 * s, hipY);
+      ctx.rotate(legAngleR);
+      // Thigh
+      ctx.fillStyle = skin.pantsColor;
+      ctx.fillRect(-4 * s, 0, 8 * s, 20 * s);
+      // Shin & Foot
+      ctx.translate(0, 18 * s);
+      const kneeBendR = this.isJumping ? -1.2 : Math.max(0, -legAngleR * 0.8);
+      ctx.rotate(kneeBendR);
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 20 * s);
+      // Sneaker
+      ctx.fillStyle = skin.shoesColor;
+      ctx.fillRect(-4 * s, 17 * s, 10 * s, 7 * s);
+      // Glowing Sole
+      ctx.fillStyle = mainGlow;
+      ctx.fillRect(-4 * s, 22 * s, 10 * s, 3 * s);
+      ctx.restore();
+
+      // --- TORSO & SPINE ---
+      ctx.save();
+      ctx.translate(0, hipY);
+      ctx.rotate(torsoAngle);
+
+      // Athletic Cyber Jacket / Vest
+      ctx.fillStyle = skin.jacketColor;
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-13 * s, 0);
+      ctx.lineTo(-16 * s, -30 * s); // Left shoulder
+      ctx.lineTo(16 * s, -30 * s);  // Right shoulder
+      ctx.lineTo(13 * s, 0);        // Right waist
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // 2. Cockpit Canopy Glass
-      ctx.fillStyle = this.isOverdrive ? "#ffffff" : "#00f3ff";
+      // Cyber Spine Neon Stripe
+      ctx.fillStyle = mainGlow;
+      ctx.fillRect(-2 * s, -28 * s, 4 * s, 26 * s);
+
+      // --- ARMS ---
+      // Left Arm
+      ctx.save();
+      ctx.translate(-15 * s, -28 * s);
+      ctx.rotate(armAngleL);
+      ctx.fillStyle = skin.jacketColor;
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 18 * s);
+      // Forearm & Hand
+      ctx.translate(0, 16 * s);
+      ctx.rotate(Math.max(0.2, armAngleL * 0.5));
+      ctx.fillStyle = "#ffcc99"; // Skin tone hands
+      ctx.fillRect(-3 * s, 0, 6 * s, 14 * s);
+      ctx.restore();
+
+      // Right Arm
+      ctx.save();
+      ctx.translate(15 * s, -28 * s);
+      ctx.rotate(armAngleR);
+      ctx.fillStyle = skin.jacketColor;
+      ctx.fillRect(-3.5 * s, 0, 7 * s, 18 * s);
+      // Forearm & Hand
+      ctx.translate(0, 16 * s);
+      ctx.rotate(Math.max(0.2, armAngleR * 0.5));
+      ctx.fillStyle = "#ffcc99";
+      ctx.fillRect(-3 * s, 0, 6 * s, 14 * s);
+      ctx.restore();
+
+      // --- HEAD & VISOR ---
+      ctx.translate(0, -32 * s);
+      // Head base / Hair
+      ctx.fillStyle = "#1e1b29";
       ctx.beginPath();
-      ctx.moveTo(0, -28 * s);
-      ctx.lineTo(5 * s, -4 * s);
-      ctx.lineTo(0, -1 * s);
-      ctx.lineTo(-5 * s, -4 * s);
-      ctx.closePath();
+      ctx.arc(0, -9 * s, 10 * s, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Wingtip Laser Accents
-      ctx.fillStyle = mainColor;
-      ctx.fillRect(21 * s, 8 * s, 3 * s, 7 * s);
-      ctx.fillRect(-24 * s, 8 * s, 3 * s, 7 * s);
+      // Cyber Visor / Headband
+      ctx.fillStyle = mainGlow;
+      ctx.fillRect(-8 * s, -11 * s, 16 * s, 5 * s);
 
-      // 4. Energy Shield Dome (when shields active)
+      ctx.restore(); // End torso
+
+      // Energy Shield Dome (if active)
       if (this.shields > 0) {
         ctx.strokeStyle = this.shields > 1 ? "rgba(0, 243, 255, 0.7)" : "rgba(255, 0, 127, 0.7)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(0, -10 * s, 38 * s, 0, Math.PI * 2);
+        ctx.ellipse(0, -40 * s + torsoBob, 28 * s, 46 * s, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
 
@@ -1524,9 +1507,8 @@
         ctx.fillStyle = ft.color;
         ctx.shadowColor = ft.color;
         ctx.shadowBlur = 10;
-        ctx.font = `bold ${Math.floor(18 * ft.scale)}px 'Orbitron', 'Rajdhani', sans-serif`;
+        ctx.font = `bold ${Math.floor(18 * ft.scale)}px 'Orbitron', sans-serif`;
         ctx.textAlign = "center";
-        
         const proj = this.project(ft.x, 0, this.playerZ);
         ctx.fillText(ft.text, proj.x, proj.y + ft.y);
         ctx.restore();
@@ -1536,21 +1518,18 @@
     renderOverdriveVFX() {
       const ctx = this.ctx;
       ctx.save();
-      
-      // Electric Gold Border Vignette
       const grad = ctx.createRadialGradient(
         this.width * 0.5, this.height * 0.5, this.width * 0.3,
         this.width * 0.5, this.height * 0.5, this.width * 0.7
       );
       grad.addColorStop(0, "transparent");
       grad.addColorStop(1, "rgba(255, 230, 0, 0.28)");
-
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, this.width, this.height);
       ctx.restore();
     }
 
-    // --- GARAGE & UPGRADES UI ---
+    // --- GARAGE / WARDROBE ---
     openGarage() {
       window.soundEngine.playClickSFX();
       document.getElementById("start-screen").classList.add("hidden");
@@ -1568,81 +1547,71 @@
     renderGarageContent() {
       document.getElementById("garage-credits").textContent = playerData.credits;
 
-      // 1. Ships List
-      const shipsList = document.getElementById("garage-ships-list");
-      shipsList.innerHTML = "";
-
-      SHIPS.forEach(ship => {
-        const isUnlocked = playerData.unlockedShips.includes(ship.id);
-        const isSelected = playerData.selectedShip === ship.id;
+      // Skins
+      const list = document.getElementById("garage-ships-list");
+      list.innerHTML = "";
+      RUNNER_SKINS.forEach(skin => {
+        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
+        const isSelected = playerData.selectedSkin === skin.id;
 
         const card = document.createElement("div");
-        card.className = `cyber-card ${isSelected ? "selected" : ""} ${!isUnlocked ? "locked" : ""}`;
+        card.className = `cyber-card ${isSelected ? "selected" : ""}`;
         card.innerHTML = `
           <div class="card-header">
-            <span class="ship-name" style="color: ${ship.color}">${ship.name}</span>
-            <span class="ship-badge">${isSelected ? "EQUIPPED" : isUnlocked ? "OWNED" : `${ship.price} CR`}</span>
+            <span class="ship-name" style="color: ${skin.glowColor}">${skin.name}</span>
+            <span class="ship-badge">${isSelected ? "EQUIPPED" : isUnlocked ? "OWNED" : `${skin.price} CR`}</span>
           </div>
-          <p class="ship-desc">${ship.desc}</p>
-          <div class="ship-stats">
-            <div>SPD: ${Math.round(ship.speedBonus * 100)}%</div>
-            <div>AGI: ${Math.round(ship.agility * 100)}%</div>
-            <div>SHD: ${ship.shields}</div>
-            <div>MAG: ${Math.round(ship.magnetBonus * 100)}%</div>
-          </div>
-          <button class="cyber-btn sm ${isSelected ? "active" : ""}" data-ship="${ship.id}">
+          <button class="cyber-btn sm ${isSelected ? "active" : ""}">
             ${isSelected ? "CURRENT" : isUnlocked ? "SELECT" : "UNLOCK"}
           </button>
         `;
 
-        const btn = card.querySelector("button");
-        btn.addEventListener("click", () => {
+        card.querySelector("button").addEventListener("click", () => {
           window.soundEngine.playClickSFX();
           if (isUnlocked) {
-            playerData.selectedShip = ship.id;
+            playerData.selectedSkin = skin.id;
             savePlayerData();
             this.renderGarageContent();
           } else {
-            if (playerData.credits >= ship.price) {
-              playerData.credits -= ship.price;
-              playerData.unlockedShips.push(ship.id);
-              playerData.selectedShip = ship.id;
+            if (playerData.credits >= skin.price) {
+              playerData.credits -= skin.price;
+              playerData.unlockedSkins.push(skin.id);
+              playerData.selectedSkin = skin.id;
               savePlayerData();
               this.renderGarageContent();
             } else {
-              alert("Not enough Cyber Credits! Complete more runs or dodge obstacles to earn credits.");
+              alert("Collect more Cyber Credits during your runs!");
             }
           }
         });
 
-        shipsList.appendChild(card);
+        list.appendChild(card);
       });
 
-      // 2. Upgrades List
-      const upgradesList = document.getElementById("garage-upgrades-list");
-      upgradesList.innerHTML = "";
-
+      // Upgrades
+      const upList = document.getElementById("garage-upgrades-list");
+      upList.innerHTML = "";
       const upgrades = [
-        { key: "magnet", name: "MAGNET ENGINE", desc: "Increases credit collection suction radius" },
-        { key: "shield", name: "SHIELD CAPACITOR", desc: "Increases max protective shield armor" },
-        { key: "overdrive", name: "OVERDRIVE BOOSTER", desc: "Extends hyper-speed invincibility duration" },
-        { key: "multiplier", name: "CREDIT MULTIPLIER", desc: "Multiplies credits earned per run" }
+        { key: "magnet", name: "MAGNET SNEAKERS", desc: "Sucks in nearby gold coins automatically" },
+        { key: "shield", name: "SHIELD ARMOR", desc: "Absorbs crash damage without failing" },
+        { key: "overdrive", name: "HYPER SPRINT BOOSTER", desc: "Longer invincibility overdrive duration" },
+        { key: "multiplier", name: "SCORE MULTIPLIER", desc: "Increases credit gain rate" }
       ];
 
       upgrades.forEach(u => {
-        const level = playerData.upgrades[u.key] || 1;
-        const maxLevel = 5;
-        const cost = level * 150;
-        const isMax = level >= maxLevel;
+        const lvl = playerData.upgrades[u.key] || 1;
+        const maxLvl = 5;
+        const cost = lvl * 150;
+        const isMax = lvl >= maxLvl;
 
         const card = document.createElement("div");
         card.className = "upgrade-card";
         card.innerHTML = `
           <div class="upgrade-info">
-            <span class="upgrade-title">${u.name} (LVL ${level}/${maxLevel})</span>
+            <span class="upgrade-title">${u.name} (LVL ${lvl}/${maxLvl})</span>
             <span class="upgrade-desc">${u.desc}</span>
             <div class="level-bars">
-              ${Array.from({ length: maxLevel }).map((_, i) => `<span class="bar ${i < level ? "filled" : ""}"></span>`).join("")}
+              ${Array.from({ length: maxLvl }).map((_, i) => `<span class="bar ${i < lvl ? "filled" : ""}"></span>`).join("")}
             </div>
           </div>
           <button class="cyber-btn sm ${isMax ? "disabled" : ""}" ${isMax ? "disabled" : ""}>
@@ -1650,60 +1619,32 @@
           </button>
         `;
 
-        const btn = card.querySelector("button");
         if (!isMax) {
-          btn.addEventListener("click", () => {
+          card.querySelector("button").addEventListener("click", () => {
             window.soundEngine.playClickSFX();
             if (playerData.credits >= cost) {
               playerData.credits -= cost;
-              playerData.upgrades[u.key] = level + 1;
+              playerData.upgrades[u.key] = lvl + 1;
               savePlayerData();
               this.renderGarageContent();
             } else {
-              alert("Not enough Cyber Credits!");
+              alert("Collect more credits to upgrade!");
             }
           });
         }
 
-        upgradesList.appendChild(card);
-      });
-
-      // 3. Trail Color Picker
-      const colorOptions = [
-        { name: "Cyan", hex: "#00f3ff" },
-        { name: "Magenta", hex: "#ff007f" },
-        { name: "Lime", hex: "#00ff66" },
-        { name: "Gold", hex: "#ffaa00" },
-        { name: "Violet", hex: "#a200ff" }
-      ];
-
-      const colorsContainer = document.getElementById("garage-colors-list");
-      colorsContainer.innerHTML = "";
-      colorOptions.forEach(c => {
-        const swatch = document.createElement("button");
-        swatch.className = `color-swatch ${playerData.trailColor === c.hex ? "active" : ""}`;
-        swatch.style.backgroundColor = c.hex;
-        swatch.title = c.name;
-        swatch.addEventListener("click", () => {
-          window.soundEngine.playClickSFX();
-          playerData.trailColor = c.hex;
-          savePlayerData();
-          this.renderGarageContent();
-        });
-        colorsContainer.appendChild(swatch);
+        upList.appendChild(card);
       });
     }
 
     updateUI() {
       const topScore = document.getElementById("menu-high-score");
       if (topScore) topScore.textContent = playerData.highScore.toLocaleString();
-
       const menuCredits = document.getElementById("menu-credits");
       if (menuCredits) menuCredits.textContent = playerData.credits;
     }
   }
 
-  // Launch once DOM is ready
   window.addEventListener("DOMContentLoaded", () => {
     window.game = new Game();
   });
