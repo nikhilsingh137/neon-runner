@@ -325,6 +325,24 @@ class SoundEngine {
     osc.start(now);
     osc.stop(now + 0.06);
   }
+
+  playPowerupSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    [440, 554, 659, 880].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+      gain.gain.setValueAtTime(0.22, now + idx * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.18);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + idx * 0.06);
+      osc.stop(now + idx * 0.06 + 0.2);
+    });
+  }
 }
 
 window.soundEngine = new SoundEngine();

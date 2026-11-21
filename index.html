@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Subway Runner 3D - Jake Skater Boy</title>
+  <title>Urban Dash 3D - Metro Rush</title>
 
-  <!-- Automatic Live Version Sync & Cache Purge -->
+  <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v7_jake_3d_fastpass';
+      var LATEST_VERSION = 'v9_urbandash_live';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -30,18 +30,18 @@
     })();
   </script>
 
-  <meta name="description" content="3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!">
-  <meta name="theme-color" content="#38bdf8">
+  <meta name="description" content="Urban Dash 3D: Metro Rush - High-octane 3D endless runner with magnetic rail tracks, jetpacks, crystal magnets, and monorail expresses!">
+  <meta name="theme-color" content="#0284c7">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Subway Runner">
+  <meta name="apple-mobile-web-app-title" content="Urban Dash 3D">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=subway3d_v6">
+  <link rel="stylesheet" href="style.css?v=urbandash_v9">
 </head>
 <body>
   <div id="game-container">
@@ -53,34 +53,51 @@
 
     <!-- In-Game Heads-Up Display (HUD) -->
     <div id="hud" class="hidden">
-      <!-- Top Left: Score -->
+      <!-- Top Left: Score & Power-Up Indicators -->
       <div class="hud-top-left">
         <span class="hud-label">SCORE</span>
         <div class="hud-score-val" id="hud-score">0</div>
+
+        <!-- Active Power-Up Badges (Magnet, Jetpack, Multiplier) -->
+        <div class="hud-powerups-list">
+          <div class="powerup-pill magnet" id="badge-magnet" style="display: none;">
+            <span>🧲</span> <span id="timer-magnet">12s</span>
+          </div>
+          <div class="powerup-pill jetpack" id="badge-jetpack" style="display: none;">
+            <span>🚀</span> <span id="timer-jetpack">10s</span>
+          </div>
+          <div class="powerup-pill" id="badge-shield" style="display: none;">
+            <span>🛹 SHIELD ACTIVE</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Top Right: Speed, Coins -->
+      <!-- Top Right: Speed, Crystals -->
       <div class="hud-top-right">
         <div class="hud-speed-badge" id="hud-speed">48 KM/H</div>
         <div class="hud-credits-badge">
-          <span>🪙</span>
+          <span>💎</span>
           <span id="hud-credits">0</span>
         </div>
       </div>
 
-      <!-- Pause Trigger -->
-      <button class="btn-icon-pause" id="btn-pause" title="Pause Game">⏸</button>
+      <!-- Top Right Action Buttons: Pause & Home -->
+      <div class="hud-top-actions">
+        <button class="btn-hud-icon" id="btn-pause" title="Pause Game">⏸</button>
+        <button class="btn-hud-icon" id="btn-hud-home" title="Go to Main Menu">🏠</button>
+      </div>
 
-      <!-- Bottom Interactive Controls & Hoverboard Boost Gauge -->
+      <!-- Bottom Interactive Bar & Boost Gauge -->
       <div class="hud-bottom-bar">
         <div class="overdrive-wrapper">
-          <span class="hud-label">🛹 HOVERBOARD BOOST CHARGE</span>
+          <span class="hud-label">⚡ OVERDRIVE BOOST CHARGE</span>
           <div class="overdrive-bar-track">
             <div id="hud-overdrive-fill" class="overdrive-bar-fill"></div>
           </div>
         </div>
 
-        <div class="virtual-buttons">
+        <!-- Virtual Buttons: Shown ONLY if user chooses 'Touch Buttons Mode' -->
+        <div class="virtual-buttons" id="virtual-buttons">
           <button class="touch-btn" id="btn-left" title="Steer Left">◀</button>
           <button class="touch-btn" id="btn-jump" title="Jump Over Hurdles">▲</button>
           <button class="touch-btn" id="btn-slide" title="Slide Under Beams">▼</button>
@@ -94,10 +111,11 @@
     <div id="start-screen" class="screen-overlay">
       <div class="top-menu-toolbar">
         <button class="mini-icon-btn" id="btn-audio">🔊 AUDIO: ON</button>
+        <button class="mini-icon-btn" id="btn-open-settings">⚙️ SETTINGS</button>
       </div>
 
-      <h1 class="game-title">SUBWAY<br>RUNNER 3D</h1>
-      <div class="game-subtitle">JAKE SKATER BOY EDITION</div>
+      <h1 class="game-title">URBAN<br>DASH 3D</h1>
+      <div class="game-subtitle">METRO SKYLINE RUNNER</div>
 
       <div class="menu-stats-card">
         <div class="stat-item">
@@ -105,7 +123,7 @@
           <span class="stat-val" id="menu-high-score">0</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">GOLD COINS</span>
+          <span class="stat-label">ENERGY CRYSTALS</span>
           <span class="stat-val" id="menu-credits">0</span>
         </div>
       </div>
@@ -114,17 +132,58 @@
         <span>⚡ PLAY NOW</span>
       </button>
 
-      <!-- Install App Button (When opened in Chrome via link) -->
-      <button class="cyber-btn install" id="btn-install-app">
+      <!-- Install App Button -->
+      <button class="cyber-btn blue" id="btn-install-app">
         <span>📲 INSTALL APP</span>
       </button>
 
       <div class="instructions-tip">
         📱 <span>SWIPE ANYWHERE ON SCREEN:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to change 1 track at a time<br>
-        ⬆ <span>Swipe UP</span> to JUMP over hurdles & onto train roofs<br>
-        ⬇ <span>Swipe DOWN</span> to SLIDE under overhead beams<br>
-        🛹 Tap <span>BOOST</span> to ride Jake's Hoverboard!
+        ⬅ ➡ <span>Swipe Left / Right</span> to change tracks<br>
+        ⬆ <span>Swipe UP</span> to jump barriers & fly onto monorails<br>
+        ⬇ <span>Swipe DOWN</span> to slide under low beams<br>
+        🧲 Pick up <span>MAGNET (Chumbak)</span> to pull all crystals!<br>
+        🚀 Pick up <span>JETPACK</span> to fly high across the city skyline!
+      </div>
+    </div>
+
+    <!-- BIG-COMPANY SETTINGS MODAL -->
+    <div id="settings-modal" class="screen-overlay hidden">
+      <div class="settings-modal">
+        <div class="settings-header">
+          <span class="settings-title">⚙️ GAME SETTINGS</span>
+          <button class="btn-hud-icon" id="btn-close-settings">✕</button>
+        </div>
+
+        <div class="settings-section-title">CONTROL SCHEME</div>
+        <div class="control-options-group">
+          <div class="control-toggle-card active" id="opt-ctrl-swipe">
+            <div class="control-toggle-title">📱 Fullscreen Swipe</div>
+            <div class="control-toggle-desc">Clean, button-free screen with gesture controls</div>
+          </div>
+          <div class="control-toggle-card" id="opt-ctrl-buttons">
+            <div class="control-toggle-title">🕹️ Touch Buttons</div>
+            <div class="control-toggle-desc">On-screen tap buttons (◀ ▲ ▼ ▶)</div>
+          </div>
+        </div>
+
+        <div class="settings-section-title">AUDIO & SOUND</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <span style="font-size: 14px; font-weight: 700;">Game Sound Effects & Music</span>
+          <button class="mini-icon-btn" id="btn-toggle-sound">SOUND: ON</button>
+        </div>
+
+        <div class="settings-section-title">QUICK ACTIONS</div>
+        <button class="cyber-btn outline" id="btn-settings-home" style="max-width: 100%; margin-bottom: 10px;">
+          <span>🏠 Return to Main Menu</span>
+        </button>
+        <button class="cyber-btn blue" id="btn-settings-install" style="max-width: 100%; margin-bottom: 14px;">
+          <span>📲 Install App to Home Screen</span>
+        </button>
+
+        <button class="cyber-btn" id="btn-save-settings" style="max-width: 100%;">
+          <span>✓ SAVE & CLOSE</span>
+        </button>
       </div>
     </div>
 
@@ -132,13 +191,13 @@
     <div id="pause-screen" class="screen-overlay hidden">
       <h2 class="game-title">PAUSED</h2>
       <button class="cyber-btn" id="btn-resume">RESUME</button>
-      <button class="cyber-btn outline" onclick="location.reload()">QUIT TO MENU</button>
+      <button class="cyber-btn outline" id="btn-pause-home">🏠 QUIT TO MENU</button>
     </div>
 
     <!-- GAME OVER SCREEN -->
     <div id="game-over-screen" class="screen-overlay hidden">
-      <h2 class="game-over-title">CRASHED!</h2>
-      <span class="record-pill" id="new-record-badge" style="display: none;">🏆 NEW RECORD!</span>
+      <h2 class="game-over-title">RUN OVER!</h2>
+      <span class="record-pill" id="new-record-badge" style="display: none;">🏆 NEW HIGH SCORE!</span>
 
       <div class="game-over-stats-card">
         <div class="stats-row">
@@ -150,7 +209,7 @@
           <span class="stats-row-val" id="final-distance">0 m</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row-label">COINS COLLECTED</span>
+          <span class="stats-row-label">CRYSTALS COLLECTED</span>
           <span class="stats-row-val" id="final-credits">+0</span>
         </div>
       </div>
@@ -158,22 +217,24 @@
       <button class="cyber-btn" id="btn-restart">
         <span>⚡ PLAY AGAIN</span>
       </button>
+      <button class="cyber-btn outline" id="btn-gameover-home">
+        <span>🏠 MAIN MENU</span>
+      </button>
     </div>
-  </div>
 
     <!-- INSTALL GUIDE MODAL -->
     <div id="install-guide-modal" class="screen-overlay hidden">
-      <div class="garage-modal" style="max-width: 360px;">
+      <div class="settings-modal" style="max-width: 360px;">
         <h2 class="game-title" style="font-size: 28px; margin-bottom: 8px;">📱 INSTALL APP</h2>
         <p style="font-size: 14px; color: #94a3b8; margin-bottom: 18px; line-height: 1.5;">
-          Play Subway Runner directly from your Home Screen with 60FPS full-screen:
+          Add Urban Dash 3D directly to your phone Home Screen for instant full-screen play:
         </p>
-        <div style="text-align: left; background: rgba(255,255,255,0.06); padding: 14px 16px; border-radius: 14px; font-size: 13px; line-height: 1.7; color: #f8fafc; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 20px;">
+        <div style="background: rgba(255,255,255,0.06); padding: 14px 16px; border-radius: 14px; font-size: 13px; line-height: 1.7; color: #f8fafc; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 20px;">
           1. Tap Chrome's menu (<b>⋮ 3 dots</b>) at top right ↗<br>
           2. Tap <b>"Install app"</b> or <b>"Add to Home screen"</b><br>
-          3. Tap <b>"Install"</b> — Subway Runner icon is added to your phone!
+          3. Tap <b>"Install"</b> — The app icon appears on your phone!
         </div>
-        <button class="cyber-btn" id="btn-close-install-guide">
+        <button class="cyber-btn" id="btn-close-install-guide" style="max-width: 100%;">
           <span>👍 GOT IT!</span>
         </button>
       </div>
@@ -182,13 +243,14 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=subway3d_v8"></script>
-  <script src="game.js?v=subway3d_v8"></script>
+  <script src="audio.js?v=urbandash_v9"></script>
+  <script src="game.js?v=urbandash_v9"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
     let deferredInstallPrompt = null;
     const installBtn = document.getElementById('btn-install-app');
+    const settingsInstallBtn = document.getElementById('btn-settings-install');
     const installGuideModal = document.getElementById('install-guide-modal');
     const closeGuideBtn = document.getElementById('btn-close-install-guide');
 
@@ -198,44 +260,40 @@
       });
     }
 
-    // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=8').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=9').catch(() => {});
       });
     }
 
-    // Chrome beforeinstallprompt event listener
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
-      if (installBtn) {
-        installBtn.style.display = 'flex';
-      }
+      if (installBtn) installBtn.style.display = 'flex';
+      if (settingsInstallBtn) settingsInstallBtn.style.display = 'flex';
     });
 
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        if (deferredInstallPrompt) {
-          deferredInstallPrompt.prompt();
-          const { outcome } = await deferredInstallPrompt.userChoice;
-          if (outcome === 'accepted') {
-            installBtn.style.display = 'none';
+    function triggerInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then((choice) => {
+          if (choice.outcome === 'accepted') {
+            if (installBtn) installBtn.style.display = 'none';
           }
           deferredInstallPrompt = null;
-        } else {
-          // Show visual step-by-step install guide modal
-          if (installGuideModal) {
-            installGuideModal.classList.remove('hidden');
-          }
-        }
-      });
+        });
+      } else {
+        if (installGuideModal) installGuideModal.classList.remove('hidden');
+      }
     }
 
-    // Hide install button if app is already running as installed standalone PWA
+    if (installBtn) installBtn.addEventListener('click', triggerInstall);
+    if (settingsInstallBtn) settingsInstallBtn.addEventListener('click', triggerInstall);
+
     window.addEventListener('DOMContentLoaded', () => {
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
         if (installBtn) installBtn.style.display = 'none';
+        if (settingsInstallBtn) settingsInstallBtn.style.display = 'none';
       }
     });
   </script>
