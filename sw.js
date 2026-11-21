@@ -1,22 +1,7 @@
-const CACHE_NAME = 'neon-velocity-v1';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './style.css',
-  './game.js',
-  './audio.js',
-  './manifest.json',
-  './icons/icon.svg',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
-];
+// Auto-expiring service worker that purges old caches
+const CACHE_NAME = 'subway-runner-v3d';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -24,11 +9,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
+        keys.map((key) => caches.delete(key))
       );
     })
   );
@@ -36,12 +17,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Always fetch latest from network to prevent stale cached versions
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).catch(() => {
-        // Offline fallback
-        return caches.match('./index.html');
-      });
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });

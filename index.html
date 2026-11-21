@@ -3,49 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Neon Velocity - Cyberpunk 3D Runner</title>
+  <title>Subway Runner 3D - Jake Skater Boy</title>
+
+  <!-- Instant Cache Purge to prevent stale cached versions -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var reg of registrations) {
+          reg.unregister();
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (var name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+  </script>
 
   <!-- PWA & Mobile Web App Meta -->
-  <meta name="description" content="Ultra-fast 60FPS Cyberpunk 3D endless runner. Dodge laser barriers, trigger Overdrive, and customize your cyber-craft on mobile & desktop!">
-  <meta name="theme-color" content="#070114">
+  <meta name="description" content="3D Subway Surfers style runner game with Jake the skater boy, subway trains, hurdles, overhead beams, and coins!">
+  <meta name="theme-color" content="#38bdf8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Neon Velocity">
+  <meta name="apple-mobile-web-app-title" content="Subway Runner">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=subway3d_final">
 </head>
 <body>
   <div id="game-container">
-    <!-- Visual CRT / Scanlines overlay -->
-    <div class="scanlines"></div>
-
-    <!-- 3D Perspective Canvas -->
+    <!-- WebGL 3D Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Transparent Touch Swipe & Drag Area -->
+    <!-- Transparent Touch Swipe Area -->
     <div id="touch-overlay"></div>
 
     <!-- In-Game Heads-Up Display (HUD) -->
     <div id="hud" class="hidden">
-      <!-- Top Left: Score & Near-Miss Multiplier -->
+      <!-- Top Left: Score -->
       <div class="hud-top-left">
         <span class="hud-label">SCORE</span>
         <div class="hud-score-val" id="hud-score">0</div>
-        <div id="hud-multiplier" class="multiplier-badge" style="display: none;">x1</div>
       </div>
 
-      <!-- Top Right: Speed, Credits & Shields -->
+      <!-- Top Right: Speed, Coins -->
       <div class="hud-top-right">
-        <div class="hud-speed-badge" id="hud-speed">750 KM/H</div>
+        <div class="hud-speed-badge" id="hud-speed">38 KM/H</div>
         <div class="hud-credits-badge">
           <span>🪙</span>
           <span id="hud-credits">0</span>
         </div>
-        <div class="hud-shields-container" id="hud-shields"></div>
       </div>
 
       <!-- Pause Trigger -->
@@ -54,7 +67,7 @@
       <!-- Bottom Interactive Controls & Overdrive Gauge -->
       <div class="hud-bottom-bar">
         <div class="overdrive-wrapper">
-          <span class="hud-label">⚡ OVERDRIVE CHARGE</span>
+          <span class="hud-label">⚡ HOVERBOARD BOOST CHARGE</span>
           <div class="overdrive-bar-track">
             <div id="hud-overdrive-fill" class="overdrive-bar-fill"></div>
           </div>
@@ -63,9 +76,9 @@
         <div class="virtual-buttons">
           <button class="touch-btn" id="btn-left" title="Steer Left">◀</button>
           <button class="touch-btn" id="btn-jump" title="Jump Over Hurdles">▲</button>
-          <button class="touch-btn" id="btn-slide" title="Slide Under Lasers">▼</button>
+          <button class="touch-btn" id="btn-slide" title="Slide Under Beams">▼</button>
           <button class="touch-btn" id="btn-right" title="Steer Right">▶</button>
-          <button class="touch-btn boost-btn" id="btn-boost" title="Activate Overdrive">BOOST</button>
+          <button class="touch-btn boost-btn" id="btn-boost" title="Activate Boost">BOOST</button>
         </div>
       </div>
     </div>
@@ -74,7 +87,6 @@
     <div id="start-screen" class="screen-overlay">
       <div class="top-menu-toolbar">
         <button class="mini-icon-btn" id="btn-audio">🔊 AUDIO: ON</button>
-        <button class="mini-icon-btn" id="btn-fullscreen">⛶ FULLSCREEN</button>
       </div>
 
       <h1 class="game-title">SUBWAY<br>RUNNER 3D</h1>
@@ -95,40 +107,12 @@
         <span>⚡ PLAY NOW</span>
       </button>
 
-      <button class="cyber-btn outline" id="btn-garage">
-        <span>🛹 CHARACTERS & SHOP</span>
-      </button>
-
       <div class="instructions-tip">
         📱 <span>SWIPE ANYWHERE ON SCREEN:</span><br>
-        ⬅ ➡ <span>Swipe Left / Right</span> to change railway tracks<br>
+        ⬅ ➡ <span>Swipe Left / Right</span> to switch railway tracks<br>
         ⬆ <span>Swipe UP</span> to JUMP over hurdles<br>
-        ⬇ <span>Swipe DOWN</span> to SLIDE/ROLL under barrier beams<br>
+        ⬇ <span>Swipe DOWN</span> to SLIDE/ROLL under overhead beams<br>
         🛹 Tap <span>BOOST</span> to fly on Jake's Hoverboard!
-      </div>
-    </div>
-
-    <!-- GARAGE & UPGRADES MODAL -->
-    <div id="garage-screen" class="screen-overlay hidden">
-      <div class="garage-modal">
-        <div class="garage-header">
-          <span class="garage-title">SUBWAY CREW & UPGRADES</span>
-          <div class="hud-credits-badge">
-            <span>🪙</span>
-            <span id="garage-credits">0</span>
-          </div>
-        </div>
-
-        <div class="section-label">SELECT RUNNER</div>
-        <div class="garage-cards-grid" id="garage-ships-list"></div>
-
-        <div class="section-label">POWER-UP UPGRADES</div>
-        <div class="garage-cards-grid" id="garage-upgrades-list"></div>
-
-        <div class="section-label">NEON PLASMA TRAIL COLOR</div>
-        <div class="colors-grid" id="garage-colors-list"></div>
-
-        <button class="cyber-btn pink" id="btn-close-garage">BACK TO MENU</button>
       </div>
     </div>
 
@@ -141,7 +125,7 @@
 
     <!-- GAME OVER SCREEN -->
     <div id="game-over-screen" class="screen-overlay hidden">
-      <h2 class="game-over-title">CRITICAL FAILURE</h2>
+      <h2 class="game-over-title">CRASHED!</h2>
       <span class="record-pill" id="new-record-badge" style="display: none;">🏆 NEW RECORD!</span>
 
       <div class="game-over-stats-card">
@@ -154,67 +138,20 @@
           <span class="stats-row-val" id="final-distance">0 m</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row-label">CREDITS EARNED</span>
+          <span class="stats-row-label">COINS COLLECTED</span>
           <span class="stats-row-val" id="final-credits">+0</span>
-        </div>
-        <div class="stats-row">
-          <span class="stats-row-label">NEAR MISSES</span>
-          <span class="stats-row-val" id="final-nearmiss">0</span>
         </div>
       </div>
 
       <button class="cyber-btn" id="btn-restart">
         <span>⚡ PLAY AGAIN</span>
       </button>
-
-      <button class="cyber-btn outline" id="btn-share">
-        <span>📲 SHARE SCORE</span>
-      </button>
-    </div>
-
-    <!-- PWA Install Prompt Banner -->
-    <div id="pwa-install-banner" class="hidden">
-      <div>
-        <strong style="color: var(--neon-cyan); font-size: 13px;">Install App</strong>
-        <p style="font-size: 11px; color: #ccc;">Add to home screen for full-screen offline play</p>
-      </div>
-      <button class="cyber-btn sm" id="btn-pwa-install">INSTALL</button>
     </div>
   </div>
 
-  <!-- Audio Synthesis Engine & Core Game Scripts -->
-  <script src="audio.js"></script>
-  <script src="game.js"></script>
-
-  <!-- PWA Service Worker & Install Handler -->
-  <script>
-    // Register Service Worker for offline play
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
-    }
-
-    // PWA Install Prompt Handling
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const banner = document.getElementById('pwa-install-banner');
-      if (banner) banner.classList.remove('hidden');
-    });
-
-    const installBtn = document.getElementById('btn-pwa-install');
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          deferredPrompt = null;
-          document.getElementById('pwa-install-banner').classList.add('hidden');
-        }
-      });
-    }
-  </script>
+  <!-- 3D Three.js Engine & Game Scripts -->
+  <script src="libs/three.min.js"></script>
+  <script src="audio.js?v=subway3d_final"></script>
+  <script src="game.js?v=subway3d_final"></script>
 </body>
 </html>
