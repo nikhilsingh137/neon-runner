@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Neon Velocity - Cyberpunk 3D Runner</title>
+
+  <!-- PWA & Mobile Web App Meta -->
+  <meta name="description" content="Ultra-fast 60FPS Cyberpunk 3D endless runner. Dodge laser barriers, trigger Overdrive, and customize your cyber-craft on mobile & desktop!">
+  <meta name="theme-color" content="#070114">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Neon Velocity">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Visual CRT / Scanlines overlay -->
+    <div class="scanlines"></div>
+
+    <!-- 3D Perspective Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Transparent Touch Swipe & Drag Area -->
+    <div id="touch-overlay"></div>
+
+    <!-- In-Game Heads-Up Display (HUD) -->
+    <div id="hud" class="hidden">
+      <!-- Top Left: Score & Near-Miss Multiplier -->
+      <div class="hud-top-left">
+        <span class="hud-label">SCORE</span>
+        <div class="hud-score-val" id="hud-score">0</div>
+        <div id="hud-multiplier" class="multiplier-badge" style="display: none;">x1</div>
+      </div>
+
+      <!-- Top Right: Speed, Credits & Shields -->
+      <div class="hud-top-right">
+        <div class="hud-speed-badge" id="hud-speed">750 KM/H</div>
+        <div class="hud-credits-badge">
+          <span>💎</span>
+          <span id="hud-credits">0</span>
+        </div>
+        <div class="hud-shields-container" id="hud-shields"></div>
+      </div>
+
+      <!-- Pause Trigger -->
+      <button class="btn-icon-pause" id="btn-pause" title="Pause Game">⏸</button>
+
+      <!-- Bottom Interactive Controls & Overdrive Gauge -->
+      <div class="hud-bottom-bar">
+        <div class="overdrive-wrapper">
+          <span class="hud-label">⚡ OVERDRIVE CHARGE</span>
+          <div class="overdrive-bar-track">
+            <div id="hud-overdrive-fill" class="overdrive-bar-fill"></div>
+          </div>
+        </div>
+
+        <div class="virtual-buttons">
+          <button class="touch-btn" id="btn-left" title="Steer Left">◀</button>
+          <button class="touch-btn" id="btn-right" title="Steer Right">▶</button>
+          <button class="touch-btn boost-btn" id="btn-boost" title="Activate Overdrive">BOOST</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen-overlay">
+      <div class="top-menu-toolbar">
+        <button class="mini-icon-btn" id="btn-audio">🔊 AUDIO: ON</button>
+        <button class="mini-icon-btn" id="btn-fullscreen">⛶ FULLSCREEN</button>
+      </div>
+
+      <h1 class="game-title">NEON<br>VELOCITY</h1>
+      <div class="game-subtitle">CYBERPUNK OVERDRIVE RUNNER</div>
+
+      <div class="menu-stats-card">
+        <div class="stat-item">
+          <span class="stat-label">HIGH SCORE</span>
+          <span class="stat-val" id="menu-high-score">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">CYBER CREDITS</span>
+          <span class="stat-val" id="menu-credits">0</span>
+        </div>
+      </div>
+
+      <button class="cyber-btn" id="btn-start">
+        <span>⚡ PLAY GAME</span>
+      </button>
+
+      <button class="cyber-btn outline" id="btn-garage">
+        <span>🛠 GARAGE & UPGRADES</span>
+      </button>
+
+      <div class="instructions-tip">
+        📱 <span>Swipe or Drag</span> on screen to steer<br>
+        ⚡ Collect yellow orbs to charge <span>Overdrive</span><br>
+        ⌨️ Desktop: <span>Arrow Keys / A & D</span> | <span>Space</span> to Boost
+      </div>
+    </div>
+
+    <!-- GARAGE & UPGRADES MODAL -->
+    <div id="garage-screen" class="screen-overlay hidden">
+      <div class="garage-modal">
+        <div class="garage-header">
+          <span class="garage-title">CYBER GARAGE</span>
+          <div class="hud-credits-badge">
+            <span>💎</span>
+            <span id="garage-credits">0</span>
+          </div>
+        </div>
+
+        <div class="section-label">SELECT CYBER-CRAFT</div>
+        <div class="garage-cards-grid" id="garage-ships-list"></div>
+
+        <div class="section-label">PERFORMANCE UPGRADES</div>
+        <div class="garage-cards-grid" id="garage-upgrades-list"></div>
+
+        <div class="section-label">NEON PLASMA TRAIL COLOR</div>
+        <div class="colors-grid" id="garage-colors-list"></div>
+
+        <button class="cyber-btn pink" id="btn-close-garage">BACK TO MENU</button>
+      </div>
+    </div>
+
+    <!-- PAUSE SCREEN -->
+    <div id="pause-screen" class="screen-overlay hidden">
+      <h2 class="game-title">PAUSED</h2>
+      <button class="cyber-btn" id="btn-resume">RESUME</button>
+      <button class="cyber-btn outline" onclick="location.reload()">QUIT TO MENU</button>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over-screen" class="screen-overlay hidden">
+      <h2 class="game-over-title">CRITICAL FAILURE</h2>
+      <span class="record-pill" id="new-record-badge" style="display: none;">🏆 NEW RECORD!</span>
+
+      <div class="game-over-stats-card">
+        <div class="stats-row">
+          <span class="stats-row-label">FINAL SCORE</span>
+          <span class="stats-row-val" id="final-score">0</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">DISTANCE</span>
+          <span class="stats-row-val" id="final-distance">0 m</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">CREDITS EARNED</span>
+          <span class="stats-row-val" id="final-credits">+0</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">NEAR MISSES</span>
+          <span class="stats-row-val" id="final-nearmiss">0</span>
+        </div>
+      </div>
+
+      <button class="cyber-btn" id="btn-restart">
+        <span>⚡ PLAY AGAIN</span>
+      </button>
+
+      <button class="cyber-btn outline" id="btn-share">
+        <span>📲 SHARE SCORE</span>
+      </button>
+    </div>
+
+    <!-- PWA Install Prompt Banner -->
+    <div id="pwa-install-banner" class="hidden">
+      <div>
+        <strong style="color: var(--neon-cyan); font-size: 13px;">Install App</strong>
+        <p style="font-size: 11px; color: #ccc;">Add to home screen for full-screen offline play</p>
+      </div>
+      <button class="cyber-btn sm" id="btn-pwa-install">INSTALL</button>
+    </div>
+  </div>
+
+  <!-- Audio Synthesis Engine & Core Game Scripts -->
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+
+  <!-- PWA Service Worker & Install Handler -->
+  <script>
+    // Register Service Worker for offline play
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+
+    // PWA Install Prompt Handling
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.remove('hidden');
+    });
+
+    const installBtn = document.getElementById('btn-pwa-install');
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          document.getElementById('pwa-install-banner').classList.add('hidden');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

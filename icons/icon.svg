@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070114" />
+      <stop offset="50%" stop-color="#14022a" />
+      <stop offset="100%" stop-color="#020008" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff007f" />
+      <stop offset="50%" stop-color="#00f3ff" />
+      <stop offset="100%" stop-color="#ffe600" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded canvas -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+
+  <!-- Grid Perspective Lines -->
+  <path d="M 50 440 L 462 440 M 80 400 L 432 400 M 130 360 L 382 360 M 180 320 L 332 320" stroke="#00f3ff" stroke-width="4" stroke-opacity="0.4" />
+  <path d="M 256 280 L 50 480 M 256 280 L 140 480 M 256 280 L 256 480 M 256 280 L 372 480 M 256 280 L 462 480" stroke="#00f3ff" stroke-width="4" stroke-opacity="0.5" />
+
+  <!-- Retrosun in background -->
+  <circle cx="256" cy="220" r="110" fill="url(#neonGlow)" filter="url(#glow)" opacity="0.85" />
+
+  <!-- Futuristic Cyber Jet Triangle Shape -->
+  <polygon points="256,110 370,360 256,310 142,360" fill="#0d041c" stroke="#00f3ff" stroke-width="12" filter="url(#glow)" />
+  <polygon points="256,160 300,300 256,280 212,300" fill="#00f3ff" />
+
+  <!-- Thruster Flare -->
+  <circle cx="256" cy="350" r="28" fill="#ffe600" filter="url(#glow)" />
+</svg>
