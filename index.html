@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v17_subway_character';
+      var LATEST_VERSION = 'v19_arcade_revamp';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v17">
+  <link rel="stylesheet" href="style.css?v=urbandash_v19">
 </head>
 <body>
   <div id="game-container">
@@ -148,7 +148,7 @@
       <!-- CENTER HERO BANNER: Polished, attractive, high-end 3D arcade look -->
       <div class="menu-center-hero">
         <div class="game-logo-badge">
-          <span class="logo-emoji">🚇⚡</span>
+          <img src="icons/icon.svg" class="app-icon-img" alt="Urban Dash 3D Runner">
         </div>
         <h1 class="game-title">URBAN DASH<span class="title-3d-tag">3D</span></h1>
         <div class="game-subtitle">
@@ -337,8 +337,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v17"></script>
-  <script src="game.js?v=urbandash_v18_organic"></script>
+  <script src="audio.js?v=urbandash_v19"></script>
+  <script src="game.js?v=urbandash_v19"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -356,7 +356,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=16').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=19').catch(() => {});
       });
     }
 

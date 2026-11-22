@@ -960,12 +960,12 @@
     speedLines = [];
 
     const isBright = state.theme === 'bright';
-    const groundColor = isBright ? 0x64748b : 0x0f172a; // Weathered ballast in Day vs Deep midnight in Night
+    const groundColor = isBright ? 0xdbeafe : 0x090d16; // Crisp light ballast in Day vs Deep midnight in Night
     const wallColor = isBright ? 0x94a3b8 : 0x1e293b;
     const trimColor = isBright ? 0x0284c7 : 0x00f5d4; // Subway Blue trim in Day vs Electric Cyan neon in Night
-    const dividerColor = isBright ? 0x64748b : 0x334155;
-    const tieWoodColor = isBright ? 0x78350f : 0x1e293b; // Rich weathered oak sleepers in Day, sleek composite in Night
-    const railColor = isBright ? 0xcfd8dc : 0x94a3b8;
+    const dividerColor = isBright ? 0x94a3b8 : 0x334155;
+    const tieWoodColor = isBright ? 0x451a03 : 0x0284c7; // High contrast: Rich dark timber in Day, glowing electric cyan composite in Night!
+    const railColor = isBright ? 0x1e293b : 0xe2e8f0;
 
     // 1. High-Tech Ground Bed
     const groundGeom = new THREE.PlaneGeometry(36, 600);
@@ -1028,17 +1028,34 @@
     const tieGeom = new THREE.BoxGeometry(2.15, 0.14, 0.46);
     const tieMat = new THREE.MeshStandardMaterial({
       color: tieWoodColor,
-      roughness: 0.8,
-      metalness: 0.05
+      roughness: isBright ? 0.7 : 0.3,
+      metalness: isBright ? 0.1 : 0.4,
+      emissive: isBright ? 0x000000 : 0x0369a1,
+      emissiveIntensity: isBright ? 0 : 0.35
     });
+
+    const clipGeom = new THREE.BoxGeometry(0.28, 0.16, 0.48);
+    const clipMat = new THREE.MeshBasicMaterial({ color: isBright ? 0x94a3b8 : 0x38bdf8 });
 
     for (let z = 25; z > -320; z -= 2.5) {
       LANES.forEach((laneX) => {
+        const tieGroup = new THREE.Group();
+        tieGroup.position.set(laneX, 0.02, z);
+
         const tie = new THREE.Mesh(tieGeom, tieMat);
-        tie.position.set(laneX, 0.02, z);
         tie.receiveShadow = true;
-        tracksGroup.add(tie);
-        trackTies.push(tie);
+        tieGroup.add(tie);
+
+        const clipL = new THREE.Mesh(clipGeom, clipMat);
+        clipL.position.set(-0.85, 0.02, 0);
+        tieGroup.add(clipL);
+
+        const clipR = clipL.clone();
+        clipR.position.x = 0.85;
+        tieGroup.add(clipR);
+
+        tracksGroup.add(tieGroup);
+        trackTies.push(tieGroup);
       });
     }
 
@@ -1469,24 +1486,42 @@
   // --- POWER-UPS: MAGNET (CHUMBAK) & JETPACK (FLY THING) ---
   function createMagnetPowerup(laneIndex, zPos) {
     const magnetGroup = new THREE.Group();
-    magnetGroup.position.set(LANES[laneIndex], 1.3, zPos);
+    magnetGroup.position.set(LANES[laneIndex], 1.45, zPos);
 
-    // Red Horseshoe Arc
+    // Big Vibrant Red Horseshoe Arc (2.2x size)
     const arcMesh = new THREE.Mesh(
-      new THREE.TorusGeometry(0.38, 0.12, 8, 16, Math.PI),
-      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
+      new THREE.TorusGeometry(0.72, 0.22, 12, 24, Math.PI),
+      new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        roughness: 0.2,
+        metalness: 0.4,
+        emissive: 0x991b1b,
+        emissiveIntensity: 0.3
+      })
     );
     arcMesh.rotation.z = Math.PI;
     magnetGroup.add(arcMesh);
 
-    // Silver Poles
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.8 });
-    const poleL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.24), poleMat);
-    poleL.position.set(-0.38, -0.15, 0);
+    // Large Silver Magnetic Pole Tips
+    const poleMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      roughness: 0.1,
+      metalness: 0.9,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.2
+    });
+    const poleL = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.38, 0.44), poleMat);
+    poleL.position.set(-0.72, -0.25, 0);
     const poleR = poleL.clone();
-    poleR.position.x = 0.38;
+    poleR.position.x = 0.72;
     magnetGroup.add(poleL);
     magnetGroup.add(poleR);
+
+    // Glowing Golden Aura Ring
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 8, 24), haloMat);
+    halo.rotation.x = Math.PI / 2;
+    magnetGroup.add(halo);
 
     magnetGroup.userData = { type: 'magnet', lane: laneIndex, collected: false };
     scene.add(magnetGroup);
@@ -1495,27 +1530,49 @@
 
   function createJetpackPowerup(laneIndex, zPos) {
     const jetpackGroup = new THREE.Group();
-    jetpackGroup.position.set(LANES[laneIndex], 1.3, zPos);
+    jetpackGroup.position.set(LANES[laneIndex], 1.45, zPos);
 
-    // Dual Rocket Turbines with Glowing Thruster
-    const cylMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.5 });
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    // Big Dual Jetpack Thrusters (2.2x size)
+    const cylMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.2,
+      metalness: 0.8,
+      emissive: 0x0369a1,
+      emissiveIntensity: 0.35
+    });
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
 
-    const cL = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.6, 12), cylMat);
-    cL.position.set(-0.25, 0, 0);
-    const fL = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.35, 8), flameMat);
+    const cL = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.1, 14), cylMat);
+    cL.position.set(-0.48, 0, 0);
+    const fL = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.65, 10), flameMat);
     fL.rotation.x = Math.PI;
-    fL.position.set(-0.25, -0.45, 0);
+    fL.position.set(-0.48, -0.85, 0);
 
     const cR = cL.clone();
-    cR.position.x = 0.25;
+    cR.position.x = 0.48;
     const fR = fL.clone();
-    fR.position.x = 0.25;
+    fR.position.x = 0.48;
+
+    // Center Cross-Brace & Reactor Core
+    const brace = new THREE.Mesh(
+      new THREE.BoxGeometry(0.65, 0.22, 0.28),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 })
+    );
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), coreMat);
+
+    // Cyan Flight Beacon Ring
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const beacon = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.05, 8, 24), ringMat);
+    beacon.rotation.x = Math.PI / 2;
 
     jetpackGroup.add(cL);
     jetpackGroup.add(fL);
     jetpackGroup.add(cR);
     jetpackGroup.add(fR);
+    jetpackGroup.add(brace);
+    jetpackGroup.add(core);
+    jetpackGroup.add(beacon);
 
     jetpackGroup.userData = { type: 'jetpack', lane: laneIndex, collected: false };
     scene.add(jetpackGroup);
@@ -1546,8 +1603,8 @@
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
 
-      // Spawn Power-Ups periodically (18% chance for Chumbak Magnet or Jetpack in open lane!)
-      if (Math.random() < 0.20) {
+      // Spawn Power-Ups periodically (32% chance for Chumbak Magnet or Jetpack in open lane!)
+      if (Math.random() < 0.32) {
         if (Math.random() < 0.5) {
           createMagnetPowerup(openLane, nextSpawnZ + 8);
         } else {
@@ -1726,19 +1783,21 @@
     bindBtn('btn-gameover-home', goHome);
     bindBtn('btn-settings-home', goHome);
 
-    // Settings Modal
+    // Settings Modal (Debounced to completely eliminate mobile touch ghost-close!)
+    let settingsOpenedAt = 0;
     bindBtn('btn-open-settings', () => {
       updateCareerStatsUI();
+      settingsOpenedAt = Date.now();
       settingsModal.classList.remove('hidden');
     });
 
-    bindBtn('btn-close-settings', () => {
+    const safeCloseSettings = () => {
+      if (Date.now() - settingsOpenedAt < 380) return; // Prevent ghost touch click bleed-through on mobile
       settingsModal.classList.add('hidden');
-    });
+    };
 
-    bindBtn('btn-save-settings', () => {
-      settingsModal.classList.add('hidden');
-    });
+    bindBtn('btn-close-settings', safeCloseSettings);
+    bindBtn('btn-save-settings', safeCloseSettings);
 
     // Theme Option Toggles
     bindBtn('opt-theme-dark', () => applyTheme('dark'));
@@ -1825,6 +1884,13 @@
   function startGame() {
     state.running = true;
     state.paused = false;
+    if (playerGroup) {
+      playerGroup.rotation.set(0, 0, 0);
+    }
+    if (camera) {
+      camera.position.set(0, 4.6, 8.2);
+      camera.lookAt(0, 1.7, -18);
+    }
     state.score = 0;
     state.coins = 0;
     state.distance = 0;
@@ -1907,9 +1973,35 @@
     if (newRecordBadge) newRecordBadge.style.display = isNewRecord ? 'inline-block' : 'none';
   }
 
+  let menuIdleTime = 0;
+
   // --- UPDATE LOOP ---
   function update(delta) {
-    if (!state.running || state.paused) return;
+    if (!state.running) {
+      // 3D Menu Idle Animation: Showcase 3D Runner Kai in dynamic hero stance!
+      menuIdleTime += delta;
+      if (playerGroup) {
+        playerGroup.position.set(0, 0, 0);
+        // Face camera slightly at a confident hero angle
+        playerGroup.rotation.y = Math.PI + Math.sin(menuIdleTime * 1.4) * 0.12;
+      }
+      if (kaiModel) {
+        const breathe = Math.sin(menuIdleTime * 2.5) * 0.025;
+        kaiModel.position.y = breathe;
+        if (leftArm) leftArm.rotation.x = 0.2 + Math.sin(menuIdleTime * 1.6) * 0.06;
+        if (rightArm) rightArm.rotation.x = -0.15 + Math.sin(menuIdleTime * 1.6 + 1.2) * 0.06;
+        if (leftLeg) leftLeg.rotation.x = 0;
+        if (rightLeg) rightLeg.rotation.x = 0;
+      }
+      if (camera) {
+        // Framed hero view showcasing runner boy and skyline behind transparent menu!
+        const orbitX = Math.sin(menuIdleTime * 0.4) * 0.35;
+        camera.position.set(orbitX, 1.85, 4.3);
+        camera.lookAt(0, 1.25, 0);
+      }
+      return;
+    }
+    if (state.paused) return;
 
     // 1. Magnet (Chumbak) Timer & HUD
     if (state.magnetTimer > 0) {
@@ -2028,11 +2120,12 @@
       camera.position.z += (8.6 - camera.position.z) * 8 * delta;
       camera.lookAt(state.playerX * 0.45, JETPACK_FLIGHT_Y - 0.8, -25);
     } else {
-      // Classic Ground Track 3rd-Person Framing (Exact same size as before)
-      const targetCamY = state.isSliding ? 3.8 : 4.6;
+      // Classic Ground Track 3rd-Person Framing with Footstep Bounce
+      const runBounce = (!state.isJumping && !state.isSliding) ? Math.sin(runAnimTime * 2.2) * 0.05 : 0;
+      const targetCamY = (state.isSliding ? 3.8 : 4.6) + runBounce;
       camera.position.y += (targetCamY - camera.position.y) * 14 * delta;
       camera.position.z += (8.2 - camera.position.z) * 14 * delta;
-      camera.lookAt(state.playerX * 0.4, 1.7, -18);
+      camera.lookAt(state.playerX * 0.4, 1.7 + runBounce * 0.5, -18);
     }
 
     // Continuously scroll track ties backward at run speed (Fixes boy running in one place!)
@@ -2245,7 +2338,7 @@
       p.rotation.y += delta * 3.0;
 
       const dist = p.position.distanceTo(playerGroup.position);
-      if (dist < 1.8 && !p.userData.collected) {
+      if (dist < 2.2 && !p.userData.collected) {
         p.userData.collected = true;
         if (p.userData.type === 'magnet') {
           state.magnetTimer = 14.0;
@@ -2368,20 +2461,20 @@
         return true; // CRASH! Hit the train (head-on or side impact)!
       }
     } else if (obs.userData.type === 'hurdle') {
-      // Low plasma barrier: player must jump over!
-      if (Math.abs(zPos) < 0.85) {
-        if (state.isJumping && state.playerY >= 0.75) {
-          return false; // Cleared hurdle!
+      // Low plasma barrier: jumping clears it reliably!
+      if (Math.abs(zPos) < 0.95) {
+        if (state.isJumping || state.playerY > 0.35) {
+          return false; // Cleared hurdle safely!
         }
         return true; // CRASH! Hit hurdle barrier!
       }
     } else if (obs.userData.type === 'overhead') {
-      // Overhead beam: player MUST slide/duck ("jhukna padhta hai")!
-      if (Math.abs(zPos) < 0.85) {
-        if (state.isSliding && state.playerY < 0.35) {
-          return false; // Ducked safely under beam!
+      // Overhead beam: sliding/ducking ("letna") clears it reliably!
+      if (Math.abs(zPos) < 0.95) {
+        if (state.isSliding || state.slideTimer > 0) {
+          return false; // Safely ducked/slid under beam!
         }
-        return true; // CRASH! Did not slide/duck, hit head on overhead beam!
+        return true; // CRASH! Did not slide, hit head on overhead beam!
       }
     }
 

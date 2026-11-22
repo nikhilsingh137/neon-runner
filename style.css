@@ -320,6 +320,9 @@ html, body {
 
 /* --- START SCREEN (HERO MENU) --- */
 #start-screen {
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.65) 0%, rgba(2, 6, 23, 0.08) 35%, rgba(2, 6, 23, 0.12) 65%, rgba(2, 6, 23, 0.8) 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   justify-content: space-between;
   align-items: center;
   padding: calc(14px + var(--safe-top)) 18px calc(18px + var(--safe-bottom)) 18px;
@@ -392,18 +395,26 @@ html, body {
 }
 
 .game-logo-badge {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(56, 189, 248, 0.15) 100%);
-  border: 2px solid rgba(56, 189, 248, 0.6);
-  border-radius: 20px;
+  width: 76px;
+  height: 76px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.6) 0%, rgba(56, 189, 248, 0.25) 100%);
+  border: 2.5px solid #38bdf8;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  box-shadow: 0 0 30px rgba(56, 189, 248, 0.45), inset 0 0 15px rgba(56, 189, 248, 0.25);
-  margin-bottom: 10px;
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.3);
+  margin-bottom: 12px;
   animation: floatBadge 3.2s ease-in-out infinite;
+  overflow: hidden;
+  padding: 4px;
+}
+.app-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 17px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
 }
 @keyframes floatBadge {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -753,6 +764,7 @@ html, body {
 
 /* --- QUICK POWER-UP INVENTORY TRAY (MANUAL TRIGGER) --- */
 .hud-powerup-tray {
+  display: none !important;
   position: absolute;
   left: 16px;
   top: 112px;
@@ -974,30 +986,46 @@ html, body {
 
 /* Bright Solar Day Theme Overrides */
 body.theme-bright .screen-overlay {
-  background: radial-gradient(circle at center, rgba(224, 242, 254, 0.92) 0%, rgba(186, 230, 253, 0.97) 100%);
+  background: radial-gradient(circle at center, rgba(224, 242, 254, 0.82) 0%, rgba(186, 230, 253, 0.94) 100%);
   color: #0f172a;
 }
 
 body.theme-bright #start-screen {
-  background: radial-gradient(circle at center, rgba(240, 249, 255, 0.95) 0%, rgba(224, 242, 254, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.28) 0%, rgba(255, 255, 255, 0.05) 35%, rgba(255, 255, 255, 0.05) 65%, rgba(2, 132, 199, 0.38) 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 body.theme-bright .menu-pill-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(2, 132, 199, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(2, 132, 199, 0.45);
   color: #0f172a;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);
 }
 
 body.theme-bright .game-logo-badge {
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(56, 189, 248, 0.25) 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%);
   border-color: #0284c7;
-  box-shadow: 0 0 20px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 6px 22px rgba(2, 132, 199, 0.35);
 }
 
 body.theme-bright .game-title {
   color: #0f172a;
-  text-shadow: 0 4px 0 #bae6fd, 0 8px 20px rgba(2, 132, 199, 0.25);
+  text-shadow: 0 4px 0 #38bdf8, 0 8px 24px rgba(2, 132, 199, 0.35);
+}
+
+body.theme-bright .cyber-btn.primary-start-btn {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border: 2px solid #34d399;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+}
+
+body.theme-bright .cyber-btn.blue {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+  border: 2px solid #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
 }
 
 body.theme-bright .game-subtitle {
