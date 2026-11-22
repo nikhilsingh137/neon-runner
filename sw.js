@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 3D PWA
-const CACHE_NAME = 'urbandash-v17-subway-hero';
+const CACHE_NAME = 'urbandash-v18-organic-runner';
 
 const CORE_ASSETS = [
   './manifest.json',
