@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 3D PWA
-const CACHE_NAME = 'urbandash-v19-arcade-revamp';
+const CACHE_NAME = 'urbandash-v20-ultimate-boosts';
 
 const CORE_ASSETS = [
   './manifest.json',

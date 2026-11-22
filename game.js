@@ -22,8 +22,9 @@
     score: 0,
     coins: 0, // Energy Crystals
     distance: 0,
-    speed: 48,
-    maxSpeed: 82,
+    speed: 24, // Slow beginner-friendly start (28 KM/H)
+    baseSpeed: 24,
+    maxSpeed: 70, // Scales up to ~84 KM/H as score grows!
     currentLane: 0, // -1, 0, 1
     playerX: 0,
     targetX: 0,
@@ -38,9 +39,14 @@
     boostTimer: 0,
     overdriveCharge: 0,
     multiplier: 1,
-    // Power-ups
+    // 8 Epic Power-ups
     magnetTimer: 0,
     jetpackTimer: 0,
+    sneakersTimer: 0,
+    doublerTimer: 0,
+    warpTimer: 0,
+    ghostTimer: 0,
+    vortexTimer: 0,
     hasShield: false,
     storedMagnets: 0,
     storedJetpacks: 0,
@@ -95,6 +101,16 @@
   const timerMagnet = document.getElementById('timer-magnet');
   const badgeJetpack = document.getElementById('badge-jetpack');
   const timerJetpack = document.getElementById('timer-jetpack');
+  const badgeSneakers = document.getElementById('badge-sneakers');
+  const timerSneakers = document.getElementById('timer-sneakers');
+  const badgeDoubler = document.getElementById('badge-doubler');
+  const timerDoubler = document.getElementById('timer-doubler');
+  const badgeWarp = document.getElementById('badge-warp');
+  const timerWarp = document.getElementById('timer-warp');
+  const badgeGhost = document.getElementById('badge-ghost');
+  const timerGhost = document.getElementById('timer-ghost');
+  const badgeVortex = document.getElementById('badge-vortex');
+  const timerVortex = document.getElementById('timer-vortex');
   const badgeShield = document.getElementById('badge-shield');
 
   // Quick-Use Power-Up Tray Elements
@@ -1579,6 +1595,198 @@
     powerups.push(jetpackGroup);
   }
 
+  // 3. Super Jump Sneakers (Red High-Tops with Golden Spring Coils)
+  function createSneakersPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.4, zPos);
+
+    const shoeMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444,
+      roughness: 0.3,
+      metalness: 0.2,
+      emissive: 0x7f1d1d,
+      emissiveIntensity: 0.3
+    });
+    const soleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+    const springMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+
+    [-0.32, 0.32].forEach((xOff) => {
+      const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.34, 0.72), shoeMat);
+      shoe.position.set(xOff, 0.16, 0);
+      const sole = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.76), soleMat);
+      sole.position.set(xOff, -0.05, 0);
+      const coil = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.32, 10), springMat);
+      coil.position.set(xOff, -0.25, 0);
+
+      group.add(shoe);
+      group.add(sole);
+      group.add(coil);
+    });
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.96, 0.05, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x10b981 })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    group.userData = { type: 'sneakers', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 4. 2X Energy Doubler Cube (Amethyst Crystal with Gold Frame)
+  function createDoublerPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.45, zPos);
+
+    const cubeMat = new THREE.MeshStandardMaterial({
+      color: 0x9333ea,
+      roughness: 0.1,
+      metalness: 0.7,
+      emissive: 0x7e22ce,
+      emissiveIntensity: 0.55
+    });
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), cubeMat);
+    group.add(cube);
+
+    const frameMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, wireframe: true });
+    const frame = new THREE.Mesh(new THREE.OctahedronGeometry(0.98, 0), frameMat);
+    group.add(frame);
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.1, 0.05, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xc084fc })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    group.userData = { type: 'doubler', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 5. Chrono Time Warp (Cyan Chronosphere with Gyro Rings)
+  function createWarpPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.45, zPos);
+
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      roughness: 0.2,
+      metalness: 0.8,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.5
+    });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), coreMat);
+    group.add(core);
+
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.04, 8, 24), ringMat);
+    const r2 = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.04, 8, 24), ringMat);
+    r2.rotation.y = Math.PI / 2;
+    group.add(r1);
+    group.add(r2);
+
+    group.userData = { type: 'warp', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 6. Sonic EMP Shockwave Cannon (Impulse Blast Device)
+  function createEMPPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.45, zPos);
+
+    const empMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      roughness: 0.2,
+      metalness: 0.9,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.55
+    });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.52, 14, 14), empMat);
+    group.add(sphere);
+
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8 });
+    for (let w = 0; w < 4; w++) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.25), wingMat);
+      const angle = (w * Math.PI) / 2;
+      wing.position.set(Math.cos(angle) * 0.65, Math.sin(angle) * 0.65, 0);
+      group.add(wing);
+    }
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.06, 0.05, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xf87171 })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    group.userData = { type: 'emp', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 7. Quantum Ghost Phase Cloak (Translucent Holographic Diamond)
+  function createGhostPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.45, zPos);
+
+    const ghostMat = new THREE.MeshStandardMaterial({
+      color: 0xec4899,
+      roughness: 0.1,
+      metalness: 0.4,
+      transparent: true,
+      opacity: 0.8,
+      emissive: 0xdb2777,
+      emissiveIntensity: 0.55
+    });
+    const prism = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0), ghostMat);
+    group.add(prism);
+
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0xf472b6, wireframe: true });
+    const wirePrism = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 0), wireMat);
+    group.add(wirePrism);
+
+    group.userData = { type: 'ghost', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 8. Rainbow Singularity Vortex (Multi-Orbit Accretion Star)
+  function createVortexPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.45, zPos);
+
+    const starMat = new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
+      roughness: 0.1,
+      metalness: 0.9,
+      emissive: 0xf59e0b,
+      emissiveIntensity: 0.65
+    });
+    const star = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), starMat);
+    group.add(star);
+
+    const rGold = new THREE.Mesh(
+      new THREE.TorusGeometry(0.88, 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+    );
+    rGold.rotation.x = 0.6;
+    const rPink = new THREE.Mesh(
+      new THREE.TorusGeometry(1.05, 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xec4899 })
+    );
+    rPink.rotation.y = 0.8;
+    group.add(rGold);
+    group.add(rPink);
+
+    group.userData = { type: 'vortex', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
   // --- ORIGINAL DYNAMIC TRACK SPAWNER ---
   let nextSpawnZ = -45;
 
@@ -1603,12 +1811,26 @@
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
 
-      // Spawn Power-Ups periodically (32% chance for Chumbak Magnet or Jetpack in open lane!)
-      if (Math.random() < 0.32) {
-        if (Math.random() < 0.5) {
-          createMagnetPowerup(openLane, nextSpawnZ + 8);
+      // Spawn Power-Ups periodically (38% chance for one of 8 Epic Boosts in open lane!)
+      if (Math.random() < 0.38) {
+        const pChoice = Math.random();
+        const pZ = nextSpawnZ + 8;
+        if (pChoice < 0.16) {
+          createMagnetPowerup(openLane, pZ);
+        } else if (pChoice < 0.29) {
+          createJetpackPowerup(openLane, pZ);
+        } else if (pChoice < 0.43) {
+          createSneakersPowerup(openLane, pZ);
+        } else if (pChoice < 0.57) {
+          createDoublerPowerup(openLane, pZ);
+        } else if (pChoice < 0.71) {
+          createWarpPowerup(openLane, pZ);
+        } else if (pChoice < 0.82) {
+          createEMPPowerup(openLane, pZ);
+        } else if (pChoice < 0.91) {
+          createGhostPowerup(openLane, pZ);
         } else {
-          createJetpackPowerup(openLane, nextSpawnZ + 8);
+          createVortexPowerup(openLane, pZ);
         }
       }
 
@@ -1799,13 +2021,23 @@
     bindBtn('btn-close-settings', safeCloseSettings);
     bindBtn('btn-save-settings', safeCloseSettings);
 
-    // Theme Option Toggles
-    bindBtn('opt-theme-dark', () => applyTheme('dark'));
-    bindBtn('opt-theme-bright', () => applyTheme('bright'));
+    const bindClickOnly = (id, action) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          action();
+        });
+      }
+    };
 
-    // Control Option Toggles
-    bindBtn('opt-ctrl-swipe', () => applyControlMode('swipe'));
-    bindBtn('opt-ctrl-buttons', () => applyControlMode('buttons'));
+    // Theme Option Toggles (Click only: prevents swipe/scroll from accidentally changing themes!)
+    bindClickOnly('opt-theme-dark', () => applyTheme('dark'));
+    bindClickOnly('opt-theme-bright', () => applyTheme('bright'));
+
+    // Control Option Toggles (Click only!)
+    bindClickOnly('opt-ctrl-swipe', () => applyControlMode('swipe'));
+    bindClickOnly('opt-ctrl-buttons', () => applyControlMode('buttons'));
 
     // Power-Up Inventory Slot Buttons
     bindBtn('slot-magnet', useStoredMagnet);
@@ -1843,8 +2075,13 @@
     if (!state.isJumping && state.jetpackTimer <= 0) {
       state.isJumping = true;
       state.isSliding = false;
-      state.vy = Math.sqrt(2 * GRAVITY * JUMP_HEIGHT);
-      if (window.soundEngine) window.soundEngine.playJumpSFX();
+      const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
+      state.vy = Math.sqrt(2 * GRAVITY * jumpHeight);
+      if (state.sneakersTimer > 0 && window.soundEngine && window.soundEngine.playSneakersSFX) {
+        window.soundEngine.playSneakersSFX();
+      } else if (window.soundEngine) {
+        window.soundEngine.playJumpSFX();
+      }
     }
   }
 
@@ -1894,7 +2131,8 @@
     state.score = 0;
     state.coins = 0;
     state.distance = 0;
-    state.speed = 48;
+    state.speed = 24; // 28 KM/H slow beginner start
+    state.baseSpeed = 24;
     state.currentLane = 0;
     state.playerX = 0;
     state.targetX = 0;
@@ -1908,8 +2146,14 @@
     state.boostTimer = 0;
     state.overdriveCharge = 0;
     state.multiplier = 1;
+    // Reset all 8 boost timers
     state.magnetTimer = 0;
     state.jetpackTimer = 0;
+    state.sneakersTimer = 0;
+    state.doublerTimer = 0;
+    state.warpTimer = 0;
+    state.ghostTimer = 0;
+    state.vortexTimer = 0;
     state.hasShield = false;
     state.storedMagnets = 0;
     state.storedJetpacks = 0;
@@ -1939,7 +2183,21 @@
     if (jetpackMesh) jetpackMesh.visible = false;
     if (badgeMagnet) badgeMagnet.style.display = 'none';
     if (badgeJetpack) badgeJetpack.style.display = 'none';
+    if (badgeSneakers) badgeSneakers.style.display = 'none';
+    if (badgeDoubler) badgeDoubler.style.display = 'none';
+    if (badgeWarp) badgeWarp.style.display = 'none';
+    if (badgeGhost) badgeGhost.style.display = 'none';
+    if (badgeVortex) badgeVortex.style.display = 'none';
     if (badgeShield) badgeShield.style.display = 'none';
+
+    if (kaiModel) {
+      kaiModel.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material.transparent = false;
+          child.material.opacity = 1.0;
+        }
+      });
+    }
 
     if (window.soundEngine) {
       window.soundEngine.resumeContext();
@@ -2008,9 +2266,7 @@
       state.magnetTimer -= delta;
       if (badgeMagnet) badgeMagnet.style.display = 'flex';
       if (timerMagnet) timerMagnet.textContent = Math.ceil(state.magnetTimer) + 's';
-      if (state.magnetTimer <= 0) {
-        if (badgeMagnet) badgeMagnet.style.display = 'none';
-      }
+      if (state.magnetTimer <= 0 && badgeMagnet) badgeMagnet.style.display = 'none';
     }
 
     // 2. Jetpack (Fly Thing) Timer & HUD
@@ -2033,23 +2289,85 @@
       if (jetpackMesh) jetpackMesh.visible = false;
     }
 
-    // 3. Boost & Speed
+    // 3. Super Jump Sneakers Timer & HUD
+    if (state.sneakersTimer > 0) {
+      state.sneakersTimer -= delta;
+      if (badgeSneakers) badgeSneakers.style.display = 'flex';
+      if (timerSneakers) timerSneakers.textContent = Math.ceil(state.sneakersTimer) + 's';
+      if (state.sneakersTimer <= 0 && badgeSneakers) badgeSneakers.style.display = 'none';
+    }
+
+    // 4. 2X Energy Doubler Cube Timer & HUD
+    if (state.doublerTimer > 0) {
+      state.doublerTimer -= delta;
+      if (badgeDoubler) badgeDoubler.style.display = 'flex';
+      if (timerDoubler) timerDoubler.textContent = Math.ceil(state.doublerTimer) + 's';
+      if (state.doublerTimer <= 0 && badgeDoubler) badgeDoubler.style.display = 'none';
+    }
+
+    // 5. Chrono Time Warp Timer & HUD
+    if (state.warpTimer > 0) {
+      state.warpTimer -= delta;
+      if (badgeWarp) badgeWarp.style.display = 'flex';
+      if (timerWarp) timerWarp.textContent = Math.ceil(state.warpTimer) + 's';
+      if (state.warpTimer <= 0 && badgeWarp) badgeWarp.style.display = 'none';
+    }
+
+    // 6. Quantum Ghost Phase Cloak Timer & HUD
+    if (state.ghostTimer > 0) {
+      state.ghostTimer -= delta;
+      if (badgeGhost) badgeGhost.style.display = 'flex';
+      if (timerGhost) timerGhost.textContent = Math.ceil(state.ghostTimer) + 's';
+      if (kaiModel) {
+        kaiModel.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.transparent = true;
+            child.material.opacity = 0.52;
+          }
+        });
+      }
+      if (state.ghostTimer <= 0) {
+        if (badgeGhost) badgeGhost.style.display = 'none';
+        if (kaiModel) {
+          kaiModel.traverse((child) => {
+            if (child.isMesh && child.material) {
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
+            }
+          });
+        }
+      }
+    }
+
+    // 7. Rainbow Singularity Vortex Timer & HUD
+    if (state.vortexTimer > 0) {
+      state.vortexTimer -= delta;
+      if (badgeVortex) badgeVortex.style.display = 'flex';
+      if (timerVortex) timerVortex.textContent = Math.ceil(state.vortexTimer) + 's';
+      if (state.vortexTimer <= 0 && badgeVortex) badgeVortex.style.display = 'none';
+    }
+
+    // Progressive Speed: Starts slow at 28 KM/H (speed ~ 24), then ramps dynamically with points/score & distance
+    const naturalSpeed = Math.min(70, 24 + Math.sqrt(state.score) * 0.48 + (state.distance * 0.007));
+
     if (state.isBoosted) {
       state.boostTimer -= delta;
-      state.speed = 76;
+      state.speed = 68;
       if (state.boostTimer <= 0) {
         state.isBoosted = false;
         state.hasShield = false;
-        state.speed = 48;
+        state.speed = naturalSpeed;
         if (hoverboardMesh) hoverboardMesh.visible = false;
         if (badgeShield) badgeShield.style.display = 'none';
       }
     } else {
-      state.speed = Math.min(state.maxSpeed, state.speed + delta * 0.35);
+      state.speed = naturalSpeed;
     }
 
-    const distDelta = state.speed * delta;
-    state.distance += distDelta;
+    // Time Dilation when Time Warp is active (Slow-mo world & obstacles by 55%)
+    const timeScale = (state.warpTimer > 0) ? 0.45 : 1.0;
+    const distDelta = state.speed * delta * timeScale;
+    state.distance += state.speed * delta;
     state.score += distDelta * state.multiplier * 1.5;
 
     // Overdrive gauge
@@ -2331,7 +2649,7 @@
       }
     }
 
-    // Move & collect powerups (Magnet & Jetpack - found on track, immediately activates!)
+    // Move & collect powerups (All 8 Epic Boosts found on track!)
     for (let i = powerups.length - 1; i >= 0; i--) {
       const p = powerups[i];
       p.position.z += moveZ;
@@ -2340,7 +2658,9 @@
       const dist = p.position.distanceTo(playerGroup.position);
       if (dist < 2.2 && !p.userData.collected) {
         p.userData.collected = true;
-        if (p.userData.type === 'magnet') {
+        const pType = p.userData.type;
+
+        if (pType === 'magnet') {
           state.magnetTimer = 14.0;
           careerStats.totalMagnets = (careerStats.totalMagnets || 0) + 1;
           saveCareerStats();
@@ -2351,7 +2671,7 @@
             window.soundEngine.playMagnetSFX();
             window.soundEngine.playPowerupSFX();
           }
-        } else if (p.userData.type === 'jetpack') {
+        } else if (pType === 'jetpack') {
           state.jetpackTimer = 12.0;
           careerStats.totalJetpacks = (careerStats.totalJetpacks || 0) + 1;
           saveCareerStats();
@@ -2368,7 +2688,61 @@
               createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
             }
           }
+        } else if (pType === 'sneakers') {
+          state.sneakersTimer = 14.0;
+          showToast('👟 SUPER BOUNCE SNEAKERS!');
+          if (window.soundEngine && window.soundEngine.playSneakersSFX) {
+            window.soundEngine.playSneakersSFX();
+            window.soundEngine.playPowerupSFX();
+          }
+        } else if (pType === 'doubler') {
+          state.doublerTimer = 15.0;
+          showToast('✖️2 DOUBLE ENERGY CRYSTALS!');
+          if (window.soundEngine && window.soundEngine.playDoublerSFX) {
+            window.soundEngine.playDoublerSFX();
+            window.soundEngine.playPowerupSFX();
+          }
+        } else if (pType === 'warp') {
+          state.warpTimer = 12.0;
+          showToast('⏱️ CHRONO TIME WARP SLOW-MO!');
+          if (window.soundEngine && window.soundEngine.playTimeWarpSFX) {
+            window.soundEngine.playTimeWarpSFX();
+            window.soundEngine.playPowerupSFX();
+          }
+        } else if (pType === 'emp') {
+          showToast('💥 SONIC EMP SHOCKWAVE BLAST!');
+          if (window.soundEngine && window.soundEngine.playEMPBlastSFX) {
+            window.soundEngine.playEMPBlastSFX();
+            window.soundEngine.playPowerupSFX();
+          }
+          // Vaporize obstacles ahead for 130 meters into crystals!
+          for (let oi = obstacles.length - 1; oi >= 0; oi--) {
+            const obs = obstacles[oi];
+            if (obs.position.z >= -130 && obs.position.z <= 15) {
+              const oLane = obs.userData.lane;
+              const oZ = obs.position.z;
+              scene.remove(obs);
+              obstacles.splice(oi, 1);
+              createCrystal(oLane, oZ, 1.2);
+              createCrystal(oLane, oZ - 3, 1.2);
+            }
+          }
+        } else if (pType === 'ghost') {
+          state.ghostTimer = 12.0;
+          showToast('👻 QUANTUM GHOST PHASE CLOAK!');
+          if (window.soundEngine && window.soundEngine.playGhostPhaseSFX) {
+            window.soundEngine.playGhostPhaseSFX();
+            window.soundEngine.playPowerupSFX();
+          }
+        } else if (pType === 'vortex') {
+          state.vortexTimer = 12.0;
+          showToast('🌈 RAINBOW SINGULARITY VORTEX!');
+          if (window.soundEngine && window.soundEngine.playVortexSFX) {
+            window.soundEngine.playVortexSFX();
+            window.soundEngine.playPowerupSFX();
+          }
         }
+
         scene.remove(p);
         powerups.splice(i, 1);
         continue;
@@ -2380,7 +2754,7 @@
       }
     }
 
-    // Move & collect crystals (Supports Chumbak / Magnet pull!)
+    // Move & collect crystals (Supports Chumbak / Magnet / Jetpack / Vortex pulls!)
     for (let i = coins.length - 1; i >= 0; i--) {
       const crystal = coins[i];
       crystal.position.z += moveZ;
@@ -2389,11 +2763,16 @@
 
       const dist = crystal.position.distanceTo(playerGroup.position);
 
-      // 🧲 MAGNET (CHUMBAK) & JETPACK 3D VACUUM PULL: Pulls crystals across all lanes!
       const isMagnet = state.magnetTimer > 0;
       const isFlying = state.jetpackTimer > 0;
+      const isVortex = state.vortexTimer > 0;
 
-      if ((isMagnet || isFlying) && dist < 42) {
+      if (isVortex && dist < 85) {
+        // Ultra-strong Rainbow Singularity Vortex pulls across all lanes & roofs
+        crystal.position.x += (state.playerX - crystal.position.x) * 24 * delta;
+        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 24 * delta;
+        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 20 * delta;
+      } else if ((isMagnet || isFlying) && dist < 42) {
         // Strong 3D vacuum pull towards player in X, Y, and Z!
         crystal.position.x += (state.playerX - crystal.position.x) * 18 * delta;
         crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 18 * delta;
@@ -2406,11 +2785,12 @@
 
       if (dist < 2.4 && !crystal.userData.collected) {
         crystal.userData.collected = true;
-        state.coins++;
-        careerStats.totalCoins = (careerStats.totalCoins || 0) + 1;
+        const crystalGain = (state.doublerTimer > 0) ? 2 : 1;
+        state.coins += crystalGain;
+        careerStats.totalCoins = (careerStats.totalCoins || 0) + crystalGain;
         saveCareerStats();
         updateCareerStatsUI();
-        state.score += 80;
+        state.score += 80 * crystalGain;
         if (window.soundEngine) window.soundEngine.playCoinSFX();
         scene.remove(crystal);
         coins.splice(i, 1);
@@ -2436,12 +2816,15 @@
   // --- COLLISION LOGIC ---
   function checkCollision(obs) {
     if (state.godMode) return false;
-    // If flying in Jetpack: 100% immune from all obstacles!
-    if (state.jetpackTimer > 0) return false;
+    // Jetpack or Quantum Ghost Phase: 100% immune from all obstacles!
+    if (state.jetpackTimer > 0 || state.ghostTimer > 0) return false;
 
     const laneX = LANES[obs.userData.lane];
     // Check if player is horizontally in the obstacle's lane
     if (Math.abs(state.playerX - laneX) > 1.05) return false;
+
+    // If previously cleared during jump/slide approach, never crash!
+    if (obs.userData.cleared) return false;
 
     const zPos = obs.position.z;
 
@@ -2461,20 +2844,34 @@
         return true; // CRASH! Hit the train (head-on or side impact)!
       }
     } else if (obs.userData.type === 'hurdle') {
-      // Low plasma barrier: jumping clears it reliably!
-      if (Math.abs(zPos) < 0.95) {
-        if (state.isJumping || state.playerY > 0.35) {
-          return false; // Cleared hurdle safely!
+      // Low barrier: jumping anytime during approach window or barrier clears safely!
+      if (state.isJumping || state.playerY > 0.22) {
+        if (zPos >= -4.5 && zPos <= 2.2) {
+          obs.userData.cleared = true;
+          return false;
+        }
+      }
+      if (Math.abs(zPos) < 1.05) {
+        if (state.isJumping || state.playerY > 0.22 || obs.userData.cleared) {
+          obs.userData.cleared = true;
+          return false;
         }
         return true; // CRASH! Hit hurdle barrier!
       }
     } else if (obs.userData.type === 'overhead') {
-      // Overhead beam: sliding/ducking ("letna") clears it reliably!
-      if (Math.abs(zPos) < 0.95) {
-        if (state.isSliding || state.slideTimer > 0) {
-          return false; // Safely ducked/slid under beam!
+      // Overhead beam: sliding/ducking ("letna") clears safely!
+      if (state.isSliding || state.slideTimer > 0) {
+        if (zPos >= -4.5 && zPos <= 2.2) {
+          obs.userData.cleared = true;
+          return false;
         }
-        return true; // CRASH! Did not slide, hit head on overhead beam!
+      }
+      if (Math.abs(zPos) < 1.05) {
+        if (state.isSliding || state.slideTimer > 0 || obs.userData.cleared) {
+          obs.userData.cleared = true;
+          return false;
+        }
+        return true; // CRASH! Did not slide under overhead beam!
       }
     }
 

@@ -169,10 +169,38 @@ html, body {
 
 .powerup-pill.magnet {
   border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
 }
 
 .powerup-pill.jetpack {
   border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+}
+
+.powerup-pill.sneakers {
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+}
+
+.powerup-pill.doubler {
+  border-color: #a855f7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+}
+
+.powerup-pill.warp {
+  border-color: #06b6d4;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.45);
+}
+
+.powerup-pill.ghost {
+  border-color: #ec4899;
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.45);
+}
+
+.powerup-pill.vortex {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(59, 130, 246, 0.3) 50%, rgba(16, 185, 129, 0.3) 100%);
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.5);
 }
 
 /* Top Buttons: Pause & Home */

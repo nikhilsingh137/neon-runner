@@ -411,6 +411,119 @@ class SoundEngine {
     osc.stop(now + 0.55);
   }
 
+  // Super Bounce Sneakers Spring Sound
+  playSneakersSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    [0, 0.08].forEach((offset, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(idx === 0 ? 320 : 480, now + offset);
+      osc.frequency.exponentialRampToValueAtTime(idx === 0 ? 740 : 1120, now + offset + 0.16);
+      gain.gain.setValueAtTime(0.35, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.18);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.2);
+    });
+  }
+
+  // 2X Coin Doubler Sparkling Chime
+  playDoublerSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      gain.gain.setValueAtTime(0.3, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.28);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.3);
+    });
+  }
+
+  // Chrono Time Warp Dilation Sound
+  playTimeWarpSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.6);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.7);
+  }
+
+  // Sonic EMP Shockwave Blast
+  playEMPBlastSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.45);
+    gain.gain.setValueAtTime(0.7, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.55);
+  }
+
+  // Quantum Ghost Phase Sound
+  playGhostPhaseSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    [660, 880, 1320].forEach((freq) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.linearRampToValueAtTime(freq * 1.25, now + 0.4);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    });
+  }
+
+  // Rainbow Singularity Vortex Sound
+  playVortexSFX() {
+    if (this.isMuted || !this.ctx) return;
+    this.resumeContext();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.5);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.6);
+  }
+
   // Clean UI Button Click
   playClickSFX() {
     if (this.isMuted || !this.ctx) return;
