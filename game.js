@@ -22,9 +22,9 @@
     score: 0,
     coins: 0, // Energy Crystals
     distance: 0,
-    speed: 24, // Slow beginner-friendly start (28 KM/H)
-    baseSpeed: 24,
-    maxSpeed: 70, // Scales up to ~84 KM/H as score grows!
+    speed: 15, // Ultra-relaxed beginner-friendly start (18 KM/H)
+    baseSpeed: 15,
+    maxSpeed: 68, // Scales up smoothly to ~80 KM/H as score grows!
     currentLane: 0, // -1, 0, 1
     playerX: 0,
     targetX: 0,
@@ -2072,7 +2072,9 @@
   }
 
   function doJump() {
-    if (!state.isJumping && state.jetpackTimer <= 0) {
+    if (state.jetpackTimer > 0) return;
+    // Responsive Jump & Hop Buffer: Triggers when grounded OR near ground landing
+    if (!state.isJumping || state.playerY < 1.4 || state.vy < 0) {
       state.isJumping = true;
       state.isSliding = false;
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
@@ -2131,8 +2133,8 @@
     state.score = 0;
     state.coins = 0;
     state.distance = 0;
-    state.speed = 24; // 28 KM/H slow beginner start
-    state.baseSpeed = 24;
+    state.speed = 15; // 18 KM/H ultra-relaxed gentle start
+    state.baseSpeed = 15;
     state.currentLane = 0;
     state.playerX = 0;
     state.targetX = 0;
@@ -2168,9 +2170,23 @@
 
     nextSpawnZ = -85;
     // Welcoming opening runway of crystals in center lane
-    for (let cz = -12; cz >= -68; cz -= 4) {
-      createCrystal(1, cz, 1.2);
+    for (let cz = -10; cz >= -68; cz -= 4) {
+      if (cz !== -26 && cz !== -58) {
+        createCrystal(1, cz, 1.2);
+      }
     }
+
+    // Exciting Opening Boost on Starting Runway (Just like Subway Surfers & Big Franchise Games!)
+    const openingBoosts = ['sneakers', 'doubler', 'magnet', 'jetpack'];
+    const firstBoost = openingBoosts[Math.floor(Math.random() * openingBoosts.length)];
+    if (firstBoost === 'sneakers') createSneakersPowerup(1, -26);
+    else if (firstBoost === 'doubler') createDoublerPowerup(1, -26);
+    else if (firstBoost === 'magnet') createMagnetPowerup(1, -26);
+    else createJetpackPowerup(1, -26);
+
+    // Second runway boost at z = -58 in center lane
+    createDoublerPowerup(1, -58);
+
     spawnWorldPattern();
 
     startScreen.classList.add('hidden');
@@ -2347,12 +2363,12 @@
       if (state.vortexTimer <= 0 && badgeVortex) badgeVortex.style.display = 'none';
     }
 
-    // Progressive Speed: Starts slow at 28 KM/H (speed ~ 24), then ramps dynamically with points/score & distance
-    const naturalSpeed = Math.min(70, 24 + Math.sqrt(state.score) * 0.48 + (state.distance * 0.007));
+    // Progressive Speed: Starts slow & gentle at 18 KM/H (speed 15), then scales up with score & distance
+    const naturalSpeed = Math.min(68, 15 + Math.sqrt(state.score) * 0.38 + (state.distance * 0.005));
 
     if (state.isBoosted) {
       state.boostTimer -= delta;
-      state.speed = 68;
+      state.speed = 60;
       if (state.boostTimer <= 0) {
         state.isBoosted = false;
         state.hasShield = false;
@@ -2844,34 +2860,36 @@
         return true; // CRASH! Hit the train (head-on or side impact)!
       }
     } else if (obs.userData.type === 'hurdle') {
-      // Low barrier: jumping anytime during approach window or barrier clears safely!
-      if (state.isJumping || state.playerY > 0.22) {
-        if (zPos >= -4.5 && zPos <= 2.2) {
+      // 🦘 High Hurdle Jump Clearance: If player jumps anywhere within 14m approaching or clearing, mark permanently cleared!
+      if (state.isJumping || state.playerY > 0.08 || obs.userData.cleared) {
+        if (zPos >= -14.0 && zPos <= 3.5) {
           obs.userData.cleared = true;
           return false;
         }
       }
-      if (Math.abs(zPos) < 1.05) {
-        if (state.isJumping || state.playerY > 0.22 || obs.userData.cleared) {
+      // Tight physical hurdle barrier contact window ONLY (Depth is 0.28m)
+      if (zPos >= -0.38 && zPos <= 0.38) {
+        if (state.isJumping || state.playerY > 0.08 || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
-        return true; // CRASH! Hit hurdle barrier!
+        return true; // CRASH! Ran straight into low plasma hurdle without jumping!
       }
     } else if (obs.userData.type === 'overhead') {
-      // Overhead beam: sliding/ducking ("letna") clears safely!
-      if (state.isSliding || state.slideTimer > 0) {
-        if (zPos >= -4.5 && zPos <= 2.2) {
+      // 🛹 Overhead Laser Gantry Clearance: If player slides anywhere within 14m approaching or clearing, mark permanently cleared!
+      if (state.isSliding || state.slideTimer > 0 || obs.userData.cleared) {
+        if (zPos >= -14.0 && zPos <= 3.5) {
           obs.userData.cleared = true;
           return false;
         }
       }
-      if (Math.abs(zPos) < 1.05) {
+      // Tight physical overhead gantry contact window ONLY
+      if (zPos >= -0.45 && zPos <= 0.45) {
         if (state.isSliding || state.slideTimer > 0 || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
-        return true; // CRASH! Did not slide under overhead beam!
+        return true; // CRASH! Ran upright into overhead laser gantry!
       }
     }
 

@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v20_ultimate_boosts';
+      var LATEST_VERSION = 'v21_runway_boosts';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v20">
+  <link rel="stylesheet" href="style.css?v=urbandash_v21">
 </head>
 <body>
   <div id="game-container">
@@ -89,7 +89,7 @@
 
       <!-- Top Right: Speed, Crystals -->
       <div class="hud-top-right">
-        <div class="hud-speed-badge" id="hud-speed">28 KM/H</div>
+        <div class="hud-speed-badge" id="hud-speed">18 KM/H</div>
         <div class="hud-credits-badge">
           <span>💎</span>
           <span id="hud-credits">0</span>
@@ -336,8 +336,8 @@
 
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
-  <script src="audio.js?v=urbandash_v20"></script>
-  <script src="game.js?v=urbandash_v20"></script>
+  <script src="audio.js?v=urbandash_v21"></script>
+  <script src="game.js?v=urbandash_v21"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -355,7 +355,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=20').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=21').catch(() => {});
       });
     }
 

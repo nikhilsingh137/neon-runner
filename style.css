@@ -753,13 +753,17 @@ html, body {
 .game-over-stats-card {
   width: 100%;
   max-width: 320px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  padding: 16px 20px;
-  margin: 16px 0 20px 0;
+  background: rgba(15, 23, 42, 0.88);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 20px;
+  padding: 18px 22px;
+  margin: 16px 0 22px 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .stats-row {
@@ -769,14 +773,15 @@ html, body {
 }
 
 .stats-row-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: #94a3b8;
+  letter-spacing: 0.5px;
 }
 
 .stats-row-val {
   font-family: 'Fredoka One', cursive, sans-serif;
-  font-size: 20px;
+  font-size: 22px;
   color: #ffffff;
 }
 
@@ -1153,4 +1158,32 @@ body.theme-bright .touch-btn {
 }
 body.theme-bright .touch-btn:active {
   background: rgba(186, 230, 253, 0.95);
+}
+
+/* Bright Theme High-Contrast Game Over Card (Dark Black & Slate Text on Crisp White Glass) */
+body.theme-bright .game-over-stats-card {
+  background: #ffffff !important;
+  border: 2px solid #0284c7 !important;
+  box-shadow: 0 12px 36px rgba(2, 132, 199, 0.3) !important;
+}
+
+body.theme-bright .stats-row-label {
+  color: #334155 !important; /* Crisp dark slate black */
+  font-weight: 800 !important;
+}
+
+body.theme-bright .stats-row-val {
+  color: #0f172a !important; /* Bold solid deep black */
+}
+
+body.theme-bright #final-score {
+  color: #0284c7 !important; /* Vibrant high-score blue */
+}
+
+body.theme-bright #final-distance {
+  color: #0f172a !important;
+}
+
+body.theme-bright #final-credits {
+  color: #059669 !important; /* Vibrant emerald green */
 }
