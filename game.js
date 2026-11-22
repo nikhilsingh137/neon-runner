@@ -22,9 +22,9 @@
     score: 0,
     coins: 0, // Energy Crystals
     distance: 0,
-    speed: 15, // Ultra-relaxed beginner-friendly start (18 KM/H)
-    baseSpeed: 15,
-    maxSpeed: 68, // Scales up smoothly to ~80 KM/H as score grows!
+    speed: 11, // Super relaxed beginner-friendly gentle start (13 KM/H)
+    baseSpeed: 11,
+    maxSpeed: 65, // Scales up smoothly as score & distance grow!
     currentLane: 0, // -1, 0, 1
     playerX: 0,
     targetX: 0,
@@ -2077,8 +2077,20 @@
     if (!state.isJumping || state.playerY < 1.4 || state.vy < 0) {
       state.isJumping = true;
       state.isSliding = false;
+      state.lastJumpTime = Date.now();
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
       state.vy = Math.sqrt(2 * GRAVITY * jumpHeight);
+
+      // 🦘 Hurdle Breaker Guarantee: Immediately mark ALL approaching hurdles as safely cleared!
+      // Even if player lands slightly early or jumped early, jump clearance is 100% granted!
+      obstacles.forEach((obs) => {
+        if (obs.userData && obs.userData.type === 'hurdle') {
+          if (obs.position.z >= -35 && obs.position.z <= 4.0) {
+            obs.userData.cleared = true;
+          }
+        }
+      });
+
       if (state.sneakersTimer > 0 && window.soundEngine && window.soundEngine.playSneakersSFX) {
         window.soundEngine.playSneakersSFX();
       } else if (window.soundEngine) {
@@ -2091,9 +2103,18 @@
     if (state.jetpackTimer > 0) return;
     state.isSliding = true;
     state.slideTimer = state.slideDuration;
+    state.lastSlideTime = Date.now();
     if (state.isJumping) {
       state.vy = -22;
     }
+    // Mark approaching overhead beams as cleared!
+    obstacles.forEach((obs) => {
+      if (obs.userData && obs.userData.type === 'overhead') {
+        if (obs.position.z >= -35 && obs.position.z <= 4.0) {
+          obs.userData.cleared = true;
+        }
+      }
+    });
     if (window.soundEngine) window.soundEngine.playSlideSFX();
   }
 
@@ -2133,8 +2154,8 @@
     state.score = 0;
     state.coins = 0;
     state.distance = 0;
-    state.speed = 15; // 18 KM/H ultra-relaxed gentle start
-    state.baseSpeed = 15;
+    state.speed = 11; // 13 KM/H ultra-relaxed gentle beginner start
+    state.baseSpeed = 11;
     state.currentLane = 0;
     state.playerX = 0;
     state.targetX = 0;
@@ -2144,6 +2165,8 @@
     state.isJumping = false;
     state.isSliding = false;
     state.slideTimer = 0;
+    state.lastJumpTime = 0;
+    state.lastSlideTime = 0;
     state.isBoosted = false;
     state.boostTimer = 0;
     state.overdriveCharge = 0;
@@ -2162,30 +2185,17 @@
     updatePowerupSlotsUI();
 
     obstacles.forEach((obs) => scene.remove(obs));
-    obstacles = [];
+    obstacles.length = 0;
     coins.forEach((c) => scene.remove(c));
-    coins = [];
+    coins.length = 0;
     powerups.forEach((p) => scene.remove(p));
-    powerups = [];
+    powerups.length = 0;
 
-    nextSpawnZ = -85;
-    // Welcoming opening runway of crystals in center lane
-    for (let cz = -10; cz >= -68; cz -= 4) {
-      if (cz !== -26 && cz !== -58) {
-        createCrystal(1, cz, 1.2);
-      }
+    nextSpawnZ = -95;
+    // Pure, clean opening runway of crystals in center lane (No boots at starting strip, just like Subway Surfers & big games!)
+    for (let cz = -10; cz >= -80; cz -= 4) {
+      createCrystal(1, cz, 1.2);
     }
-
-    // Exciting Opening Boost on Starting Runway (Just like Subway Surfers & Big Franchise Games!)
-    const openingBoosts = ['sneakers', 'doubler', 'magnet', 'jetpack'];
-    const firstBoost = openingBoosts[Math.floor(Math.random() * openingBoosts.length)];
-    if (firstBoost === 'sneakers') createSneakersPowerup(1, -26);
-    else if (firstBoost === 'doubler') createDoublerPowerup(1, -26);
-    else if (firstBoost === 'magnet') createMagnetPowerup(1, -26);
-    else createJetpackPowerup(1, -26);
-
-    // Second runway boost at z = -58 in center lane
-    createDoublerPowerup(1, -58);
 
     spawnWorldPattern();
 
@@ -2363,8 +2373,10 @@
       if (state.vortexTimer <= 0 && badgeVortex) badgeVortex.style.display = 'none';
     }
 
-    // Progressive Speed: Starts slow & gentle at 18 KM/H (speed 15), then scales up with score & distance
-    const naturalSpeed = Math.min(68, 15 + Math.sqrt(state.score) * 0.38 + (state.distance * 0.005));
+    // Progressive Speed: Starts super calm & slow at 13 KM/H (speed 11), gentle gradual acceleration like big games!
+    const distFactor = Math.max(0, state.distance - 40) * 0.016;
+    const scoreFactor = Math.sqrt(Math.max(0, state.score - 50)) * 0.14;
+    const naturalSpeed = Math.min(65, 11 + distFactor + scoreFactor);
 
     if (state.isBoosted) {
       state.boostTimer -= delta;
@@ -2643,7 +2655,7 @@
       const obs = obstacles[i];
       obs.position.z += moveZ;
 
-      if (Math.abs(obs.position.z) < 18) {
+      if (obs.position.z > -30 && obs.position.z < 18) {
         if (checkCollision(obs)) {
           // If shielded by hoverboard, absorb hit!
           if (state.hasShield) {
@@ -2860,32 +2872,46 @@
         return true; // CRASH! Hit the train (head-on or side impact)!
       }
     } else if (obs.userData.type === 'hurdle') {
-      // 🦘 High Hurdle Jump Clearance: If player jumps anywhere within 14m approaching or clearing, mark permanently cleared!
-      if (state.isJumping || state.playerY > 0.08 || obs.userData.cleared) {
-        if (zPos >= -14.0 && zPos <= 3.5) {
+      // 🦘 High Hurdle Jump Clearance:
+      // If player jumped, is currently jumping, feet are airborne, recently jumped (1.8s buffer), or already cleared: NEVER CRASH!
+      const recentlyJumped = state.lastJumpTime && (Date.now() - state.lastJumpTime < 1800);
+      if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
+        obs.userData.cleared = true;
+        return false;
+      }
+
+      // If within 30m approaching hurdle, check airborne/jump state
+      if (zPos >= -30.0 && zPos <= 4.0) {
+        if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
       }
-      // Tight physical hurdle barrier contact window ONLY (Depth is 0.28m)
-      if (zPos >= -0.38 && zPos <= 0.38) {
-        if (state.isJumping || state.playerY > 0.08 || obs.userData.cleared) {
+
+      // Physical hurdle contact window (Depth is 0.28m)
+      if (zPos >= -0.32 && zPos <= 0.32) {
+        if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
-        return true; // CRASH! Ran straight into low plasma hurdle without jumping!
+        return true; // CRASH! Ran straight into low hurdle while standing/running on the ground without jumping!
       }
     } else if (obs.userData.type === 'overhead') {
-      // 🛹 Overhead Laser Gantry Clearance: If player slides anywhere within 14m approaching or clearing, mark permanently cleared!
-      if (state.isSliding || state.slideTimer > 0 || obs.userData.cleared) {
-        if (zPos >= -14.0 && zPos <= 3.5) {
+      // 🛹 Overhead Laser Gantry Clearance:
+      const recentlySlid = state.lastSlideTime && (Date.now() - state.lastSlideTime < 1600);
+      if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
+        obs.userData.cleared = true;
+        return false;
+      }
+      if (zPos >= -30.0 && zPos <= 4.0) {
+        if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
       }
       // Tight physical overhead gantry contact window ONLY
-      if (zPos >= -0.45 && zPos <= 0.45) {
-        if (state.isSliding || state.slideTimer > 0 || obs.userData.cleared) {
+      if (zPos >= -0.38 && zPos <= 0.38) {
+        if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
@@ -2923,6 +2949,10 @@
   });
 
   window.gameState = state;
+  window.gameObstacles = obstacles;
+  window.doJump = doJump;
+  window.doSlide = doSlide;
+  window.createHurdleObstacle = createHurdleObstacle;
   window.applyTheme = applyTheme;
   window.useStoredJetpack = useStoredJetpack;
   window.useStoredMagnet = useStoredMagnet;

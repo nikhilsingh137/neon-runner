@@ -753,23 +753,27 @@ html, body {
 .game-over-stats-card {
   width: 100%;
   max-width: 320px;
-  background: rgba(15, 23, 42, 0.88);
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(15, 23, 42, 0.94);
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  padding: 18px 22px;
+  padding: 16px 20px;
   margin: 16px 0 22px 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .stats-row-label {
@@ -783,6 +787,18 @@ html, body {
   font-family: 'Fredoka One', cursive, sans-serif;
   font-size: 22px;
   color: #ffffff;
+}
+
+#final-score {
+  color: #38bdf8;
+}
+
+#final-distance {
+  color: #f8fafc;
+}
+
+#final-credits {
+  color: #34d399;
 }
 
 .record-pill {
@@ -1161,10 +1177,21 @@ body.theme-bright .touch-btn:active {
 }
 
 /* Bright Theme High-Contrast Game Over Card (Dark Black & Slate Text on Crisp White Glass) */
+body.theme-bright #game-over-screen {
+  background: radial-gradient(circle at center, rgba(240, 249, 255, 0.94) 0%, rgba(224, 242, 254, 0.98) 100%) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
 body.theme-bright .game-over-stats-card {
   background: #ffffff !important;
   border: 2px solid #0284c7 !important;
-  box-shadow: 0 12px 36px rgba(2, 132, 199, 0.3) !important;
+  box-shadow: 0 16px 40px rgba(2, 132, 199, 0.25) !important;
+}
+
+body.theme-bright .stats-row {
+  background: rgba(2, 132, 199, 0.06) !important;
+  border: 1px solid rgba(2, 132, 199, 0.14) !important;
 }
 
 body.theme-bright .stats-row-label {
@@ -1186,4 +1213,16 @@ body.theme-bright #final-distance {
 
 body.theme-bright #final-credits {
   color: #059669 !important; /* Vibrant emerald green */
+}
+
+body.theme-bright .cyber-btn.outline {
+  background: #ffffff !important;
+  border: 2px solid #0284c7 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2) !important;
+}
+
+body.theme-bright .cyber-btn.outline span {
+  color: #0f172a !important;
+  font-weight: 800 !important;
 }
