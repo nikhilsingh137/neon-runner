@@ -73,9 +73,10 @@
 
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
-  let playerGroup, kaiModel, hoverboardMesh, jetpackMesh;
+  let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
   let leftLeg, rightLeg, leftArm, rightArm, headMesh, capGroup;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
+  let skyClouds = [], cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
   let hemiLight, sunLight;
@@ -141,19 +142,31 @@
   function useStoredMagnet() {
     if (!state.running || state.paused || state.storedMagnets <= 0) return;
     state.storedMagnets--;
-    state.magnetTimer = 12.0;
+    state.magnetTimer = 14.0;
     updatePowerupSlotsUI();
     showToast('🧲 CHUMBAK MAGNET ACTIVATED!');
-    if (window.soundEngine) window.soundEngine.playPowerupSFX();
+    if (window.soundEngine) {
+      window.soundEngine.playMagnetSFX();
+      window.soundEngine.playPowerupSFX();
+    }
   }
 
   function useStoredJetpack() {
     if (!state.running || state.paused || state.storedJetpacks <= 0) return;
     state.storedJetpacks--;
-    state.jetpackTimer = 10.0;
+    state.jetpackTimer = 11.0;
     updatePowerupSlotsUI();
     showToast('🚀 JETPACK BLAST OFF!');
-    if (window.soundEngine) window.soundEngine.playPowerupSFX();
+    if (window.soundEngine) {
+      window.soundEngine.playJetpackSFX();
+      window.soundEngine.playPowerupSFX();
+    }
+    // Launch runway of sky crystals immediately ahead!
+    for (let l = 0; l < 3; l++) {
+      for (let z = 0; z < 6; z++) {
+        createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
+      }
+    }
   }
 
   // Career Stats & High Score UI Updater
@@ -222,6 +235,7 @@
         sunLight.intensity = 1.1;
       }
     }
+    if (scene) buildCityBuildings();
   }
 
   // Screens & Modals
@@ -239,23 +253,26 @@
   if (menuHighScore) menuHighScore.textContent = careerStats.highScore;
   if (menuCredits) menuCredits.textContent = careerStats.totalCoins;
 
-  // Apply Control Mode UI
+  // Apply Control Mode UI (Swipe vs Touch Buttons)
   function applyControlMode(mode) {
     state.controlMode = mode;
     localStorage.setItem('urban_dash_control_mode', mode);
 
     const optSwipe = document.getElementById('opt-ctrl-swipe');
     const optButtons = document.getElementById('opt-ctrl-buttons');
+    const touchOverlay = document.getElementById('touch-overlay');
 
     if (mode === 'buttons') {
       if (virtualButtons) virtualButtons.classList.remove('hidden');
       if (optButtons) optButtons.classList.add('active');
       if (optSwipe) optSwipe.classList.remove('active');
+      if (touchOverlay) touchOverlay.style.pointerEvents = 'none'; // Disable swipe interception
     } else {
-      // Clean swipe mode
+      // Clean fullscreen swipe mode
       if (virtualButtons) virtualButtons.classList.add('hidden');
       if (optSwipe) optSwipe.classList.add('active');
       if (optButtons) optButtons.classList.remove('active');
+      if (touchOverlay) touchOverlay.style.pointerEvents = 'auto'; // Enable swipe interception
     }
   }
 
@@ -270,14 +287,14 @@
     scene.background = new THREE.Color(0x0284c7);
     scene.fog = new THREE.Fog(0x0284c7, 100, VISIBLE_DISTANCE);
 
-    // Dynamic Camera Framing for mobile devices
-    const fov = aspect < 0.65 ? 68 : 58;
-    const camZ = aspect < 0.65 ? 9.2 : 8.2;
-    const camY = aspect < 0.65 ? 5.2 : 4.6;
+    // Dynamic Camera Framing (Hero-sized, bold Subway Surfers perspective)
+    const fov = aspect < 0.65 ? 64 : 56;
+    const camZ = aspect < 0.65 ? 6.8 : 6.2;
+    const camY = aspect < 0.65 ? 3.8 : 3.4;
 
-    camera = new THREE.PerspectiveCamera(fov, aspect, 0.5, 320);
+    camera = new THREE.PerspectiveCamera(fov, aspect, 0.5, 360);
     camera.position.set(0, camY, camZ);
-    camera.lookAt(0, 1.8, -18);
+    camera.lookAt(0, 1.6, -16);
 
     // WebGL Renderer
     renderer = new THREE.WebGLRenderer({
@@ -295,7 +312,7 @@
     hemiLight.position.set(0, 60, 0);
     scene.add(hemiLight);
 
-    sunLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
+    sunLight = new THREE.DirectionalLight(0xfffbeb, 1.25);
     sunLight.position.set(20, 50, 25);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
@@ -318,8 +335,10 @@
     updateCareerStatsUI();
     updatePowerupSlotsUI();
 
-    // Build World & Hero
+    // Build World, City Skyline & 3D Sky Clouds
     buildMetroEnvironment();
+    buildCityBuildings();
+    buildSkyClouds();
     buildHeroKai();
     setupControls();
     applyControlMode(state.controlMode);
@@ -450,6 +469,18 @@
     thrusterR.position.x = 0.48;
     jetpackMesh.add(thrusterL);
     jetpackMesh.add(thrusterR);
+
+    // Dual Rocket Thruster Flame Cones (Pulsing fiery plasma during flight)
+    const flameGeom = new THREE.ConeGeometry(0.16, 0.85, 10);
+    flameGeom.rotateX(Math.PI); // Point cone downwards
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    flameMeshL = new THREE.Mesh(flameGeom, flameMat);
+    flameMeshL.position.set(-0.48, 1.05, 0.52);
+    flameMeshR = new THREE.Mesh(flameGeom, flameMat);
+    flameMeshR.position.set(0.48, 1.05, 0.52);
+    jetpackMesh.add(flameMeshL);
+    jetpackMesh.add(flameMeshR);
+
     jetpackMesh.visible = false;
     kaiModel.add(jetpackMesh);
 
@@ -541,6 +572,7 @@
     hoverboardMesh.visible = false;
     kaiModel.add(hoverboardMesh);
 
+    kaiModel.scale.set(1.28, 1.28, 1.28);
     kaiModel.rotation.y = 0; // Faces forward down tracks (-Z)
     playerGroup.add(kaiModel);
     scene.add(playerGroup);
@@ -648,6 +680,91 @@
     }
 
     scene.add(tracksGroup);
+  }
+
+  // --- 3D CITY BUILDINGS SKYLINE (SUBWAY SURFERS CITY PERSPECTIVE) ---
+  function buildCityBuildings() {
+    if (cityBuildingsGroup) scene.remove(cityBuildingsGroup);
+    cityBuildingsGroup = new THREE.Group();
+
+    const buildingColorsDark = [0x0f172a, 0x1e1b4b, 0x1e293b, 0x090e17, 0x172554];
+    const buildingColorsBright = [0xf8fafc, 0xe2e8f0, 0xbae6fd, 0xfef08a, 0xfde047, 0xfbcfe8];
+    const windowColorsDark = [0x38bdf8, 0x00f5d4, 0xf59e0b, 0xec4899];
+    const windowColorsBright = [0x0284c7, 0x0369a1, 0x0f172a, 0x2563eb];
+
+    const isBright = state.theme === 'bright';
+    const bColors = isBright ? buildingColorsBright : buildingColorsDark;
+    const wColors = isBright ? windowColorsBright : windowColorsDark;
+
+    // Both sides beyond track walls
+    [-1, 1].forEach((side) => {
+      for (let z = 20; z > -340; z -= 14) {
+        const height = 20 + Math.random() * 34;
+        const width = 8 + Math.random() * 5;
+        const depth = 10 + Math.random() * 5;
+        const posX = side * (16.5 + Math.random() * 10);
+
+        const bColor = bColors[Math.floor(Math.random() * bColors.length)];
+        const bMat = new THREE.MeshLambertMaterial({ color: bColor });
+        const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), bMat);
+        building.position.set(posX, height / 2, z);
+        building.castShadow = true;
+        building.receiveShadow = true;
+        cityBuildingsGroup.add(building);
+
+        // Windows illuminated pattern
+        const winMat = new THREE.MeshBasicMaterial({
+          color: wColors[Math.floor(Math.random() * wColors.length)]
+        });
+        const winGeom = new THREE.BoxGeometry(width * 0.88, 0.45, depth + 0.1);
+        for (let wy = 4; wy < height - 2; wy += 3.2) {
+          if (Math.random() < 0.7) {
+            const winStripe = new THREE.Mesh(winGeom, winMat);
+            winStripe.position.set(posX, wy, z);
+            cityBuildingsGroup.add(winStripe);
+          }
+        }
+      }
+    });
+
+    scene.add(cityBuildingsGroup);
+  }
+
+  // --- 3D SKY CLOUDS (SUBWAY SURFERS SKY HIGH ELEVATION) ---
+  function buildSkyClouds() {
+    skyClouds.forEach((c) => scene.remove(c));
+    skyClouds = [];
+
+    const cloudMat = new THREE.MeshLambertMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.92
+    });
+
+    for (let i = 0; i < 26; i++) {
+      const cloud = new THREE.Group();
+      const r = 2.4 + Math.random() * 2.2;
+      const p1 = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 8), cloudMat);
+      const p2 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.75, 7, 7), cloudMat);
+      p2.position.set(r * 0.75, -r * 0.15, 0);
+      const p3 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 7, 7), cloudMat);
+      p3.position.set(-r * 0.75, -r * 0.15, 0);
+      const p4 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.6, 7, 7), cloudMat);
+      p4.position.set(0, r * 0.45, r * 0.2);
+
+      cloud.add(p1);
+      cloud.add(p2);
+      cloud.add(p3);
+      cloud.add(p4);
+
+      cloud.position.set(
+        (Math.random() - 0.5) * 85,
+        12.0 + Math.random() * 14.0,
+        -Math.random() * 320
+      );
+      scene.add(cloud);
+      skyClouds.push(cloud);
+    }
   }
 
   // --- SLEEK HIGH-SPEED METRO MONORAIL TRAINS ---
@@ -960,6 +1077,20 @@
 
   function spawnWorldPattern() {
     while (nextSpawnZ > -280) {
+      // 🚀 Sky Flight Mode: Continuous Runway of Sky Crystals (Subway Surfers Style!)
+      if (state.jetpackTimer > 0) {
+        const flyLane = Math.floor(Math.random() * 3);
+        const secondLane = (flyLane + 1) % 3;
+        for (let cz = -3; cz <= 3; cz++) {
+          createCrystal(flyLane, nextSpawnZ + cz * 3.4, JETPACK_FLIGHT_Y);
+        }
+        for (let cz = -2; cz <= 2; cz++) {
+          createCrystal(secondLane, nextSpawnZ + cz * 3.4, JETPACK_FLIGHT_Y);
+        }
+        nextSpawnZ -= 36;
+        continue;
+      }
+
       const roll = Math.random();
       const openLane = Math.floor(Math.random() * 3);
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
@@ -1045,6 +1176,8 @@
     let hasSwipedInCurrentTouch = false;
 
     const handleTouchStart = (e) => {
+      if (state.controlMode !== 'swipe') return; // If Touch Buttons active, do not track swipe
+      if (!state.running || state.paused) return;
       if (e.touches && e.touches.length > 0) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -1053,6 +1186,8 @@
     };
 
     const handleTouchMove = (e) => {
+      // STRICT CONTROL MODE: If user chose Touch Buttons in Settings, disable swipe completely!
+      if (state.controlMode !== 'swipe') return;
       if (hasSwipedInCurrentTouch || !state.running || state.paused) return;
       if (e.touches && e.touches.length > 0) {
         const dx = e.touches[0].clientX - touchStartX;
@@ -1271,7 +1406,11 @@
     powerups.forEach((p) => scene.remove(p));
     powerups = [];
 
-    nextSpawnZ = -45;
+    nextSpawnZ = -85;
+    // Welcoming opening runway of crystals in center lane
+    for (let cz = -12; cz >= -68; cz -= 4) {
+      createCrystal(1, cz, 1.2);
+    }
     spawnWorldPattern();
 
     startScreen.classList.add('hidden');
@@ -1426,48 +1565,96 @@
     // Position player group
     playerGroup.position.set(state.playerX, state.playerY, 0);
 
-    const laneDelta = state.targetX - state.playerX;
-    kaiModel.rotation.z = -laneDelta * 0.12;
-    kaiModel.rotation.y = laneDelta * 0.15;
-
-    // Camera follow (always centered, wide FOV prevents edge clipping)
+    // Dynamic Camera follow (Hero-sized framing with smooth ground & flight transitions)
     const targetCamX = state.playerX * 0.72;
     camera.position.x += (targetCamX - camera.position.x) * 16 * delta;
-    camera.position.y = (state.jetpackTimer > 0) ? (JETPACK_FLIGHT_Y + 3.2) : (state.isSliding ? 3.8 : 5.0);
-
-    // Limb Animations
-    runAnimTime += delta * (state.speed * 0.35);
 
     if (state.jetpackTimer > 0) {
-      // Flying posture
-      kaiModel.scale.set(1, 1, 1);
-      kaiModel.position.y = 0;
-      leftLeg.rotation.x = 0.3;
-      rightLeg.rotation.x = 0.3;
-      leftArm.rotation.x = 0.2;
-      rightArm.rotation.x = 0.2;
-    } else if (state.isSliding) {
-      kaiModel.scale.set(1.15, 0.45, 1.25);
-      kaiModel.position.y = -0.3;
-      leftLeg.rotation.x = -1.2;
-      rightLeg.rotation.x = -1.2;
-      leftArm.rotation.x = 0.8;
-      rightArm.rotation.x = 0.8;
-    } else if (state.isJumping) {
-      kaiModel.scale.set(1, 1, 1);
-      kaiModel.position.y = 0;
-      leftLeg.rotation.x = -0.7;
-      rightLeg.rotation.x = 0.5;
-      leftArm.rotation.x = 2.4;
-      rightArm.rotation.x = 2.4;
+      // High Sky View during Jetpack Flight (Subway Surfers High Elevation)
+      camera.position.y += ((JETPACK_FLIGHT_Y + 2.5) - camera.position.y) * 8 * delta;
+      camera.position.z += (7.2 - camera.position.z) * 8 * delta;
+      camera.lookAt(state.playerX * 0.5, JETPACK_FLIGHT_Y - 0.4, -18);
     } else {
-      kaiModel.scale.set(1, 1, 1);
-      kaiModel.position.y = Math.sin(runAnimTime * 2) * 0.08;
-      const legAngle = Math.sin(runAnimTime) * 0.75;
-      leftLeg.rotation.x = legAngle;
-      rightLeg.rotation.x = -legAngle;
-      leftArm.rotation.x = -legAngle * 1.1;
-      rightArm.rotation.x = legAngle * 1.1;
+      // Ground Track Close 3rd-Person Framing
+      const targetCamY = state.isSliding ? 3.0 : 3.6;
+      camera.position.y += (targetCamY - camera.position.y) * 14 * delta;
+      camera.position.z += (6.4 - camera.position.z) * 14 * delta;
+      camera.lookAt(state.playerX * 0.4, 1.6, -16);
+    }
+
+    // Scroll & Drift 3D Sky Clouds
+    skyClouds.forEach((c) => {
+      c.position.z += distDelta * 0.45;
+      if (c.position.z > 25) {
+        c.position.z = -300 - Math.random() * 40;
+        c.position.x = (Math.random() - 0.5) * 85;
+      }
+    });
+
+    // --- ATHLETIC RUNNER BOY ANIMATION SYSTEM ---
+    runAnimTime += delta * (state.speed * 0.38);
+
+    if (state.jetpackTimer > 0) {
+      // 🚀 REAL SUPERHERO FLIGHT POSTURE (Missile / Rocket Flight through the sky!)
+      kaiModel.scale.set(1.28, 1.28, 1.28);
+      kaiModel.rotation.x = -Math.PI / 2.7; // ~ -66 degrees forward pitch!
+      kaiModel.rotation.y = 0;
+      kaiModel.position.y = Math.sin(runAnimTime * 3) * 0.08;
+      kaiModel.rotation.z = (state.targetX - state.playerX) * -0.32; // Aerodynamic banking into lane turns!
+
+      leftLeg.rotation.x = -0.15;
+      rightLeg.rotation.x = -0.15;
+      leftArm.rotation.x = -1.35;
+      rightArm.rotation.x = -1.35;
+      leftArm.rotation.z = -0.28;
+      rightArm.rotation.z = 0.28;
+
+      // Flickering Rocket Thruster Flame Cones
+      if (flameMeshL && flameMeshR) {
+        const fScale = 1.0 + Math.sin(runAnimTime * 32) * 0.35 + (Math.random() * 0.25);
+        flameMeshL.scale.set(1.0 + Math.random() * 0.2, fScale, 1.0 + Math.random() * 0.2);
+        flameMeshR.scale.copy(flameMeshL.scale);
+      }
+    } else if (state.isSliding) {
+      // 🛹 Athletic Low Slide / Skid Under Laser Beams ("jhukna padhta hai")
+      kaiModel.scale.set(1.3, 0.5, 1.35);
+      kaiModel.rotation.x = 1.05; // Lean back flat
+      kaiModel.rotation.y = 0;
+      kaiModel.position.y = -0.42;
+      kaiModel.rotation.z = (state.targetX - state.playerX) * -0.12;
+
+      leftLeg.rotation.x = -1.35;
+      rightLeg.rotation.x = 0.35;
+      leftArm.rotation.x = 0.85;
+      rightArm.rotation.x = 0.85;
+    } else if (state.isJumping) {
+      // 🦘 High Hurdle Jump Tuck
+      kaiModel.scale.set(1.28, 1.28, 1.28);
+      kaiModel.rotation.x = -0.25;
+      kaiModel.rotation.y = 0;
+      kaiModel.position.y = 0;
+      kaiModel.rotation.z = (state.targetX - state.playerX) * -0.15;
+
+      leftLeg.rotation.x = 0.85;
+      rightLeg.rotation.x = 0.55;
+      leftArm.rotation.x = -1.1;
+      rightArm.rotation.x = -1.1;
+    } else {
+      // 🏃 Energetic Authentic Runner Boy Sprint Animation
+      kaiModel.scale.set(1.28, 1.28, 1.28);
+      kaiModel.rotation.x = -0.16; // Athletic sprint forward lean
+      kaiModel.position.y = Math.abs(Math.sin(runAnimTime * 2)) * 0.14; // Footfall bob
+      kaiModel.position.x = Math.sin(runAnimTime) * 0.035;
+      kaiModel.rotation.y = Math.sin(runAnimTime) * 0.09; // Shoulder twist
+      kaiModel.rotation.z = Math.sin(runAnimTime) * -0.05 + ((state.targetX - state.playerX) * -0.18); // Sway + lane change banking
+
+      const stride = Math.sin(runAnimTime);
+      leftLeg.rotation.x = stride * 0.95;
+      rightLeg.rotation.x = -stride * 0.95;
+      leftArm.rotation.x = -stride * 0.95;
+      leftArm.rotation.z = -0.22;
+      rightArm.rotation.x = stride * 0.95;
+      rightArm.rotation.z = 0.22;
     }
 
     // Move obstacles towards player (+Z)
@@ -1544,19 +1731,28 @@
 
       const dist = crystal.position.distanceTo(playerGroup.position);
 
-      // 🧲 MAGNET (CHUMBAK) PULL: Pulls all crystals across all 3 tracks!
-      if (state.magnetTimer > 0 && dist < 32) {
+      // 🧲 MAGNET (CHUMBAK) & JETPACK 3D VACUUM PULL: Pulls crystals across all lanes!
+      const isMagnet = state.magnetTimer > 0;
+      const isFlying = state.jetpackTimer > 0;
+
+      if ((isMagnet || isFlying) && dist < 42) {
+        // Strong 3D vacuum pull towards player in X, Y, and Z!
+        crystal.position.x += (state.playerX - crystal.position.x) * 18 * delta;
+        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 18 * delta;
+        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 15 * delta;
+      } else if (state.isBoosted && dist < 18) {
         crystal.position.x += (state.playerX - crystal.position.x) * 14 * delta;
         crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 14 * delta;
-      } else if (state.isBoosted && dist < 14) {
-        crystal.position.x += (state.playerX - crystal.position.x) * 12 * delta;
-        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 12 * delta;
+        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 12 * delta;
       }
 
-      if (dist < 1.7 && !crystal.userData.collected) {
+      if (dist < 2.4 && !crystal.userData.collected) {
         crystal.userData.collected = true;
         state.coins++;
-        state.score += 60;
+        careerStats.totalCoins = (careerStats.totalCoins || 0) + 1;
+        saveCareerStats();
+        updateCareerStatsUI();
+        state.score += 80;
         if (window.soundEngine) window.soundEngine.playCoinSFX();
         scene.remove(crystal);
         coins.splice(i, 1);
@@ -1642,7 +1838,7 @@
     const height = container.clientHeight || window.innerHeight;
     const aspect = width / height;
     camera.aspect = aspect;
-    camera.fov = aspect < 0.65 ? 68 : 58;
+    camera.fov = aspect < 0.65 ? 64 : 56;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
   }
@@ -1651,4 +1847,8 @@
     initEngine();
     animate();
   });
+
+  window.gameState = state;
+  window.useStoredJetpack = useStoredJetpack;
+  window.useStoredMagnet = useStoredMagnet;
 })();
