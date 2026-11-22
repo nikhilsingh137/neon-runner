@@ -74,7 +74,7 @@
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
-  let leftLeg, rightLeg, leftArm, rightArm, headMesh, capGroup;
+  let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
   let skyClouds = [], cityBuildingsGroup;
   let clock = new THREE.Clock();
@@ -227,12 +227,13 @@
         if (scene.fog) scene.fog.color.setHex(0x060913);
       }
       if (hemiLight) {
-        hemiLight.color.setHex(0x38bdf8);
-        hemiLight.groundColor.setHex(0x0284c7);
+        hemiLight.color.setHex(0xe0f2fe);
+        hemiLight.groundColor.setHex(0x1e293b);
+        hemiLight.intensity = 1.0;
       }
       if (sunLight) {
-        sunLight.color.setHex(0x00f5d4);
-        sunLight.intensity = 1.1;
+        sunLight.color.setHex(0xfff8ee); // Warm, clean white directional light so skin, red kicks, white hoodie and blue denim pop!
+        sunLight.intensity = 1.35;
       }
     }
     if (scene) buildCityBuildings();
@@ -287,14 +288,14 @@
     scene.background = new THREE.Color(0x0284c7);
     scene.fog = new THREE.Fog(0x0284c7, 100, VISIBLE_DISTANCE);
 
-    // Dynamic Camera Framing (Hero-sized, bold Subway Surfers perspective)
-    const fov = aspect < 0.65 ? 64 : 56;
-    const camZ = aspect < 0.65 ? 6.8 : 6.2;
-    const camY = aspect < 0.65 ? 3.8 : 3.4;
+    // Dynamic Camera Framing (Classic Subway Surfers perspective - exact comfortable size as before)
+    const fov = aspect < 0.65 ? 68 : 58;
+    const camZ = aspect < 0.65 ? 8.8 : 7.8;
+    const camY = aspect < 0.65 ? 4.8 : 4.2;
 
     camera = new THREE.PerspectiveCamera(fov, aspect, 0.5, 360);
     camera.position.set(0, camY, camZ);
-    camera.lookAt(0, 1.6, -16);
+    camera.lookAt(0, 1.7, -18);
 
     // WebGL Renderer
     renderer = new THREE.WebGLRenderer({
@@ -346,220 +347,513 @@
     window.addEventListener('resize', onWindowResize);
   }
 
-  // --- BUILD HERO RUNNER (KAI) ---
+  // --- BUILD HERO RUNNER (KAI - SUBWAY SURFERS AUTHENTIC 3D RUNNER HERO) ---
   function buildHeroKai() {
     playerGroup = new THREE.Group();
 
-    // Stylized PBR Materials
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd8b8, roughness: 0.55, metalness: 0.05 });
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x3b2110, roughness: 0.7 });
-    const capMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.35, metalness: 0.1 });
-    const capWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25 });
-    const jacketMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.15 });
-    const jacketTrimMat = new THREE.MeshStandardMaterial({ color: 0x00f5d4, roughness: 0.3, emissive: 0x00f5d4, emissiveIntensity: 0.25 });
-    const headphonesMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.25, metalness: 0.4 });
-    const jeansMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
-    const sneakerSoleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
-    const sneakerGripMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
-    const sneakerUpperMat = new THREE.MeshStandardMaterial({ color: 0x00f5d4, roughness: 0.35 });
-    const backpackMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
+    // High Quality Stylized PBR Materials
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd8b8, roughness: 0.5, metalness: 0.02 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.65 }); // Caramel dirty-blonde skater hair
+    const capMat = new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.45 }); // Royal denim blue cap crown
+    const capWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); // White backwards visor & button
+    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.6 }); // Clean crisp white hoodie
+    const denimMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.55 }); // Classic indigo denim vest & jeans
+    const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.6 }); // Deep denim panels
+    const denimStitchMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.45 }); // Tan/gold denim stitching & cuffs
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.85 }); // Buttons & buckles
+    const beltMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.55 }); // Leather belt
+    const goldPatchMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3, metalness: 0.4 }); // Gold street graffiti back patch
+    const redPatchMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 }); // Red patch star / emblem
+    const slingBagMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.65 }); // Urban canvas hip pack
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }); // Cross-body strap
+    const sprayCanMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.3 }); // Red spray paint can
+    const sneakerSoleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 }); // White rubber sole & toe bumper
+    const sneakerTreadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 }); // Black sole grip
+    const sneakerRedMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 }); // Jake vibrant red skater canvas
+    const sneakerWhiteTrim = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); // Racing stripe & laces
+    const wristbandMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 }); // Skater sweatband
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.15, metalness: 0.85 });
 
     kaiModel = new THREE.Group();
 
-    // 1. TORSO (Streetwear windbreaker jacket with cyan neon conduits)
-    const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.96, 1.25, 0.65), jacketMat);
-    torsoMesh.position.y = 1.6;
-    torsoMesh.castShadow = true;
-    kaiModel.add(torsoMesh);
+    // 1. TORSO (Crisp White Streetwear Hoodie with Denim Runner Vest & Back Graffiti Patch)
+    // Inner White Hoodie
+    const hoodieBody = new THREE.Mesh(new THREE.BoxGeometry(0.84, 1.15, 0.56), hoodieMat);
+    hoodieBody.position.y = 1.6;
+    hoodieBody.castShadow = true;
+    kaiModel.add(hoodieBody);
 
-    // Neon speed conduit stripe across chest
-    const chestStripe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.15, 0.68), jacketTrimMat);
-    chestStripe.position.set(-0.2, 1.6, 0);
-    kaiModel.add(chestStripe);
+    // Front Kangaroo Pouch Pocket
+    const hoodiePocket = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.32, 0.10), hoodieMat);
+    hoodiePocket.position.set(0, 1.34, -0.28);
+    kaiModel.add(hoodiePocket);
 
-    // DJ Headphones resting around neck
-    const phonesMesh = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.08, 8, 16), headphonesMat);
-    phonesMesh.rotation.x = Math.PI / 2;
-    phonesMesh.position.set(0, 2.22, 0.05);
-    kaiModel.add(phonesMesh);
+    // Hoodie Drawstrings (Hanging down chest)
+    [-0.10, 0.10].forEach((strX) => {
+      const stringMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.36, 8), hoodieMat);
+      stringMesh.position.set(strX, 1.82, -0.31);
+      kaiModel.add(stringMesh);
+      const agletMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 8), metalMat);
+      agletMesh.position.set(strX, 1.64, -0.31);
+      kaiModel.add(agletMesh);
+    });
 
-    // 2. HEAD & FACE (Faces -Z, Back of head faces +Z toward camera)
+    // Folded Hoodie Collar / Hood around neck
+    const hoodCollar = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 8, 16), hoodieMat);
+    hoodCollar.rotation.x = Math.PI / 2;
+    hoodCollar.position.set(0, 2.18, 0.08);
+    kaiModel.add(hoodCollar);
+
+    // Denim Runner Vest (Back panel visible to player camera!)
+    const vestBack = new THREE.Mesh(new THREE.BoxGeometry(0.88, 1.08, 0.14), denimMat);
+    vestBack.position.set(0, 1.62, 0.26);
+    vestBack.castShadow = true;
+    kaiModel.add(vestBack);
+
+    // Trademark Subway Surfers Graffiti Street Emblem on Back of Vest!
+    const backPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.02, 20), goldPatchMat);
+    backPatch.rotation.x = Math.PI / 2;
+    backPatch.position.set(0, 1.68, 0.34);
+    kaiModel.add(backPatch);
+
+    // Inner Star / Lightning Icon on Back Patch
+    const patchIcon = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), redPatchMat);
+    patchIcon.rotation.z = Math.PI / 4;
+    patchIcon.position.set(0, 1.68, 0.355);
+    kaiModel.add(patchIcon);
+
+    // Vest Left & Right Front Panels (Open jacket showing white hoodie down center)
+    const vestFrontL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.08, 0.14), denimMat);
+    vestFrontL.position.set(-0.33, 1.62, -0.24);
+    kaiModel.add(vestFrontL);
+
+    const vestFrontR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.08, 0.14), denimMat);
+    vestFrontR.position.set(0.33, 1.62, -0.24);
+    kaiModel.add(vestFrontR);
+
+    // Denim Vest Lapels
+    const lapelGeom = new THREE.BoxGeometry(0.13, 0.30, 0.05);
+    const lapelL = new THREE.Mesh(lapelGeom, denimDarkMat);
+    lapelL.position.set(-0.24, 2.02, -0.32);
+    lapelL.rotation.z = -0.22;
+    kaiModel.add(lapelL);
+
+    const lapelR = new THREE.Mesh(lapelGeom, denimDarkMat);
+    lapelR.position.set(0.24, 2.02, -0.32);
+    lapelR.rotation.z = 0.22;
+    kaiModel.add(lapelR);
+
+    // Vest Chest Pockets with Silver Snaps
+    [-0.31, 0.31].forEach((px) => {
+      const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.04), denimDarkMat);
+      pocket.position.set(px, 1.78, -0.32);
+      kaiModel.add(pocket);
+
+      const snap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), metalMat);
+      snap.rotation.x = Math.PI / 2;
+      snap.position.set(px, 1.84, -0.34);
+      kaiModel.add(snap);
+    });
+
+    // Leather Belt & Metal Buckle at Waist
+    const beltMesh = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.09, 0.58), beltMat);
+    beltMesh.position.set(0, 1.05, 0);
+    kaiModel.add(beltMesh);
+
+    const buckleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.11, 0.04), metalMat);
+    buckleMesh.position.set(0, 1.05, -0.30);
+    kaiModel.add(buckleMesh);
+
+    // 2. URBAN CROSS-BODY SLING HIP PACK & SIGNATURE GRAFFITI SPRAY CAN
+    const hipPack = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.28, 0.16), slingBagMat);
+    hipPack.position.set(0.24, 1.25, 0.28);
+    hipPack.rotation.z = -0.18;
+    hipPack.castShadow = true;
+    kaiModel.add(hipPack);
+
+    // Cross-body strap running from left shoulder across back to right hip
+    const crossStrap = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.95, 0.03), strapMat);
+    crossStrap.position.set(0.10, 1.62, 0.30);
+    crossStrap.rotation.z = 0.42;
+    kaiModel.add(crossStrap);
+
+    // Subway Surfers Graffiti Spray Paint Can tucked in hip pack!
+    const sprayCan = new THREE.Group();
+    sprayCan.position.set(0.38, 1.34, 0.31);
+    sprayCan.rotation.z = -0.22;
+    const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.28, 10), sprayCanMat);
+    const canCap = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.08, 10), sneakerSoleMat);
+    canCap.position.y = 0.18;
+    const canNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.04, 8), strapMat);
+    canNozzle.position.set(0, 0.24, -0.02);
+    sprayCan.add(canBody);
+    sprayCan.add(canCap);
+    sprayCan.add(canNozzle);
+    kaiModel.add(sprayCan);
+
+    // 3. HEAD, FACE & BACKWARDS SNAPBACK CAP
+    // Neck
+    const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.24, 12), skinMat);
+    neckMesh.position.set(0, 2.22, 0);
+    kaiModel.add(neckMesh);
+
     headMesh = new THREE.Group();
-    headMesh.position.set(0, 2.6, 0.05);
+    headMesh.position.set(0, 2.56, 0.02);
 
-    const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 16), skinMat);
+    // Sculpted Head Base
+    const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.38, 18, 16), skinMat);
+    headBase.scale.set(0.92, 1.04, 0.96);
     headBase.castShadow = true;
     headMesh.add(headBase);
 
     // 3D Cartoon Ears
-    [-0.43, 0.43].forEach((ex) => {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), skinMat);
-      ear.scale.set(0.6, 1.1, 0.9);
-      ear.position.set(ex, 0, 0.02);
-      headMesh.add(ear);
+    [-0.37, 0.37].forEach((ex) => {
+      const earGroup = new THREE.Group();
+      earGroup.position.set(ex, 0, 0);
+      const earOuter = new THREE.Mesh(new THREE.SphereGeometry(0.10, 10, 10), skinMat);
+      earOuter.scale.set(0.5, 1.1, 0.85);
+      const earInner = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), hairMat);
+      earInner.scale.set(0.4, 0.8, 0.6);
+      earInner.position.z = -0.02;
+      earGroup.add(earOuter);
+      earGroup.add(earInner);
+      headMesh.add(earGroup);
     });
 
-    // Expressive Cartoon Eyes
-    const eyeGeom = new THREE.SphereGeometry(0.09, 12, 12);
-    const irisGeom = new THREE.SphereGeometry(0.055, 10, 10);
+    // Expressive Cartoon Eyes (Facing -Z down the tracks)
+    const eyeGeom = new THREE.SphereGeometry(0.085, 14, 14);
+    const irisGeom = new THREE.SphereGeometry(0.052, 12, 12);
     const pupilGeom = new THREE.SphereGeometry(0.032, 10, 10);
-    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const eyeIrisMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
-    const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x090e17 });
+    const shineGeom = new THREE.SphereGeometry(0.015, 8, 8);
 
-    [-0.16, 0.16].forEach((eyeX) => {
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const eyeIrisMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); // Bright Subway Blue eyes
+    const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x090e17 });
+    const eyeShineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+    [-0.14, 0.14].forEach((eyeX) => {
       const eyeW = new THREE.Mesh(eyeGeom, eyeWhiteMat);
-      eyeW.position.set(eyeX, 0.04, -0.4);
+      eyeW.position.set(eyeX, 0.04, -0.34);
       headMesh.add(eyeW);
 
       const iris = new THREE.Mesh(irisGeom, eyeIrisMat);
-      iris.position.set(eyeX, 0.04, -0.46);
+      iris.position.set(eyeX, 0.04, -0.39);
       headMesh.add(iris);
 
       const pupil = new THREE.Mesh(pupilGeom, eyePupilMat);
-      pupil.position.set(eyeX, 0.04, -0.48);
+      pupil.position.set(eyeX, 0.04, -0.415);
       headMesh.add(pupil);
+
+      const shine = new THREE.Mesh(shineGeom, eyeShineMat);
+      shine.position.set(eyeX - 0.016, 0.06, -0.425);
+      headMesh.add(shine);
     });
 
-    // Skater hair tufts
-    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.26, 0.5), hairMat);
-    hair.position.set(0, 0.2, -0.1);
-    headMesh.add(hair);
+    // Expressive Skater Eyebrows
+    [-0.14, 0.14].forEach((bx, idx) => {
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.032, 0.05), hairMat);
+      brow.position.set(bx, 0.15, -0.36);
+      brow.rotation.z = idx === 0 ? 0.14 : -0.14;
+      headMesh.add(brow);
+    });
 
-    // 3. BACKWARDS PARKOUR CAP (Visor faces +Z toward camera)
+    // 3D Nose Tip
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 8), skinMat);
+    nose.position.set(0, -0.04, -0.39);
+    headMesh.add(nose);
+
+    // Cheerful Runner Smirk / Smile
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.016, 6, 12, Math.PI * 0.75), hairMat);
+    smile.rotation.x = Math.PI * 0.45;
+    smile.position.set(0.02, -0.15, -0.36);
+    headMesh.add(smile);
+
+    // Skater Blonde/Caramel Hair Tufts
+    // Front bangs
+    const bang1 = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.10), hairMat);
+    bang1.position.set(-0.09, 0.20, -0.32);
+    bang1.rotation.set(-0.2, 0.15, -0.1);
+    headMesh.add(bang1);
+
+    const bang2 = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.11, 0.10), hairMat);
+    bang2.position.set(0.11, 0.19, -0.32);
+    bang2.rotation.set(-0.15, -0.1, 0.1);
+    headMesh.add(bang2);
+
+    // Sideburns
+    [-0.35, 0.35].forEach((sx) => {
+      const lock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.20, 0.14), hairMat);
+      lock.position.set(sx, -0.02, -0.10);
+      headMesh.add(lock);
+    });
+
+    // Backwards Baseball Cap (Visor points towards player camera +Z, crown smoothly covers head)
     capGroup = new THREE.Group();
     const capDome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.48, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.58),
+      new THREE.SphereGeometry(0.42, 20, 18, 0, Math.PI * 2, 0, Math.PI * 0.68),
       capMat
     );
-    capDome.position.y = 0.08;
+    capDome.position.y = 0.06;
     capDome.castShadow = true;
     capGroup.add(capDome);
 
-    const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.07, 0.42), capWhiteMat);
-    capBrim.position.set(0, 0.06, 0.48);
-    capBrim.rotation.x = 0.12;
+    // Center Top Button
+    const capButton = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.035, 10), capWhiteMat);
+    capButton.position.set(0, 0.48, 0);
+    capGroup.add(capButton);
+
+    // Signature Backwards Visor Brim (facing camera +Z with stylish upward skate tilt)
+    const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.045, 0.38), capMat);
+    capBrim.position.set(0, 0.02, 0.42);
+    capBrim.rotation.x = 0.12; // Upward tilt
+    capBrim.castShadow = true;
     capGroup.add(capBrim);
+
+    // White sandwich trim on backwards visor edge (Iconic Subway Surfers skater cap style)
+    const brimTrim = new THREE.Mesh(new THREE.BoxGeometry(0.51, 0.02, 0.06), capWhiteMat);
+    brimTrim.position.set(0, 0.04, 0.60);
+    brimTrim.rotation.x = 0.12;
+    capGroup.add(brimTrim);
+
+    // Snapback Strap Opening at Back
+    const strapMesh = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.03), strapMat);
+    strapMesh.position.set(0, -0.04, 0.38);
+    capGroup.add(strapMesh);
+
+    // Soft hair tufts peeking out naturally above neck
+    [-0.14, 0.14].forEach((hx) => {
+      const lock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.10, 0.08), hairMat);
+      lock.position.set(hx, -0.16, 0.28);
+      headMesh.add(lock);
+    });
 
     headMesh.add(capGroup);
     kaiModel.add(headMesh);
 
-    // 4. POWER PACK (On back facing camera +Z)
-    const packMesh = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.92, 0.38), backpackMat);
-    packMesh.position.set(0, 1.65, 0.48);
-    packMesh.castShadow = true;
-    kaiModel.add(packMesh);
-
-    // Dual Energy Cells in pack
-    const cellGeom = new THREE.CylinderGeometry(0.09, 0.09, 0.45, 10);
-    const cellL = new THREE.Mesh(cellGeom, jacketTrimMat);
-    cellL.position.set(-0.25, 1.95, 0.48);
-    kaiModel.add(cellL);
-
-    const cellR = new THREE.Mesh(cellGeom, jacketTrimMat);
-    cellR.position.set(0.25, 1.95, 0.48);
-    kaiModel.add(cellR);
-
-    // Jetpack Thruster Model (Active when Jetpack powerup picked up)
+    // 4. JETPACK POWERUP THRUSTERS (Mounted onto back during Jetpack powerup)
     jetpackMesh = new THREE.Group();
-    const thrusterL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.8, 12), chromeMat);
-    thrusterL.position.set(-0.48, 1.65, 0.52);
+    const thrusterL = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.72, 12), chromeMat);
+    thrusterL.position.set(-0.42, 1.62, 0.40);
     const thrusterR = thrusterL.clone();
-    thrusterR.position.x = 0.48;
+    thrusterR.position.x = 0.42;
     jetpackMesh.add(thrusterL);
     jetpackMesh.add(thrusterR);
 
-    // Dual Rocket Thruster Flame Cones (Pulsing fiery plasma during flight)
-    const flameGeom = new THREE.ConeGeometry(0.16, 0.85, 10);
-    flameGeom.rotateX(Math.PI); // Point cone downwards
+    // Dual Rocket Thruster Flame Cones
+    const flameGeom = new THREE.ConeGeometry(0.14, 0.85, 10);
+    flameGeom.rotateX(Math.PI);
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
     flameMeshL = new THREE.Mesh(flameGeom, flameMat);
-    flameMeshL.position.set(-0.48, 1.05, 0.52);
+    flameMeshL.position.set(-0.42, 1.05, 0.40);
     flameMeshR = new THREE.Mesh(flameGeom, flameMat);
-    flameMeshR.position.set(0.48, 1.05, 0.52);
+    flameMeshR.position.set(0.42, 1.05, 0.40);
     jetpackMesh.add(flameMeshL);
     jetpackMesh.add(flameMeshR);
 
     jetpackMesh.visible = false;
     kaiModel.add(jetpackMesh);
 
-    // 5. ARMS & HANDS
-    const sleeveGeom = new THREE.CylinderGeometry(0.15, 0.13, 0.35, 10);
-    const armGeom = new THREE.CylinderGeometry(0.12, 0.1, 0.65, 10);
-    const handGeom = new THREE.SphereGeometry(0.13, 10, 10);
-
+    // 5. ARTICULATED ARMS (Shoulder -> Upper Arm -> Forearm -> Hand)
     // Left Arm
     leftArm = new THREE.Group();
-    leftArm.position.set(-0.64, 2.05, 0);
-    const leftSleeve = new THREE.Mesh(sleeveGeom, jacketMat);
-    leftSleeve.position.y = -0.15;
-    const leftArmMesh = new THREE.Mesh(armGeom, skinMat);
-    leftArmMesh.position.y = -0.55;
-    leftArmMesh.castShadow = true;
-    const leftHand = new THREE.Mesh(handGeom, skinMat);
-    leftHand.position.y = -0.92;
-    leftArm.add(leftSleeve);
-    leftArm.add(leftArmMesh);
-    leftArm.add(leftHand);
+    leftArm.position.set(-0.52, 2.02, 0);
+
+    const vestSleeveL = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.13, 0.16, 10), denimMat);
+    vestSleeveL.position.y = -0.05;
+    leftArm.add(vestSleeveL);
+
+    const upperArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.10, 0.36, 10), hoodieMat);
+    upperArmL.position.y = -0.26;
+    upperArmL.castShadow = true;
+    leftArm.add(upperArmL);
+
+    // Forearm Group (Joint at elbow y = -0.44)
+    leftForearm = new THREE.Group();
+    leftForearm.position.set(0, -0.44, 0);
+
+    const forearmMeshL = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.082, 0.38, 10), skinMat);
+    forearmMeshL.position.y = -0.17;
+    forearmMeshL.castShadow = true;
+    leftForearm.add(forearmMeshL);
+
+    // Skater Red Wristband
+    const wristbandL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.08, 10), wristbandMat);
+    wristbandL.position.y = -0.32;
+    leftForearm.add(wristbandL);
+
+    // Natural Sculpted Runner Hand
+    const handGroupL = new THREE.Group();
+    handGroupL.position.set(0, -0.42, 0);
+    const palmL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.09), skinMat);
+    const thumbL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.05), skinMat);
+    thumbL.position.set(0.05, 0.02, -0.035);
+    handGroupL.add(palmL);
+    handGroupL.add(thumbL);
+    leftForearm.add(handGroupL);
+
+    leftForearm.rotation.x = 0.85;
+    leftArm.add(leftForearm);
     kaiModel.add(leftArm);
 
     // Right Arm
     rightArm = new THREE.Group();
-    rightArm.position.set(0.64, 2.05, 0);
-    const rightSleeve = new THREE.Mesh(sleeveGeom, jacketMat);
-    rightSleeve.position.y = -0.15;
-    const rightArmMesh = new THREE.Mesh(armGeom, skinMat);
-    rightArmMesh.position.y = -0.55;
-    rightArmMesh.castShadow = true;
-    const rightHand = new THREE.Mesh(handGeom, skinMat);
-    rightHand.position.y = -0.92;
-    rightArm.add(rightSleeve);
-    rightArm.add(rightArmMesh);
-    rightArm.add(rightHand);
+    rightArm.position.set(0.52, 2.02, 0);
+
+    const vestSleeveR = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.13, 0.16, 10), denimMat);
+    vestSleeveR.position.y = -0.05;
+    rightArm.add(vestSleeveR);
+
+    const upperArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.10, 0.36, 10), hoodieMat);
+    upperArmR.position.y = -0.26;
+    upperArmR.castShadow = true;
+    rightArm.add(upperArmR);
+
+    rightForearm = new THREE.Group();
+    rightForearm.position.set(0, -0.44, 0);
+
+    const forearmMeshR = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.082, 0.38, 10), skinMat);
+    forearmMeshR.position.y = -0.17;
+    forearmMeshR.castShadow = true;
+    rightForearm.add(forearmMeshR);
+
+    const handGroupR = new THREE.Group();
+    handGroupR.position.set(0, -0.42, 0);
+    const palmR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.09), skinMat);
+    const thumbR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.05), skinMat);
+    thumbR.position.set(-0.05, 0.02, -0.035);
+    handGroupR.add(palmR);
+    handGroupR.add(thumbR);
+    rightForearm.add(handGroupR);
+
+    rightForearm.rotation.x = 0.85;
+    rightArm.add(rightForearm);
     kaiModel.add(rightArm);
 
-    // 6. LEGS & ENERGY KICKS SNEAKERS
-    const legGeom = new THREE.BoxGeometry(0.36, 0.88, 0.38);
-    const soleGeom = new THREE.BoxGeometry(0.42, 0.16, 0.76);
-    const upperShoeGeom = new THREE.BoxGeometry(0.38, 0.3, 0.68);
+    // 6. ARTICULATED LEGS & SUBWAY RETRO RUNNER SNEAKERS
+    function buildSubwaySneaker() {
+      const sneakerGroup = new THREE.Group();
 
-    // Left Leg
+      // Black Traction Sole Bottom
+      const soleBase = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.68), sneakerTreadMat);
+      soleBase.position.set(0, -0.08, -0.06);
+      sneakerGroup.add(soleBase);
+
+      // Sculpted Thick White Rubber Midsole
+      const soleWhite = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.11, 0.70), sneakerSoleMat);
+      soleWhite.position.set(0, 0, -0.06);
+      soleWhite.castShadow = true;
+      sneakerGroup.add(soleWhite);
+
+      // Signature White Rubber Skater Toe Cap Bumper
+      const toeCap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.20), sneakerSoleMat);
+      toeCap.position.set(0, 0.05, -0.28);
+      sneakerGroup.add(toeCap);
+
+      // White Heel Counter & Pull Tab (Visible to player camera from behind!)
+      const heelTab = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.20, 0.06), sneakerWhiteTrim);
+      heelTab.position.set(0, 0.14, 0.27);
+      sneakerGroup.add(heelTab);
+
+      // Vibrant Red Skater Canvas Upper
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.22, 0.48), sneakerRedMat);
+      upper.position.set(0, 0.11, -0.03);
+      sneakerGroup.add(upper);
+
+      // White Side Racing Stripe
+      [-0.155, 0.155].forEach((sideX) => {
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.06, 0.36), sneakerWhiteTrim);
+        stripe.position.set(sideX, 0.11, -0.03);
+        sneakerGroup.add(stripe);
+      });
+
+      // Padded Tongue & Criss-Cross White Shoe Laces
+      const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.20, 0.26), sneakerSoleMat);
+      tongue.position.set(0, 0.16, -0.14);
+      tongue.rotation.x = -0.20;
+      sneakerGroup.add(tongue);
+
+      // 3 Criss-Cross White Laces
+      [-0.20, -0.14, -0.08].forEach((laceZ) => {
+        const lace = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.022, 0.035), sneakerWhiteTrim);
+        lace.position.set(0, 0.22, laceZ);
+        sneakerGroup.add(lace);
+      });
+
+      return sneakerGroup;
+    }
+
+    // Left Leg Group (Hip pivot at y = 1.05)
     leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.28, 1.05, 0);
-    const leftLegMesh = new THREE.Mesh(legGeom, jeansMat);
-    leftLegMesh.position.y = -0.42;
-    leftLegMesh.castShadow = true;
-    leftLeg.add(leftLegMesh);
+    leftLeg.position.set(-0.24, 1.05, 0);
 
-    const leftSole = new THREE.Mesh(soleGeom, sneakerSoleMat);
-    leftSole.position.set(0, -0.92, -0.1);
-    leftSole.castShadow = true;
-    const leftUpper = new THREE.Mesh(upperShoeGeom, sneakerUpperMat);
-    leftUpper.position.set(0, -0.72, -0.08);
-    leftLeg.add(leftSole);
-    leftLeg.add(leftUpper);
+    // Thigh (Baggy Blue Denim Jeans)
+    const thighL = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.46, 0.32), denimMat);
+    thighL.position.y = -0.23;
+    thighL.castShadow = true;
+    leftLeg.add(thighL);
+
+    // Knee Joint & Lower Leg Group
+    leftLowerLeg = new THREE.Group();
+    leftLowerLeg.position.set(0, -0.46, 0);
+
+    // Calf / Shin
+    const calfL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.44, 0.29), denimMat);
+    calfL.position.y = -0.21;
+    calfL.castShadow = true;
+    leftLowerLeg.add(calfL);
+
+    // Rolled Denim Cuff / Hem at bottom of jeans
+    const cuffL = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.09, 0.31), denimStitchMat);
+    cuffL.position.y = -0.41;
+    leftLowerLeg.add(cuffL);
+
+    // White Sport Ankle Sock
+    const sockL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.09, 0.26), sneakerSoleMat);
+    sockL.position.y = -0.48;
+    leftLowerLeg.add(sockL);
+
+    // Left Sneaker
+    const leftSneaker = buildSubwaySneaker();
+    leftSneaker.position.set(0, -0.50, 0);
+    leftLowerLeg.add(leftSneaker);
+
+    leftLeg.add(leftLowerLeg);
     kaiModel.add(leftLeg);
 
-    // Right Leg
+    // Right Leg Group (Hip pivot at y = 1.05)
     rightLeg = new THREE.Group();
-    rightLeg.position.set(0.28, 1.05, 0);
-    const rightLegMesh = new THREE.Mesh(legGeom, jeansMat);
-    rightLegMesh.position.y = -0.42;
-    rightLegMesh.castShadow = true;
-    rightLeg.add(rightLegMesh);
+    rightLeg.position.set(0.24, 1.05, 0);
 
-    const rightSole = new THREE.Mesh(soleGeom, sneakerSoleMat);
-    rightSole.position.set(0, -0.92, -0.1);
-    rightSole.castShadow = true;
-    const rightUpper = new THREE.Mesh(upperShoeGeom, sneakerUpperMat);
-    rightUpper.position.set(0, -0.72, -0.08);
-    rightLeg.add(rightSole);
-    rightLeg.add(rightUpper);
+    const thighR = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.46, 0.32), denimMat);
+    thighR.position.y = -0.23;
+    thighR.castShadow = true;
+    rightLeg.add(thighR);
+
+    rightLowerLeg = new THREE.Group();
+    rightLowerLeg.position.set(0, -0.46, 0);
+
+    const calfR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.44, 0.29), denimMat);
+    calfR.position.y = -0.21;
+    calfR.castShadow = true;
+    rightLowerLeg.add(calfR);
+
+    const cuffR = new THREE.Mesh(new THREE.BoxGeometry(0.31, 0.09, 0.31), denimStitchMat);
+    cuffR.position.y = -0.41;
+    rightLowerLeg.add(cuffR);
+
+    const sockR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.09, 0.26), sneakerSoleMat);
+    sockR.position.y = -0.48;
+    rightLowerLeg.add(sockR);
+
+    const rightSneaker = buildSubwaySneaker();
+    rightSneaker.position.set(0, -0.50, 0);
+    rightLowerLeg.add(rightSneaker);
+
+    rightLeg.add(rightLowerLeg);
     kaiModel.add(rightLeg);
 
     // 7. HOVERBOARD (Visible during Boost / Shield)
-    const boardGeom = new THREE.BoxGeometry(1.4, 0.12, 3.2);
+    const boardGeom = new THREE.BoxGeometry(1.2, 0.10, 2.8);
     const boardMat = new THREE.MeshStandardMaterial({
       color: 0x00f5d4,
       emissive: 0x0284c7,
@@ -572,7 +866,8 @@
     hoverboardMesh.visible = false;
     kaiModel.add(hoverboardMesh);
 
-    kaiModel.scale.set(1.28, 1.28, 1.28);
+    // Normal Character Scale (Exact same comfortable size as before!)
+    kaiModel.scale.set(1.0, 1.0, 1.0);
     kaiModel.rotation.y = 0; // Faces forward down tracks (-Z)
     playerGroup.add(kaiModel);
     scene.add(playerGroup);
@@ -1565,21 +1860,21 @@
     // Position player group
     playerGroup.position.set(state.playerX, state.playerY, 0);
 
-    // Dynamic Camera follow (Hero-sized framing with smooth ground & flight transitions)
+    // Dynamic Camera follow (Classic Subway Surfers perspective - exact comfortable size as before)
     const targetCamX = state.playerX * 0.72;
     camera.position.x += (targetCamX - camera.position.x) * 16 * delta;
 
     if (state.jetpackTimer > 0) {
       // High Sky View during Jetpack Flight (Subway Surfers High Elevation)
-      camera.position.y += ((JETPACK_FLIGHT_Y + 2.5) - camera.position.y) * 8 * delta;
-      camera.position.z += (7.2 - camera.position.z) * 8 * delta;
-      camera.lookAt(state.playerX * 0.5, JETPACK_FLIGHT_Y - 0.4, -18);
+      camera.position.y += ((JETPACK_FLIGHT_Y + 3.2) - camera.position.y) * 8 * delta;
+      camera.position.z += (8.4 - camera.position.z) * 8 * delta;
+      camera.lookAt(state.playerX * 0.5, JETPACK_FLIGHT_Y - 0.5, -20);
     } else {
-      // Ground Track Close 3rd-Person Framing
-      const targetCamY = state.isSliding ? 3.0 : 3.6;
+      // Classic Ground Track 3rd-Person Framing (Exact same size as before)
+      const targetCamY = state.isSliding ? 3.8 : 4.6;
       camera.position.y += (targetCamY - camera.position.y) * 14 * delta;
-      camera.position.z += (6.4 - camera.position.z) * 14 * delta;
-      camera.lookAt(state.playerX * 0.4, 1.6, -16);
+      camera.position.z += (8.2 - camera.position.z) * 14 * delta;
+      camera.lookAt(state.playerX * 0.4, 1.7, -18);
     }
 
     // Scroll & Drift 3D Sky Clouds
@@ -1596,7 +1891,7 @@
 
     if (state.jetpackTimer > 0) {
       // 🚀 REAL SUPERHERO FLIGHT POSTURE (Missile / Rocket Flight through the sky!)
-      kaiModel.scale.set(1.28, 1.28, 1.28);
+      kaiModel.scale.set(1, 1, 1);
       kaiModel.rotation.x = -Math.PI / 2.7; // ~ -66 degrees forward pitch!
       kaiModel.rotation.y = 0;
       kaiModel.position.y = Math.sin(runAnimTime * 3) * 0.08;
@@ -1604,6 +1899,9 @@
 
       leftLeg.rotation.x = -0.15;
       rightLeg.rotation.x = -0.15;
+      if (leftLowerLeg) leftLowerLeg.rotation.x = 0.25;
+      if (rightLowerLeg) rightLowerLeg.rotation.x = 0.25;
+
       leftArm.rotation.x = -1.35;
       rightArm.rotation.x = -1.35;
       leftArm.rotation.z = -0.28;
@@ -1616,8 +1914,8 @@
         flameMeshR.scale.copy(flameMeshL.scale);
       }
     } else if (state.isSliding) {
-      // 🛹 Athletic Low Slide / Skid Under Laser Beams ("jhukna padhta hai")
-      kaiModel.scale.set(1.3, 0.5, 1.35);
+      // 🛹 Athletic Low Skater Slide Under Laser Beams ("jhukna padhta hai")
+      kaiModel.scale.set(1.0, 0.45, 1.05);
       kaiModel.rotation.x = 1.05; // Lean back flat
       kaiModel.rotation.y = 0;
       kaiModel.position.y = -0.42;
@@ -1625,36 +1923,55 @@
 
       leftLeg.rotation.x = -1.35;
       rightLeg.rotation.x = 0.35;
+      if (leftLowerLeg) leftLowerLeg.rotation.x = 0.95;
+      if (rightLowerLeg) rightLowerLeg.rotation.x = 0.25;
+
       leftArm.rotation.x = 0.85;
       rightArm.rotation.x = 0.85;
     } else if (state.isJumping) {
-      // 🦘 High Hurdle Jump Tuck
-      kaiModel.scale.set(1.28, 1.28, 1.28);
-      kaiModel.rotation.x = -0.25;
+      // 🦘 High Hurdle Jump Tuck (Knees bend into dynamic jump)
+      kaiModel.scale.set(1, 1, 1);
+      kaiModel.rotation.x = -0.22;
       kaiModel.rotation.y = 0;
       kaiModel.position.y = 0;
       kaiModel.rotation.z = (state.targetX - state.playerX) * -0.15;
 
-      leftLeg.rotation.x = 0.85;
-      rightLeg.rotation.x = 0.55;
+      leftLeg.rotation.x = 0.75;
+      rightLeg.rotation.x = 0.45;
+      if (leftLowerLeg) leftLowerLeg.rotation.x = 1.15;
+      if (rightLowerLeg) rightLowerLeg.rotation.x = 1.15;
+
       leftArm.rotation.x = -1.1;
       rightArm.rotation.x = -1.1;
     } else {
-      // 🏃 Energetic Authentic Runner Boy Sprint Animation
-      kaiModel.scale.set(1.28, 1.28, 1.28);
-      kaiModel.rotation.x = -0.16; // Athletic sprint forward lean
-      kaiModel.position.y = Math.abs(Math.sin(runAnimTime * 2)) * 0.14; // Footfall bob
-      kaiModel.position.x = Math.sin(runAnimTime) * 0.035;
-      kaiModel.rotation.y = Math.sin(runAnimTime) * 0.09; // Shoulder twist
-      kaiModel.rotation.z = Math.sin(runAnimTime) * -0.05 + ((state.targetX - state.playerX) * -0.18); // Sway + lane change banking
+      // 🏃 Energetic Authentic Subway Surfers Running Cycle with Dynamic Knee Flexion
+      kaiModel.scale.set(1, 1, 1);
+      kaiModel.rotation.x = -0.14; // Athletic sprint forward lean
+      kaiModel.position.y = Math.abs(Math.sin(runAnimTime * 2)) * 0.12; // Footfall bob
+      kaiModel.position.x = Math.sin(runAnimTime) * 0.03;
+      kaiModel.rotation.y = Math.sin(runAnimTime) * 0.08; // Shoulder twist
+      kaiModel.rotation.z = Math.sin(runAnimTime) * -0.04 + ((state.targetX - state.playerX) * -0.16); // Sway + lane change banking
 
       const stride = Math.sin(runAnimTime);
-      leftLeg.rotation.x = stride * 0.95;
-      rightLeg.rotation.x = -stride * 0.95;
-      leftArm.rotation.x = -stride * 0.95;
-      leftArm.rotation.z = -0.22;
-      rightArm.rotation.x = stride * 0.95;
-      rightArm.rotation.z = 0.22;
+      leftLeg.rotation.x = stride * 0.82;
+      rightLeg.rotation.x = -stride * 0.82;
+
+      // Realistic Human Running Kinematics: Knee bends backward on backswing!
+      if (leftLowerLeg) {
+        leftLowerLeg.rotation.x = Math.max(0, -stride * 0.92);
+      }
+      if (rightLowerLeg) {
+        rightLowerLeg.rotation.x = Math.max(0, stride * 0.92);
+      }
+
+      // Arm pumping with bent elbows
+      leftArm.rotation.x = -stride * 0.85;
+      leftArm.rotation.z = -0.18;
+      rightArm.rotation.x = stride * 0.85;
+      rightArm.rotation.z = 0.18;
+
+      if (leftForearm) leftForearm.rotation.x = 0.82 + Math.sin(runAnimTime) * 0.14;
+      if (rightForearm) rightForearm.rotation.x = 0.82 - Math.sin(runAnimTime) * 0.14;
     }
 
     // Move obstacles towards player (+Z)
@@ -1838,7 +2155,7 @@
     const height = container.clientHeight || window.innerHeight;
     const aspect = width / height;
     camera.aspect = aspect;
-    camera.fov = aspect < 0.65 ? 64 : 56;
+    camera.fov = aspect < 0.65 ? 68 : 58;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
   }
@@ -1849,6 +2166,7 @@
   });
 
   window.gameState = state;
+  window.applyTheme = applyTheme;
   window.useStoredJetpack = useStoredJetpack;
   window.useStoredMagnet = useStoredMagnet;
 })();
