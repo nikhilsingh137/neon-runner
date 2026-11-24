@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 3D PWA
-const CACHE_NAME = 'urbandash-v22-slow-start-hurdle-clear';
+const CACHE_NAME = 'urbandash-v23-jump-fix-hoverboard-mystery';
 
 const CORE_ASSETS = [
   './manifest.json',

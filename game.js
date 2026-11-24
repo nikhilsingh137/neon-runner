@@ -133,6 +133,34 @@
     }, 2200);
   }
 
+  // --- DYNAMIC COMBO STREAK SYSTEM ---
+  let comboStreak = 0;
+  let comboResetTimer = 0;
+
+  function addComboPoint(pts = 1) {
+    if (!state.running || state.paused) return;
+    comboStreak += pts;
+    comboResetTimer = 3.8;
+    const badge = document.getElementById('hud-combo-badge');
+    const text = document.getElementById('hud-combo-text');
+    if (!badge || !text) return;
+
+    if (comboStreak >= 5) {
+      badge.classList.remove('hidden');
+      if (comboStreak >= 30) {
+        text.textContent = `👑 ${comboStreak}x UNSTOPPABLE RUN!`;
+        badge.className = 'hud-combo-badge legendary';
+      } else if (comboStreak >= 15) {
+        text.textContent = `⚡ ${comboStreak}x SICK MOVES!`;
+        badge.className = 'hud-combo-badge epic';
+      } else {
+        text.textContent = `🔥 ${comboStreak}x COMBO RUSH!`;
+        badge.className = 'hud-combo-badge active';
+      }
+      state.score += 25 * comboStreak;
+    }
+  }
+
   function updatePowerupSlotsUI() {
     if (slotMagnet && slotMagnetCount && slotMagnetStatus) {
       slotMagnetCount.textContent = state.storedMagnets;
@@ -1398,6 +1426,24 @@
     hurdleGroup.add(legL);
     hurdleGroup.add(legR);
 
+    // Floating Glowing Hologram "▲ JUMP"
+    const signCanvas = document.createElement('canvas');
+    signCanvas.width = 160;
+    signCanvas.height = 64;
+    const sctx = signCanvas.getContext('2d');
+    sctx.fillStyle = '#10b981';
+    sctx.font = 'bold 30px Fredoka One, sans-serif';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+    sctx.shadowColor = '#059669';
+    sctx.shadowBlur = 10;
+    sctx.fillText('▲ JUMP ▲', 80, 32);
+    const signTex = new THREE.CanvasTexture(signCanvas);
+    const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: signTex, transparent: true, opacity: 0.95 }));
+    signSprite.scale.set(1.5, 0.6, 1);
+    signSprite.position.set(0, 1.85, 0);
+    hurdleGroup.add(signSprite);
+
     hurdleGroup.userData = {
       type: 'hurdle',
       lane: laneIndex,
@@ -1456,6 +1502,24 @@
     laserBeam.rotation.z = Math.PI / 2;
     laserBeam.position.set(0, 1.7, 0);
     beamGroup.add(laserBeam);
+
+    // Floating Glowing Hologram "▼ SLIDE ▼"
+    const slCanvas = document.createElement('canvas');
+    slCanvas.width = 160;
+    slCanvas.height = 64;
+    const slctx = slCanvas.getContext('2d');
+    slctx.fillStyle = '#f59e0b';
+    slctx.font = 'bold 30px Fredoka One, sans-serif';
+    slctx.textAlign = 'center';
+    slctx.textBaseline = 'middle';
+    slctx.shadowColor = '#d97706';
+    slctx.shadowBlur = 10;
+    slctx.fillText('▼ SLIDE ▼', 80, 32);
+    const slTex = new THREE.CanvasTexture(slCanvas);
+    const slSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: slTex, transparent: true, opacity: 0.95 }));
+    slSprite.scale.set(1.6, 0.64, 1);
+    slSprite.position.set(0, 3.65, 0);
+    beamGroup.add(slSprite);
 
     // Carbon Reinforced Vertical Stanchions
     const postGeom = new THREE.CylinderGeometry(0.12, 0.14, 3.4, 8);
@@ -1787,6 +1851,58 @@
     powerups.push(group);
   }
 
+  // 9. Golden Mystery Surprise Box (Lucky Crate with Holographic ?)
+  function createMysteryBox(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.5, zPos);
+
+    // Glowing Golden Chest Box
+    const boxGeom = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+    const boxMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      metalness: 0.85,
+      roughness: 0.2,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.6
+    });
+    const box = new THREE.Mesh(boxGeom, boxMat);
+    group.add(box);
+
+    // Cyan Ribbon Bands
+    const bandH = new THREE.Mesh(
+      new THREE.BoxGeometry(0.88, 0.16, 0.88),
+      new THREE.MeshBasicMaterial({ color: 0x00f5d4 })
+    );
+    const bandV = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, 0.88, 0.88),
+      new THREE.MeshBasicMaterial({ color: 0x00f5d4 })
+    );
+    group.add(bandH);
+    group.add(bandV);
+
+    // Floating Question Mark '?' Sprite on top
+    const qCanvas = document.createElement('canvas');
+    qCanvas.width = 128;
+    qCanvas.height = 128;
+    const qctx = qCanvas.getContext('2d');
+    qctx.fillStyle = '#ffffff';
+    qctx.font = 'bold 74px Fredoka One, sans-serif';
+    qctx.textAlign = 'center';
+    qctx.textBaseline = 'middle';
+    qctx.shadowColor = '#fbbf24';
+    qctx.shadowBlur = 12;
+    qctx.fillText('?', 64, 64);
+    const qTex = new THREE.CanvasTexture(qCanvas);
+    const qSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: qTex, transparent: true, opacity: 0.95 }));
+    qSprite.scale.set(0.9, 0.9, 1);
+    qSprite.position.set(0, 0.95, 0);
+    group.add(qSprite);
+
+    group.userData = { type: 'mystery', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
   // --- ORIGINAL DYNAMIC TRACK SPAWNER ---
   let nextSpawnZ = -45;
 
@@ -1811,23 +1927,25 @@
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
 
-      // Spawn Power-Ups periodically (38% chance for one of 8 Epic Boosts in open lane!)
-      if (Math.random() < 0.38) {
+      // Spawn Power-Ups & Mystery Boxes periodically (42% chance in open lane!)
+      if (Math.random() < 0.42) {
         const pChoice = Math.random();
         const pZ = nextSpawnZ + 8;
-        if (pChoice < 0.16) {
+        if (pChoice < 0.15) {
+          createMysteryBox(openLane, pZ);
+        } else if (pChoice < 0.28) {
           createMagnetPowerup(openLane, pZ);
-        } else if (pChoice < 0.29) {
+        } else if (pChoice < 0.40) {
           createJetpackPowerup(openLane, pZ);
-        } else if (pChoice < 0.43) {
+        } else if (pChoice < 0.52) {
           createSneakersPowerup(openLane, pZ);
-        } else if (pChoice < 0.57) {
+        } else if (pChoice < 0.64) {
           createDoublerPowerup(openLane, pZ);
-        } else if (pChoice < 0.71) {
+        } else if (pChoice < 0.76) {
           createWarpPowerup(openLane, pZ);
-        } else if (pChoice < 0.82) {
+        } else if (pChoice < 0.86) {
           createEMPPowerup(openLane, pZ);
-        } else if (pChoice < 0.91) {
+        } else if (pChoice < 0.94) {
           createGhostPowerup(openLane, pZ);
         } else {
           createVortexPowerup(openLane, pZ);
@@ -1891,8 +2009,9 @@
       if (!state.running || state.paused) return;
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLane(-1);
       else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveLane(1);
-      else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') doJump();
+      else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') doJump();
       else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') doSlide();
+      else if (e.key === ' ' || e.key === 'b' || e.key === 'B' || e.key === 'h' || e.key === 'H') activateHoverboardSurf();
       else if (e.key === 'Shift') triggerBoost();
       else if (e.key === 'e' || e.key === 'E') useStoredMagnet();
       else if (e.key === 'q' || e.key === 'Q') useStoredJetpack();
@@ -1903,10 +2022,19 @@
     let touchStartX = 0;
     let touchStartY = 0;
     let hasSwipedInCurrentTouch = false;
+    let lastTapTime = 0;
 
     const handleTouchStart = (e) => {
       if (state.controlMode !== 'swipe') return; // If Touch Buttons active, do not track swipe
       if (!state.running || state.paused) return;
+
+      const now = Date.now();
+      if (now - lastTapTime < 280) {
+        // DOUBLE TAP DETECTED: Instant Hoverboard Surf!
+        activateHoverboardSurf();
+      }
+      lastTapTime = now;
+
       if (e.touches && e.touches.length > 0) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -1979,6 +2107,7 @@
     bindBtn('btn-jump', () => doJump());
     bindBtn('btn-slide', () => doSlide());
     bindBtn('btn-boost', () => triggerBoost());
+    bindBtn('btn-hoverboard-surf', activateHoverboardSurf);
 
     // Navigation Buttons (Instant Mobile Touch & Click)
     bindBtn('btn-start', startGame);
@@ -2073,10 +2202,14 @@
 
   function doJump() {
     if (state.jetpackTimer > 0) return;
-    // Responsive Jump & Hop Buffer: Triggers when grounded OR near ground landing
-    if (!state.isJumping || state.playerY < 1.4 || state.vy < 0) {
+    // Strict Grounded Check: can only jump if grounded on floor or train roof!
+    // Prevents infinite mid-air floating so player ALWAYS comes down fast!
+    const isGrounded = (!state.isJumping && state.playerY <= state.groundY + 0.15) || (state.playerY <= state.groundY + 0.05);
+
+    if (isGrounded) {
       state.isJumping = true;
       state.isSliding = false;
+      state.jumpBuffered = false;
       state.lastJumpTime = Date.now();
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
       state.vy = Math.sqrt(2 * GRAVITY * jumpHeight);
@@ -2096,6 +2229,9 @@
       } else if (window.soundEngine) {
         window.soundEngine.playJumpSFX();
       }
+    } else if (state.isJumping && state.playerY < state.groundY + 0.9 && state.vy < 0) {
+      // Buffer a jump if player swipes up right as they are about to touch ground (< 0.9m away)
+      state.jumpBuffered = true;
     }
   }
 
@@ -2104,8 +2240,9 @@
     state.isSliding = true;
     state.slideTimer = state.slideDuration;
     state.lastSlideTime = Date.now();
+    state.jumpBuffered = false;
     if (state.isJumping) {
-      state.vy = -22;
+      state.vy = -26; // Fast downward stomp if sliding while in mid-air (Subway Surfers feel!)
     }
     // Mark approaching overhead beams as cleared!
     obstacles.forEach((obs) => {
@@ -2116,6 +2253,25 @@
       }
     });
     if (window.soundEngine) window.soundEngine.playSlideSFX();
+  }
+
+  function activateHoverboardSurf() {
+    if (!state.running || state.paused) return;
+    if (state.hasShield && state.isBoosted) return; // already active
+
+    state.hasShield = true;
+    state.isBoosted = true;
+    state.boostTimer = 16.0; // 16 seconds of surfboard fun
+    if (hoverboardMesh) hoverboardMesh.visible = true;
+    if (badgeShield) {
+      badgeShield.style.display = 'flex';
+      badgeShield.innerHTML = '<span>🛹 HOVERBOARD ON</span>';
+    }
+    showToast('🛹 CYBER HOVERBOARD ACTIVE! 1-HIT SHIELD READY!');
+    if (typeof addComboPoint === 'function') addComboPoint(2);
+    if (window.soundEngine) {
+      window.soundEngine.playPowerupSFX();
+    }
   }
 
   function triggerBoost() {
@@ -2287,6 +2443,22 @@
     }
     if (state.paused) return;
 
+    // Combo Streak Timer Countdown
+    if (comboResetTimer > 0) {
+      comboResetTimer -= delta;
+      if (comboResetTimer <= 0) {
+        comboStreak = 0;
+        const badge = document.getElementById('hud-combo-badge');
+        if (badge) badge.classList.add('hidden');
+      }
+    }
+
+    // Dynamic Camera Action Lean on Lane Weave
+    if (camera) {
+      const targetRoll = (state.targetX - state.playerX) * -0.018;
+      camera.rotation.z += (targetRoll - camera.rotation.z) * 8.0 * delta;
+    }
+
     // 1. Magnet (Chumbak) Timer & HUD
     if (state.magnetTimer > 0) {
       state.magnetTimer -= delta;
@@ -2439,6 +2611,10 @@
           state.playerY = state.groundY;
           state.vy = 0;
           state.isJumping = false;
+          if (state.jumpBuffered) {
+            state.jumpBuffered = false;
+            doJump();
+          }
         }
       } else {
         state.playerY = state.groundY;
@@ -2769,6 +2945,45 @@
             window.soundEngine.playVortexSFX();
             window.soundEngine.playPowerupSFX();
           }
+        } else if (pType === 'mystery') {
+          const rolls = Math.random();
+          if (rolls < 0.40) {
+            const bonus = 150;
+            state.coins += bonus;
+            careerStats.totalCoins = (careerStats.totalCoins || 0) + bonus;
+            saveCareerStats();
+            updateCareerStatsUI();
+            state.score += 1500;
+            showToast(`🎁 MYSTERY CRATE JACKPOT! +${bonus} CRYSTALS! 💎`);
+            if (typeof addComboPoint === 'function') addComboPoint(4);
+          } else if (rolls < 0.65) {
+            activateHoverboardSurf();
+            showToast('🎁 MYSTERY BOX: 🛹 CYBER HOVERBOARD SURF!');
+          } else if (rolls < 0.85) {
+            state.jetpackTimer = 14.0;
+            showToast('🎁 MYSTERY BOX: 🚀 MEGA SKY FLIGHT!');
+            for (let l = 0; l < 3; l++) {
+              for (let z = 0; z < 8; z++) {
+                createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
+              }
+            }
+          } else {
+            showToast('🎁 MYSTERY BOX: 💥 SONIC EMP BLAST!');
+            for (let oi = obstacles.length - 1; oi >= 0; oi--) {
+              const obs = obstacles[oi];
+              if (obs.position.z >= -140 && obs.position.z <= 15) {
+                const oLane = obs.userData.lane;
+                const oZ = obs.position.z;
+                scene.remove(obs);
+                obstacles.splice(oi, 1);
+                createCrystal(oLane, oZ, 1.2);
+              }
+            }
+          }
+          if (window.soundEngine) {
+            window.soundEngine.playPowerupSFX();
+            window.soundEngine.playCoinSFX();
+          }
         }
 
         scene.remove(p);
@@ -2819,6 +3034,7 @@
         saveCareerStats();
         updateCareerStatsUI();
         state.score += 80 * crystalGain;
+        if (typeof addComboPoint === 'function') addComboPoint(1);
         if (window.soundEngine) window.soundEngine.playCoinSFX();
         scene.remove(crystal);
         coins.splice(i, 1);
@@ -2899,19 +3115,23 @@
     } else if (obs.userData.type === 'overhead') {
       // 🛹 Overhead Laser Gantry Clearance:
       const recentlySlid = state.lastSlideTime && (Date.now() - state.lastSlideTime < 1600);
-      if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
+      const isUnderBeam = (state.isSliding || state.slideTimer > 0 || recentlySlid);
+      // High Jump Clearance: if player jumps high over top of beam (> 2.8m, e.g. with Super Sneakers or High Jump)
+      const isOverBeam = (state.playerY >= 2.8);
+
+      if (isUnderBeam || isOverBeam || obs.userData.cleared) {
         obs.userData.cleared = true;
         return false;
       }
       if (zPos >= -30.0 && zPos <= 4.0) {
-        if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
+        if (isUnderBeam || isOverBeam || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
       }
       // Tight physical overhead gantry contact window ONLY
       if (zPos >= -0.38 && zPos <= 0.38) {
-        if (state.isSliding || state.slideTimer > 0 || recentlySlid || obs.userData.cleared) {
+        if (isUnderBeam || isOverBeam || obs.userData.cleared) {
           obs.userData.cleared = true;
           return false;
         }
@@ -2952,6 +3172,7 @@
   window.gameObstacles = obstacles;
   window.doJump = doJump;
   window.doSlide = doSlide;
+  window.activateHoverboardSurf = activateHoverboardSurf;
   window.createHurdleObstacle = createHurdleObstacle;
   window.applyTheme = applyTheme;
   window.useStoredJetpack = useStoredJetpack;

@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v22">
+  <link rel="stylesheet" href="style.css?v=urbandash_v23">
 </head>
 <body>
   <div id="game-container">
@@ -99,8 +99,14 @@
       <!-- Floating Toast Message for Power-Up Pickup & Alerts -->
       <div id="hud-toast-msg" class="hud-toast-msg hidden"></div>
 
-      <!-- Top Right Action Buttons: Pause & Home -->
+      <!-- Dynamic Combo Streak Banner -->
+      <div id="hud-combo-badge" class="hud-combo-badge hidden">
+        <span id="hud-combo-text">🔥 5x COMBO!</span>
+      </div>
+
+      <!-- Top Right Action Buttons: Surf, Pause & Home -->
       <div class="hud-top-actions">
+        <button class="hud-surf-btn" id="btn-hoverboard-surf" title="Instant Hoverboard Surf (Or Double Tap)">🛹 SURF</button>
         <button class="btn-hud-icon" id="btn-pause" title="Pause Game">⏸</button>
         <button class="btn-hud-icon" id="btn-hud-home" title="Go to Main Menu">🏠</button>
       </div>
@@ -168,6 +174,8 @@
       <!-- BOTTOM FEATURE & CONTROLS CAPSULE: Compact, sleek & stylish -->
       <div class="menu-bottom-capsule">
         <div class="feature-chips-row">
+          <span class="feature-chip">🎁 Mystery Box</span>
+          <span class="feature-chip">🛹 Double-Tap Surf</span>
           <span class="feature-chip">🧲 Chumbak</span>
           <span class="feature-chip">🚀 Jetpack</span>
           <span class="feature-chip">👟 Super Shoes</span>
@@ -178,7 +186,7 @@
           <span class="feature-chip">🌈 Rainbow Vortex</span>
         </div>
         <div class="controls-quick-hint">
-          Swipe <b>Left / Right</b> to dodge • <b>Up</b> to jump • <b>Down</b> to roll
+          Swipe <b>Left / Right</b> • <b>Up</b> to jump • <b>Down</b> to roll • <b>Double Tap</b> for Hoverboard!
         </div>
       </div>
     </div>
@@ -337,7 +345,7 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=urbandash_v21"></script>
-  <script src="game.js?v=urbandash_v22"></script>
+  <script src="game.js?v=urbandash_v23"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -355,7 +363,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=22').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=23').catch(() => {});
       });
     }
 
