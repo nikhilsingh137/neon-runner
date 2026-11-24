@@ -47,6 +47,7 @@
     warpTimer: 0,
     ghostTimer: 0,
     vortexTimer: 0,
+    skatesTimer: 0,
     hasShield: false,
     storedMagnets: 0,
     storedJetpacks: 0,
@@ -80,6 +81,7 @@
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
+  let skateFrameL, skateFrameR, skateWheelsL = [], skateWheelsR = [];
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
   let trackTies = [], sideScenery = [], speedLines = [], flightSmokeParticles = [];
@@ -112,6 +114,8 @@
   const badgeVortex = document.getElementById('badge-vortex');
   const timerVortex = document.getElementById('timer-vortex');
   const badgeShield = document.getElementById('badge-shield');
+  const badgeSkates = document.getElementById('badge-skates');
+  const timerSkates = document.getElementById('timer-skates');
 
   // Quick-Use Power-Up Tray Elements
   const slotMagnet = document.getElementById('slot-magnet');
@@ -890,6 +894,42 @@
         sneakerGroup.add(lace);
       });
 
+      // 3D Inline Roller Skate Chassis & Glowing Wheels ("foot me wheel")
+      const skateFrame = new THREE.Group();
+      const frameBlade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.08, 0.64),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.85, roughness: 0.2 })
+      );
+      frameBlade.position.set(0, -0.13, -0.06);
+      skateFrame.add(frameBlade);
+
+      const wheelGeom = new THREE.CylinderGeometry(0.09, 0.09, 0.07, 14);
+      wheelGeom.rotateZ(Math.PI / 2);
+      const wheelMat = new THREE.MeshStandardMaterial({
+        color: 0x06b6d4,
+        emissive: 0x22d3ee,
+        emissiveIntensity: 0.85,
+        roughness: 0.2
+      });
+      const wheelCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+      const skateWheels = [];
+      [-0.24, -0.06, 0.12].forEach((wZ) => {
+        const wheelGroup = new THREE.Group();
+        wheelGroup.position.set(0, -0.21, wZ);
+        const wMesh = new THREE.Mesh(wheelGeom, wheelMat);
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.08, 10), wheelCoreMat);
+        core.rotation.z = Math.PI / 2;
+        wheelGroup.add(wMesh);
+        wheelGroup.add(core);
+        skateFrame.add(wheelGroup);
+        skateWheels.push(wheelGroup);
+      });
+
+      skateFrame.visible = false;
+      sneakerGroup.add(skateFrame);
+      sneakerGroup.userData = { skateFrame, skateWheels };
+
       return sneakerGroup;
     }
 
@@ -932,6 +972,8 @@
     // Left Retro Red Sneaker
     const leftSneaker = buildSubwaySneaker();
     leftSneaker.position.set(0, -0.50, 0);
+    skateFrameL = leftSneaker.userData.skateFrame;
+    skateWheelsL = leftSneaker.userData.skateWheels;
     leftLowerLeg.add(leftSneaker);
 
     leftLeg.add(leftLowerLeg);
@@ -969,6 +1011,8 @@
 
     const rightSneaker = buildSubwaySneaker();
     rightSneaker.position.set(0, -0.50, 0);
+    skateFrameR = rightSneaker.userData.skateFrame;
+    skateWheelsR = rightSneaker.userData.skateWheels;
     rightLowerLeg.add(rightSneaker);
 
     rightLeg.add(rightLowerLeg);
@@ -1851,6 +1895,95 @@
     powerups.push(group);
   }
 
+  // 9. Collectible 3D Hoverboard Surfboard on Track (Track Pickup with Shield!)
+  function createHoverboardPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.35, zPos);
+
+    const deckGeom = new THREE.BoxGeometry(0.85, 0.08, 1.9);
+    const deckMat = new THREE.MeshStandardMaterial({
+      color: 0x00f5d4,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.7
+    });
+    const deck = new THREE.Mesh(deckGeom, deckMat);
+    group.add(deck);
+
+    [-0.55, 0.55].forEach((zOff) => {
+      const emitter = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.24, 0.09, 14),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      );
+      emitter.position.set(0, -0.06, zOff);
+      group.add(emitter);
+    });
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.15, 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x00f5d4 })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    group.userData = { type: 'hoverboard', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
+  // 10. 3D Turbo Roller Skates / Wheels on Feet Boost ("foot me wheel")
+  function createRollerSkatesPowerup(laneIndex, zPos) {
+    const group = new THREE.Group();
+    group.position.set(LANES[laneIndex], 1.35, zPos);
+
+    const bootMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      roughness: 0.25,
+      metalness: 0.5,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.5
+    });
+    const wheelMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      roughness: 0.2,
+      emissive: 0xfbbf24,
+      emissiveIntensity: 0.85
+    });
+
+    [-0.32, 0.32].forEach((xOff) => {
+      const boot = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.38, 0.70), bootMat);
+      boot.position.set(xOff, 0.18, 0);
+      group.add(boot);
+
+      const blade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.08, 0.64),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      );
+      blade.position.set(xOff, -0.06, 0);
+      group.add(blade);
+
+      [-0.22, 0, 0.22].forEach((wZ) => {
+        const wGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
+        wGeom.rotateZ(Math.PI / 2);
+        const wheel = new THREE.Mesh(wGeom, wheelMat);
+        wheel.position.set(xOff, -0.16, wZ);
+        group.add(wheel);
+      });
+    });
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.15, 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+    );
+    halo.rotation.x = Math.PI / 2;
+    group.add(halo);
+
+    group.userData = { type: 'skates', lane: laneIndex, collected: false };
+    scene.add(group);
+    powerups.push(group);
+  }
+
   // 9. Golden Mystery Surprise Box (Lucky Crate with Holographic ?)
   function createMysteryBox(laneIndex, zPos) {
     const group = new THREE.Group();
@@ -1927,25 +2060,27 @@
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
 
-      // Spawn Power-Ups & Mystery Boxes periodically (42% chance in open lane!)
-      if (Math.random() < 0.42) {
+      // Spawn Power-Ups & Mystery Boxes periodically (45% chance in open lane!)
+      if (Math.random() < 0.45) {
         const pChoice = Math.random();
         const pZ = nextSpawnZ + 8;
-        if (pChoice < 0.15) {
+        if (pChoice < 0.12) {
+          createHoverboardPowerup(openLane, pZ); // 🛹 Surfboard on track!
+        } else if (pChoice < 0.24) {
+          createRollerSkatesPowerup(openLane, pZ); // 🛼 Roller Skates on track!
+        } else if (pChoice < 0.35) {
           createMysteryBox(openLane, pZ);
-        } else if (pChoice < 0.28) {
+        } else if (pChoice < 0.46) {
           createMagnetPowerup(openLane, pZ);
-        } else if (pChoice < 0.40) {
+        } else if (pChoice < 0.56) {
           createJetpackPowerup(openLane, pZ);
-        } else if (pChoice < 0.52) {
+        } else if (pChoice < 0.66) {
           createSneakersPowerup(openLane, pZ);
-        } else if (pChoice < 0.64) {
-          createDoublerPowerup(openLane, pZ);
         } else if (pChoice < 0.76) {
+          createDoublerPowerup(openLane, pZ);
+        } else if (pChoice < 0.84) {
           createWarpPowerup(openLane, pZ);
-        } else if (pChoice < 0.86) {
-          createEMPPowerup(openLane, pZ);
-        } else if (pChoice < 0.94) {
+        } else if (pChoice < 0.92) {
           createGhostPowerup(openLane, pZ);
         } else {
           createVortexPowerup(openLane, pZ);
@@ -2335,6 +2470,7 @@
     state.warpTimer = 0;
     state.ghostTimer = 0;
     state.vortexTimer = 0;
+    state.skatesTimer = 0;
     state.hasShield = false;
     state.storedMagnets = 0;
     state.storedJetpacks = 0;
@@ -2370,7 +2506,10 @@
     if (badgeWarp) badgeWarp.style.display = 'none';
     if (badgeGhost) badgeGhost.style.display = 'none';
     if (badgeVortex) badgeVortex.style.display = 'none';
+    if (badgeSkates) badgeSkates.style.display = 'none';
     if (badgeShield) badgeShield.style.display = 'none';
+    if (skateFrameL) skateFrameL.visible = false;
+    if (skateFrameR) skateFrameR.visible = false;
 
     if (kaiModel) {
       kaiModel.traverse((child) => {
@@ -2543,6 +2682,31 @@
       if (badgeVortex) badgeVortex.style.display = 'flex';
       if (timerVortex) timerVortex.textContent = Math.ceil(state.vortexTimer) + 's';
       if (state.vortexTimer <= 0 && badgeVortex) badgeVortex.style.display = 'none';
+    }
+
+    // 8. Turbo Roller Skates / Foot Wheels Timer & Animation ("foot me wheel")
+    if (state.skatesTimer > 0) {
+      state.skatesTimer -= delta;
+      if (badgeSkates) badgeSkates.style.display = 'flex';
+      if (timerSkates) timerSkates.textContent = Math.ceil(state.skatesTimer) + 's';
+
+      if (skateFrameL) skateFrameL.visible = true;
+      if (skateFrameR) skateFrameR.visible = true;
+
+      const wheelSpin = delta * (state.speed * 1.8 + 14);
+      if (skateWheelsL) skateWheelsL.forEach((w) => { w.rotation.x += wheelSpin; });
+      if (skateWheelsR) skateWheelsR.forEach((w) => { w.rotation.x += wheelSpin; });
+
+      state.speed = Math.max(state.speed, 34);
+
+      if (state.skatesTimer <= 0) {
+        if (badgeSkates) badgeSkates.style.display = 'none';
+        if (skateFrameL) skateFrameL.visible = false;
+        if (skateFrameR) skateFrameR.visible = false;
+      }
+    } else {
+      if (skateFrameL && skateFrameL.visible) skateFrameL.visible = false;
+      if (skateFrameR && skateFrameR.visible) skateFrameR.visible = false;
     }
 
     // Progressive Speed: Starts super calm & slow at 13 KM/H (speed 11), gentle gradual acceleration like big games!
@@ -2945,6 +3109,20 @@
             window.soundEngine.playVortexSFX();
             window.soundEngine.playPowerupSFX();
           }
+        } else if (pType === 'hoverboard') {
+          activateHoverboardSurf();
+          showToast('🛹 HOVERBOARD ON TRACK! SHIELD ACTIVE!');
+          if (window.soundEngine) {
+            window.soundEngine.playPowerupSFX();
+            if (window.soundEngine.playBoostSFX) window.soundEngine.playBoostSFX();
+          }
+        } else if (pType === 'skates') {
+          state.skatesTimer = 16.0;
+          showToast('🛼 TURBO ROLLER SKATES! WHEEL SPEED RUSH!');
+          if (window.soundEngine) {
+            window.soundEngine.playPowerupSFX();
+            if (window.soundEngine.playSneakersSFX) window.soundEngine.playSneakersSFX();
+          }
         } else if (pType === 'mystery') {
           const rolls = Math.random();
           if (rolls < 0.40) {
@@ -3020,10 +3198,10 @@
         crystal.position.x += (state.playerX - crystal.position.x) * 18 * delta;
         crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 18 * delta;
         crystal.position.z += (playerGroup.position.z - crystal.position.z) * 15 * delta;
-      } else if (state.isBoosted && dist < 18) {
-        crystal.position.x += (state.playerX - crystal.position.x) * 14 * delta;
-        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 14 * delta;
-        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 12 * delta;
+      } else if ((state.isBoosted || state.skatesTimer > 0) && dist < 22) {
+        crystal.position.x += (state.playerX - crystal.position.x) * 16 * delta;
+        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 16 * delta;
+        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 14 * delta;
       }
 
       if (dist < 2.4 && !crystal.userData.collected) {

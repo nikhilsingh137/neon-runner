@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 3D PWA
-const CACHE_NAME = 'urbandash-v23-jump-fix-hoverboard-mystery';
+const CACHE_NAME = 'urbandash-v24-roller-skates-track-surf';
 
 const CORE_ASSETS = [
   './manifest.json',

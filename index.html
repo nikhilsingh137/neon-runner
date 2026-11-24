@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v23">
+  <link rel="stylesheet" href="style.css?v=urbandash_v24">
 </head>
 <body>
   <div id="game-container">
@@ -81,6 +81,9 @@
           <div class="powerup-pill vortex" id="badge-vortex" style="display: none;">
             <span>🌈</span> <span id="timer-vortex">12s</span>
           </div>
+          <div class="powerup-pill skates" id="badge-skates" style="display: none;">
+            <span>🛼</span> <span id="timer-skates">15s</span>
+          </div>
           <div class="powerup-pill" id="badge-shield" style="display: none;">
             <span>🛹 SHIELD ACTIVE</span>
           </div>
@@ -104,22 +107,14 @@
         <span id="hud-combo-text">🔥 5x COMBO!</span>
       </div>
 
-      <!-- Top Right Action Buttons: Surf, Pause & Home -->
+      <!-- Top Right Action Buttons: Pause & Home -->
       <div class="hud-top-actions">
-        <button class="hud-surf-btn" id="btn-hoverboard-surf" title="Instant Hoverboard Surf (Or Double Tap)">🛹 SURF</button>
         <button class="btn-hud-icon" id="btn-pause" title="Pause Game">⏸</button>
         <button class="btn-hud-icon" id="btn-hud-home" title="Go to Main Menu">🏠</button>
       </div>
 
       <!-- Bottom Interactive Bar & Boost Gauge -->
       <div class="hud-bottom-bar">
-        <div class="overdrive-wrapper">
-          <span class="hud-label">⚡ OVERDRIVE BOOST CHARGE</span>
-          <div class="overdrive-bar-track">
-            <div id="hud-overdrive-fill" class="overdrive-bar-fill"></div>
-          </div>
-        </div>
-
         <!-- Virtual Buttons: Shown ONLY if user chooses 'Touch Buttons Mode' -->
         <div class="virtual-buttons" id="virtual-buttons">
           <button class="touch-btn" id="btn-left" title="Steer Left">◀</button>
@@ -345,7 +340,7 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=urbandash_v21"></script>
-  <script src="game.js?v=urbandash_v23"></script>
+  <script src="game.js?v=urbandash_v24"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -363,7 +358,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=23').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=24').catch(() => {});
       });
     }
 
