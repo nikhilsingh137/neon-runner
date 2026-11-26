@@ -18,6 +18,9 @@
   const JETPACK_FLIGHT_Y = 8.5;
   const GROUND_CRYSTAL_Y = 1.2;
   let nextFlightCrystalZ = -16;
+  let flightCrystalIndex = 0;
+  const FLIGHT_CRYSTAL_LANES = [1, 1, 0, 2, 2, 1, 0, 1, 2, 0, 0, 1];
+  const FLIGHT_CRYSTAL_GAPS = [3.2, 4.7, 3.6, 5.2];
 
   // --- GAME STATE ---
   const state = {
@@ -216,7 +219,10 @@
   }
 
   function startJetpack(duration) {
-    if (state.jetpackTimer <= 0) nextFlightCrystalZ = -16;
+    if (state.jetpackTimer <= 0) {
+      nextFlightCrystalZ = -16;
+      flightCrystalIndex = 0;
+    }
     state.jetpackTimer = Math.max(state.jetpackTimer, duration);
     state.vy = 0;
     state.isJumping = false;
@@ -228,10 +234,14 @@
   function fillFlightCrystalTrail(distance) {
     nextFlightCrystalZ += distance;
     while (nextFlightCrystalZ > -84) {
-      for (let lane = 0; lane < LANES.length; lane++) {
-        createCrystal(lane, nextFlightCrystalZ, Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7), true);
+      const index = flightCrystalIndex++;
+      const lane = FLIGHT_CRYSTAL_LANES[index % FLIGHT_CRYSTAL_LANES.length];
+      const height = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7);
+      createCrystal(lane, nextFlightCrystalZ, height, true);
+      if (index % 5 === 3) {
+        createCrystal((lane + 1) % LANES.length, nextFlightCrystalZ - 1.6, height, true);
       }
-      nextFlightCrystalZ -= 4.5;
+      nextFlightCrystalZ -= FLIGHT_CRYSTAL_GAPS[index % FLIGHT_CRYSTAL_GAPS.length];
     }
   }
 
@@ -988,17 +998,8 @@
     rightLeg.add(rightLowerLeg);
     kaiModel.add(rightLeg);
 
-    // 7. HOVERBOARD (Visible during Boost / Shield)
-    const boardGeom = new THREE.BoxGeometry(1.2, 0.10, 2.8);
-    const boardMat = new THREE.MeshStandardMaterial({
-      color: 0x00f5d4,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.35,
-      roughness: 0.25,
-      metalness: 0.6
-    });
-    hoverboardMesh = new THREE.Mesh(boardGeom, boardMat);
-    hoverboardMesh.position.set(0, -0.05, 0);
+    hoverboardMesh = buildHoverboardDeck();
+    hoverboardMesh.position.set(0, -0.14, 0);
     hoverboardMesh.visible = false;
     kaiModel.add(hoverboardMesh);
 
@@ -1072,7 +1073,7 @@
     const columns = sliding ? 3 : RUNNER_ATLAS_COLUMNS;
     const rows = sliding ? 1 : RUNNER_ATLAS_ROWS;
     const atlas = sliding ? slideSpriteAtlas : runnerSpriteAtlas;
-    const height = sliding ? 1.63 : 3.25;
+    const height = sliding ? 1.63 : 3.51;
     const cellAspect = (atlas.image.width / columns) / (atlas.image.height / rows);
     runnerSprite.scale.set(height * cellAspect, height, 1);
     runnerSprite.center.set(0.5, sliding ? 0.024 : 0.045);
@@ -1667,10 +1668,7 @@
     scene.add(trainGroup);
     obstacles.push(trainGroup);
 
-    // Ground-level rewards resume just past the train.
-    for (let gap = 3; gap <= 9; gap += 3) {
-      createCrystal(laneIndex, zPos - trainDepth / 2 - gap);
-    }
+    scatterGroundCrystals(zPos - trainDepth / 2 - 4, laneIndex, (laneIndex + 1) % LANES.length, 3);
   }
 
   // --- SCI-FI BARRIERS: ELECTRIC PLASMA GATE & OVERHEAD LASER GANTRY ---
@@ -2177,40 +2175,98 @@
   }
 
   // 9. Collectible 3D Hoverboard Surfboard on Track (Track Pickup with Shield!)
+  function buildHoverboardDeck() {
+    const board = new THREE.Group();
+    const outline = new THREE.Shape();
+    outline.moveTo(-0.46, -0.84);
+    outline.quadraticCurveTo(-0.52, -1.34, 0, -1.39);
+    outline.quadraticCurveTo(0.52, -1.34, 0.46, -0.84);
+    outline.lineTo(0.54, 0.82);
+    outline.quadraticCurveTo(0.54, 1.28, 0, 1.32);
+    outline.quadraticCurveTo(-0.54, 1.28, -0.54, 0.82);
+    outline.closePath();
+
+    const shape = new THREE.ExtrudeGeometry(outline, {
+      depth: 0.075, bevelEnabled: true, bevelSegments: 2, bevelSize: 0.045, bevelThickness: 0.038, curveSegments: 8
+    });
+    shape.rotateX(-Math.PI / 2);
+    const frame = new THREE.Mesh(shape, new THREE.MeshStandardMaterial({
+      color: 0x2558c6, metalness: 0.41, roughness: 0.36, emissive: 0x1848b1, emissiveIntensity: 0.24
+    }));
+    frame.position.y = 0.015;
+    const edge = new THREE.Mesh(shape, new THREE.MeshBasicMaterial({ color: 0x59e5ff }));
+    edge.scale.set(1.052, 0.32, 1.023);
+    edge.position.y = -0.024;
+    board.add(edge, frame);
+
+    const padMaterial = new THREE.MeshStandardMaterial({ color: 0x1b2a58, roughness: 0.95 });
+    const lampMaterial = new THREE.MeshBasicMaterial({ color: 0xc6fdff });
+    const reflectorMaterial = new THREE.MeshBasicMaterial({ color: 0xffc075 });
+    for (const side of [-1, 1]) {
+      const pad = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), padMaterial);
+      pad.scale.set(0.34, 0.035, 0.33);
+      pad.position.set(0, 0.108, side * 0.44);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), lampMaterial);
+      lamp.scale.set(0.18, 0.028, 0.07);
+      lamp.position.set(0, 0.074, side * 1.16);
+      const reflector = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.04, 0.35), reflectorMaterial);
+      reflector.position.set(side * 0.51, 0.06, 0.04);
+      board.add(pad, lamp, reflector);
+    }
+    return board;
+  }
+
+  function updateHoverboardPose() {
+    const sway = Math.sin(runAnimTime * 0.75);
+    const lean = (state.targetX - state.playerX) * -0.12;
+    kaiModel.scale.set(1, 1, 1);
+    kaiModel.position.set(0, 0.11 + sway * 0.027, 0);
+    kaiModel.rotation.set(-0.08, -0.12, lean);
+    leftLeg.rotation.x = -0.20;
+    rightLeg.rotation.x = 0.22;
+    leftLowerLeg.rotation.x = 0.24;
+    rightLowerLeg.rotation.x = 0.20;
+    leftArm.rotation.set(0.13 + sway * 0.08, 0, -0.62);
+    rightArm.rotation.set(-0.16 - sway * 0.08, 0, 0.62);
+    leftForearm.rotation.x = 0.36;
+    rightForearm.rotation.x = 0.47;
+    hoverboardMesh.rotation.x = 0.08;
+  }
+
   function createHoverboardPowerup(laneIndex, zPos) {
     const group = new THREE.Group();
     group.position.set(LANES[laneIndex], 1.35, zPos);
+    const deck = buildHoverboardDeck();
+    deck.scale.setScalar(0.82);
+    deck.rotation.x = -0.29;
 
-    const deckGeom = new THREE.BoxGeometry(0.85, 0.08, 1.9);
-    const deckMat = new THREE.MeshStandardMaterial({
-      color: 0x00f5d4,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.7
+    const ringShape = new THREE.TorusGeometry(0.89, 0.025, 8, 28);
+    const rings = [0, 1].map(() => {
+      const ring = new THREE.Mesh(ringShape, new THREE.MeshBasicMaterial({
+        color: 0x8ae9ff, transparent: true, opacity: 0.68, depthWrite: false
+      }));
+      ring.rotation.x = Math.PI / 2;
+      return ring;
     });
-    const deck = new THREE.Mesh(deckGeom, deckMat);
-    group.add(deck);
-
-    [-0.55, 0.55].forEach((zOff) => {
-      const emitter = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.24, 0.24, 0.09, 14),
-        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-      );
-      emitter.position.set(0, -0.06, zOff);
-      group.add(emitter);
-    });
-
-    const halo = new THREE.Mesh(
-      new THREE.TorusGeometry(1.15, 0.04, 8, 24),
-      new THREE.MeshBasicMaterial({ color: 0x00f5d4 })
-    );
-    halo.rotation.x = Math.PI / 2;
-    group.add(halo);
-
-    group.userData = { type: 'hoverboard', lane: laneIndex, collected: false };
+    group.add(deck, ...rings);
+    group.userData = { type: 'hoverboard', lane: laneIndex, collected: false, deck, rings, animationTime: 0 };
     scene.add(group);
     powerups.push(group);
+  }
+
+  function animateHoverboardPowerup(pickup, delta) {
+    const data = pickup.userData;
+    data.animationTime += delta;
+    const time = data.animationTime;
+    data.deck.position.y = Math.sin(time * 4) * 0.17;
+    data.deck.rotation.z = Math.sin(time * 2.6) * 0.13;
+    for (let i = 0; i < data.rings.length; i++) {
+      const phase = (time * 1.16 + i * 0.5) % 1;
+      const ring = data.rings[i];
+      ring.position.y = -0.27 - phase * 0.36;
+      ring.scale.setScalar(0.72 + phase * 0.84);
+      ring.material.opacity = 0.72 * (1 - phase);
+    }
   }
 
   // 10. 3D Turbo Roller Skates / Wheels on Feet Boost ("foot me wheel")
@@ -2375,6 +2431,14 @@
   // --- ORIGINAL DYNAMIC TRACK SPAWNER ---
   let nextSpawnZ = -45;
 
+  function scatterGroundCrystals(anchorZ, primaryLane, alternateLane, count = 6) {
+    const laneOrder = [primaryLane, primaryLane, alternateLane, primaryLane, alternateLane, alternateLane];
+    const offsets = [0, 2.2, 5.6, 8.7, 12.2, 14.4];
+    for (let i = 0; i < count; i++) {
+      createCrystal(laneOrder[i], anchorZ - offsets[i]);
+    }
+  }
+
   function spawnWorldPattern() {
     while (nextSpawnZ > -280) {
       const roll = Math.random();
@@ -2414,32 +2478,21 @@
         const hasRamp = Math.random() < 0.55;
         createMonorailObstacle(obstacleLane, nextSpawnZ, hasRamp);
 
-        // Ground crystals in open lane
-        for (let cz = -2; cz <= 3; cz++) {
-          createCrystal(openLane, nextSpawnZ + cz * 3.5, 1.2);
-        }
+        scatterGroundCrystals(nextSpawnZ + 11, openLane, otherLane);
         nextSpawnZ -= 64;
       } else if (roll < 0.60) {
         // Pattern 2: Cyber Overhead Laser Gantry (Must Duck / Slide Under - "jhukna padhta hai")
         createOverheadSlideObstacle(obstacleLane, nextSpawnZ);
 
-        // Low crystals encouraging ducking/sliding
-        for (let cz = -2; cz <= 2; cz++) {
-          createCrystal(obstacleLane, nextSpawnZ + cz * 2.8, 0.55);
-        }
-        // Also crystals in open lane
-        for (let cz = -1; cz <= 2; cz++) {
-          createCrystal(openLane, nextSpawnZ + cz * 3.2, 1.2);
-        }
+        createCrystal(obstacleLane, nextSpawnZ, 0.55);
+        scatterGroundCrystals(nextSpawnZ + 8, openLane, otherLane, 5);
         nextSpawnZ -= 52;
       } else if (roll < 0.82) {
         // Pattern 3: High-Tech Electric Plasma Barricade (Jump Over!)
         createHurdleObstacle(obstacleLane, nextSpawnZ);
 
-        // High crystal jump arc rewarding player
-        createCrystal(obstacleLane, nextSpawnZ + 3.8);
-        createCrystal(openLane, nextSpawnZ);
-        createCrystal(obstacleLane, nextSpawnZ - 3.8);
+        createCrystal(obstacleLane, nextSpawnZ - 4);
+        scatterGroundCrystals(nextSpawnZ + 7, openLane, otherLane, 5);
         nextSpawnZ -= 52;
       } else {
         // Pattern 4: Parkour Rhythm Agility Combo (Jump ➔ Slide / Duck!)
@@ -2450,10 +2503,7 @@
         createOverheadSlideObstacle(obstacleLane, nextSpawnZ - 18);
         createCrystal(obstacleLane, nextSpawnZ - 18, 0.55);
 
-        // Open lane clear path
-        for (let cz = -3; cz <= 3; cz++) {
-          createCrystal(openLane, nextSpawnZ - 9 + cz * 3.2, 1.2);
-        }
+        scatterGroundCrystals(nextSpawnZ - 3, openLane, otherLane);
         nextSpawnZ -= 72;
       }
     }
@@ -2795,10 +2845,10 @@
     powerups.length = 0;
 
     nextSpawnZ = -95;
-    // Pure, clean opening runway of crystals in center lane (No boots at starting strip, just like Subway Surfers & big games!)
-    for (let cz = -10; cz >= -80; cz -= 4) {
-      createCrystal(1, cz, 1.2);
-    }
+    scatterGroundCrystals(-10, 1, 0, 5);
+    scatterGroundCrystals(-29, 1, 2);
+    scatterGroundCrystals(-48, 2, 1, 5);
+    scatterGroundCrystals(-67, 0, 1, 5);
 
     spawnWorldPattern();
 
@@ -2872,6 +2922,13 @@
     const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
     const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
     return run.speed + change;
+  }
+
+  function canCollectFlightCrystal(crystal, previousZ, playerX, playerY) {
+    const position = crystal.position;
+    return Math.abs(position.x - playerX) < 0.92 &&
+      Math.abs(position.y - (playerY + 0.7)) < 0.95 &&
+      previousZ <= 1.35 && position.z >= -1.35;
   }
 
   // --- UPDATE LOOP ---
@@ -3260,6 +3317,8 @@
 
         leftArm.rotation.x = -1.1;
         rightArm.rotation.x = -1.1;
+      } else if (state.isBoosted && state.playerY <= state.groundY + 0.06) {
+        updateHoverboardPose();
       } else if (state.skatesTimer > 0 && state.playerY <= state.groundY + 0.06) {
         updateSkatingPose();
       } else {
@@ -3328,6 +3387,7 @@
       p.position.z += moveZ;
       p.rotation.y += delta * 3.0;
       if (p.userData.type === 'jetpack') animateJetpackPickup(p, delta);
+      if (p.userData.type === 'hoverboard') animateHoverboardPowerup(p, delta);
       if (p.userData.type === 'skates') {
         for (const wheel of p.userData.wheels) wheel.rotation.x -= delta * 9;
       }
@@ -3473,39 +3533,34 @@
       }
     }
 
-    // Move & collect crystals (Supports Chumbak / Magnet / Jetpack / Vortex pulls!)
+    // Flight diamonds stay in their lanes. Only active ground magnet powers pull diamonds.
     const isMagnet = state.magnetTimer > 0;
     const isFlying = state.jetpackTimer > 0;
     const isVortex = state.vortexTimer > 0;
-    const pullHeight = isFlying ? state.playerY + 0.7 : GROUND_CRYSTAL_Y;
     for (let i = coins.length - 1; i >= 0; i--) {
       const crystal = coins[i];
+      const previousZ = crystal.position.z;
       crystal.position.z += moveZ;
       crystal.rotation.y += delta * 4.5;
       crystal.rotation.x += delta * 2.0;
       updateFlightCrystal(crystal, delta);
 
-      const dist = crystal.position.distanceTo(playerGroup.position);
-
-      const canPull = isFlying === Boolean(crystal.userData.flightTrail);
-
-      if (canPull && isVortex && dist < 85) {
-        // Ultra-strong Rainbow Singularity Vortex pulls across all lanes & roofs
-        crystal.position.x += (state.playerX - crystal.position.x) * 24 * delta;
-        crystal.position.y += (pullHeight - crystal.position.y) * 24 * delta;
-        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 20 * delta;
-      } else if (canPull && (isMagnet || isFlying) && dist < 42) {
-        // Strong 3D vacuum pull towards player in X, Y, and Z!
-        crystal.position.x += (state.playerX - crystal.position.x) * 18 * delta;
-        crystal.position.y += (pullHeight - crystal.position.y) * 18 * delta;
-        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 15 * delta;
-      } else if (canPull && (state.isBoosted || state.skatesTimer > 0) && dist < 22) {
-        crystal.position.x += (state.playerX - crystal.position.x) * 16 * delta;
-        crystal.position.y += (pullHeight - crystal.position.y) * 16 * delta;
-        crystal.position.z += (playerGroup.position.z - crystal.position.z) * 14 * delta;
+      let dist = crystal.position.distanceTo(playerGroup.position);
+      if (!isFlying && !crystal.userData.flightTrail) {
+        const pull = isVortex && dist < 85 ? 24 : isMagnet && dist < 42 ? 18 : 0;
+        if (pull) {
+          const strength = 1 - Math.exp(-pull * delta);
+          crystal.position.x += (state.playerX - crystal.position.x) * strength;
+          crystal.position.y += (GROUND_CRYSTAL_Y - crystal.position.y) * strength;
+          crystal.position.z += (playerGroup.position.z - crystal.position.z) * strength;
+          dist = crystal.position.distanceTo(playerGroup.position);
+        }
       }
 
-      if (dist < 2.4 && !crystal.userData.collected) {
+      const touched = isFlying
+        ? crystal.userData.flightTrail && canCollectFlightCrystal(crystal, previousZ, state.playerX, state.playerY)
+        : dist < 2.4;
+      if (touched && !crystal.userData.collected) {
         crystal.userData.collected = true;
         const crystalGain = (state.doublerTimer > 0) ? 2 : 1;
         state.coins += crystalGain;
