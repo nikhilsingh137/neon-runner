@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=kai_runner_trail">
+  <link rel="stylesheet" href="style.css?v=kai_color_metro">
 </head>
 <body>
   <div id="game-container">
@@ -129,6 +129,7 @@
 
     <!-- START SCREEN -->
     <div id="start-screen" class="screen-overlay">
+      <img class="menu-key-art" src="assets/kai-sunset-metro.jpg" width="1024" height="1536" alt="" fetchpriority="high">
       <!-- TOP NAV TOOLBAR: In-flow header, clean separation, never collides with title -->
       <div class="top-menu-toolbar">
         <button class="menu-pill-btn" id="btn-audio">
@@ -182,7 +183,7 @@
             <div class="top-stat-box hs-box">
               <span class="top-stat-icon">👑</span>
               <div class="top-stat-info">
-                <span class="top-stat-tag">HIGH SCORE (HS)</span>
+                <span class="top-stat-tag">HIGH SCORE</span>
                 <span class="top-stat-number" id="stats-high-score">0</span>
               </div>
             </div>
@@ -239,8 +240,8 @@
           </div>
 
           <div class="settings-section-title">AUDIO & SOUND</div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <span style="font-size: 14px; font-weight: 700;">Game Sound Effects & Music</span>
+          <div class="settings-sound-row">
+            <span>Game Sound Effects &amp; Music</span>
             <button class="mini-icon-btn" id="btn-toggle-sound">SOUND: ON</button>
           </div>
 
@@ -319,7 +320,7 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=urbandash_v21"></script>
-  <script src="game.js?v=kai_runner_trail"></script>
+  <script src="game.js?v=kai_color_metro"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>

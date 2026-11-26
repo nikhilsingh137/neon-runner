@@ -29,7 +29,6 @@ html, body {
   font-family: 'Montserrat', sans-serif;
   color: #ffffff;
   position: fixed;
-  touch-action: none;
 }
 
 #game-container {
@@ -535,7 +534,8 @@ html, body {
 .settings-modal {
   width: 100%;
   max-width: 420px;
-  max-height: 86vh;
+  max-height: min(86dvh, 100%);
+  min-height: 0;
   background: #0f172a;
   border-radius: 22px;
   border: 2px solid #38bdf8;
@@ -550,7 +550,8 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px 12px 18px;
+  gap: 12px;
+  padding: 12px clamp(10px, 4vw, 18px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   background: #0b1120;
   flex-shrink: 0;
@@ -559,17 +560,20 @@ html, body {
 
 .settings-title {
   font-family: 'Fredoka One', cursive, sans-serif;
-  font-size: 22px;
+  font-size: clamp(16px, 5vw, 22px);
   color: #ffffff;
   letter-spacing: 0.5px;
 }
 
 .settings-scroll-content {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 14px 18px;
-  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+  touch-action: pan-y;
+  padding: 12px clamp(10px, 4vw, 18px);
+  overscroll-behavior-y: contain;
+  overflow-wrap: anywhere;
 }
 
 .settings-scroll-content::-webkit-scrollbar {
@@ -582,11 +586,34 @@ html, body {
 }
 
 .settings-footer {
-  padding: 12px 18px 14px 18px;
+  padding: 10px clamp(10px, 4vw, 18px) 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background: #0b1120;
   flex-shrink: 0;
   z-index: 2;
+}
+
+.settings-header .btn-hud-icon {
+  flex-shrink: 0;
+}
+
+.settings-scroll-content .cyber-btn,
+.settings-footer .cyber-btn {
+  font-size: clamp(13px, 4.5vw, 18px);
+  padding: 10px 12px;
+  min-height: 44px;
+  white-space: normal;
+}
+
+.settings-sound-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .settings-footer .cyber-btn {
@@ -606,14 +633,15 @@ html, body {
 
 /* Control Selection Toggle */
 .control-options-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   width: 100%;
   margin-bottom: 14px;
 }
 
 .control-toggle-card {
-  flex: 1;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 14px;
@@ -858,8 +886,8 @@ html, body {
 /* Career Stats & Hero Banner in Settings Modal */
 .settings-top-stats-banner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -867,10 +895,11 @@ html, body {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 9px clamp(6px, 2vw, 12px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(4px, 2vw, 10px);
+  min-width: 0;
   text-align: left;
 }
 
@@ -885,7 +914,7 @@ html, body {
 }
 
 .top-stat-icon {
-  font-size: 24px;
+  font-size: clamp(16px, 6vw, 24px);
   flex-shrink: 0;
 }
 
@@ -900,9 +929,7 @@ html, body {
   font-weight: 800;
   letter-spacing: 0.8px;
   color: #94a3b8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 .top-stat-number {
@@ -936,6 +963,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 12px;
 }
 
@@ -948,6 +976,7 @@ html, body {
   font-family: 'Fredoka One', cursive, sans-serif;
   font-size: 15px;
   color: var(--primary-cyan);
+  text-align: right;
 }
 
 /* Bright Solar Day Theme Overrides */
@@ -1211,7 +1240,7 @@ html, body {
 
 #start-screen,
 body.theme-bright #start-screen {
-  --menu-accent: #adffe0;
+  --menu-accent: #ffe288;
   isolation: isolate;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
@@ -1264,20 +1293,28 @@ body.theme-bright #start-screen {
   text-shadow: 0 4px #13283c, 0 10px 26px #06111baf;
 }
 
+.menu-key-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+  z-index: -2;
+  pointer-events: none;
+}
+
 #start-screen::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 69% 41%, #ffd1a53b, transparent 48%),
-    repeating-linear-gradient(132deg, transparent 0 62px, #c4ffee26 63px 64px, transparent 65px 106px);
-  mask-image: linear-gradient(110deg, transparent 12%, #000 63%, transparent);
+  background: linear-gradient(180deg, #301936b8, #47213936 25%, transparent 40%, transparent 69%, #261528b0 89%, #201124ef);
 }
 
 #start-screen .game-title span:first-child {
-  background: linear-gradient(180deg, #fff 35%, #bde7ee 85%);
+  background: linear-gradient(180deg, #fffaf1 35%, #ffe4c1 85%);
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 4px #13283c);
@@ -1335,17 +1372,17 @@ body.theme-bright #start-screen {
   max-width: 350px;
   min-height: 54px;
   padding: 10px 18px;
-  border: 1px solid #d3fff0;
+  border: 1px solid #fff1ae;
   border-radius: 3px 15px 3px 15px;
-  background: linear-gradient(110deg, #ddfff2, var(--menu-accent) 42%, #61dfba);
+  background: linear-gradient(110deg, #fff5b9, var(--menu-accent) 42%, #ffb65b);
   color: #122000;
-  box-shadow: 0 4px #248370, 0 10px 34px #64e9c440;
+  box-shadow: 0 4px #b75d36, 0 10px 34px #ffc76859;
   text-shadow: none;
   animation: none;
 }
 
 #start-screen .primary-start-btn:hover {
-  background: #d6fff0;
+  background: #fff1b5;
 }
 
 #start-screen .run-arrow {
@@ -1412,6 +1449,17 @@ body.theme-bright #start-screen {
                 linear-gradient(0deg, #0b182be0, transparent 35%);
   }
 
+  .menu-key-art {
+    left: auto;
+    width: 65%;
+    object-position: 50% 34%;
+  }
+
+  #start-screen::before {
+    background: linear-gradient(90deg, #28172ff5, #382038ef 27%, #38203855 49%, transparent 68%),
+                linear-gradient(0deg, #261529bb, transparent 29%);
+  }
+
   #start-screen .top-menu-toolbar { grid-column: 1 / -1; }
   #start-screen .menu-center-hero { align-self: end; align-items: flex-start; }
   #start-screen .game-title { text-align: left; font-size: clamp(44px, min(9vw, 15vh), 142px); }
@@ -1446,4 +1494,13 @@ body.theme-bright #start-screen {
 
 @media (prefers-reduced-motion: reduce) {
   #start-screen, .rush-effect { transition: none; }
+}
+
+@media (max-width: 390px) and (max-height: 600px) {
+  #start-screen .menu-center-hero { margin-top: 8px; }
+  #start-screen .menu-record { margin-top: 6px; padding: 3px 7px; }
+  #start-screen .menu-bottom-capsule { gap: 6px; }
+  #start-screen .menu-actions-stack { gap: 6px; }
+  #start-screen .primary-start-btn { min-height: 46px; }
+  #start-screen #btn-install-app { min-height: 33px; }
 }

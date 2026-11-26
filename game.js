@@ -258,8 +258,8 @@
       if (optBright) optBright.classList.add('active');
       if (optDark) optDark.classList.remove('active');
       if (scene) {
-        scene.background = new THREE.Color(0x38bdf8);
-        if (scene.fog) scene.fog.color.setHex(0x38bdf8);
+        scene.background = new THREE.Color(0xe7a4c7);
+        if (scene.fog) scene.fog.color.setHex(0xe7a4c7);
       }
       if (hemiLight) {
         hemiLight.color.setHex(0xffffff);
@@ -276,8 +276,8 @@
       if (optDark) optDark.classList.add('active');
       if (optBright) optBright.classList.remove('active');
       if (scene) {
-        scene.background = new THREE.Color(0x0f172a);
-        if (scene.fog) scene.fog.color.setHex(0x0f172a);
+        scene.background = new THREE.Color(0x242044);
+        if (scene.fog) scene.fog.color.setHex(0x242044);
       }
       if (hemiLight) {
         hemiLight.color.setHex(0xe0f2fe);
@@ -427,11 +427,11 @@
     playerGroup = new THREE.Group();
 
     // Kai wears matte cotton, denim, and canvas.
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xeeb28c, roughness: 0.65, metalness: 0.0 }); // Warm skin tone
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xd49164, roughness: 0.65, metalness: 0.0 }); // Warm skin tone
     const hairMat = new THREE.MeshStandardMaterial({ color: 0x40261f, roughness: 0.70, metalness: 0.0 }); // Dark brown hair
     const capMat = new THREE.MeshStandardMaterial({ color: 0xe95f39, roughness: 0.83, metalness: 0.0 }); // Terracotta canvas cap
     const capWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.40, metalness: 0.0 }); // Crisp white visor trim & button
-    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x94d8c0, roughness: 0.95, metalness: 0.0 }); // Mint cotton fleece
+    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x70cfac, roughness: 0.95, metalness: 0.0 }); // Mint cotton fleece
     const denimMat = new THREE.MeshStandardMaterial({ color: 0x264f75, roughness: 0.96, metalness: 0.0 }); // Classic blue denim vest & jeans
     const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x213950, roughness: 0.96, metalness: 0.0 }); // Deep indigo denim accents
     const denimStitchMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.55, metalness: 0.0 }); // Gold denim stitching & rolled cuffs
@@ -439,7 +439,7 @@
     const strapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.80, metalness: 0.0 }); // Nylon strap
     const sneakerSoleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.30, metalness: 0.0 }); // White rubber sole & bumper
     const sneakerTreadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.0 }); // Black rubber grip
-    const sneakerRedMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.60, metalness: 0.0 }); // Vibrant red skater canvas
+    const sneakerRedMat = new THREE.MeshStandardMaterial({ color: 0xea6949, roughness: 0.60, metalness: 0.0 }); // Vibrant red skater canvas
     const sneakerWhiteTrim = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.0 }); // Racing stripe & laces
     const wristbandMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.55, metalness: 0.0 }); // Red skater sweatband
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.20, metalness: 0.80 }); // Jetpack thrusters
@@ -1278,10 +1278,10 @@
     if (cityBuildingsGroup) scene.remove(cityBuildingsGroup);
     cityBuildingsGroup = new THREE.Group();
 
-    // Authentic architectural city colors (warm brick, limestone, slate, glass - no blinding yellow blocks!)
-    const buildingColorsDark = [0x0f172a, 0x1e293b, 0x1e1b4b, 0x111827, 0x18181b];
-    const buildingColorsBright = [0xc2410c, 0xb45309, 0x78716c, 0x64748b, 0x0284c7, 0x0f766e, 0x475569, 0xd97706];
-    const windowColorsDark = [0x38bdf8, 0xf59e0b, 0x10b981, 0xa855f7];
+    // Pastel skyline by day and saturated jewel tones at night.
+    const buildingColorsDark = [0x263260, 0x3c2862, 0x523259, 0x19455d, 0x33446a];
+    const buildingColorsBright = [0xf47b67, 0xe2a655, 0xae8de2, 0x72c8be, 0x658ec5, 0xd980ad, 0xffc293];
+    const windowColorsDark = [0x59d9f2, 0xffbd79, 0x73e3c1, 0xe197ff];
     const windowColorsBright = [0xbae6fd, 0x93c5fd, 0xe0f2fe, 0x38bdf8];
 
     const isBright = state.theme === 'bright';
@@ -1370,9 +1370,9 @@
     // Aerodynamic Monorail Express Carriage Body (Electric Blue & Silver)
     const bodyGeom = new THREE.BoxGeometry(2.35, TRAIN_HEIGHT, trainDepth);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      roughness: 0.3,
-      metalness: 0.4
+      color: state.theme === 'bright' ? 0x24a9a1 : 0x236981,
+      roughness: 0.42,
+      metalness: 0.15
     });
     const body = new THREE.Mesh(bodyGeom, bodyMat);
     body.position.y = TRAIN_HEIGHT / 2;
