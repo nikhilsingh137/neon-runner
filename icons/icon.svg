@@ -130,11 +130,11 @@
   <polygon points="100,100 130,55 115,105 145,105 90,165 105,115" fill="#facc15" filter="url(#badgeGlow)" />
   <polygon points="410,120 425,85 418,125 440,125 395,170 408,130" fill="#facc15" filter="url(#badgeGlow)" />
 
-  <!-- Bottom 3D Title Banner Plaque -->
+  <!-- Bottom 4D Title Banner Plaque -->
   <g transform="translate(0, 420)">
     <rect x="56" y="0" width="400" height="66" rx="22" fill="#0f172a" stroke="url(#goldRim)" stroke-width="4" filter="url(#shadow)" />
     <text x="256" y="38" font-family="'Impact', 'Arial Black', sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="2">
-      URBAN DASH <tspan fill="#f59e0b">3D</tspan>
+      URBAN DASH <tspan fill="#f59e0b">4D</tspan>
     </text>
   </g>
 </svg>

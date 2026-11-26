@@ -1,5 +1,5 @@
 /**
- * Urban Dash 3D - Metro Rush
+ * Urban Dash 4D - Metro Rush
  * Original High-Performance 3D Franchise Runner built with Three.js
  */
 
@@ -2390,12 +2390,17 @@
     if (window.soundEngine) window.soundEngine.playSlideSFX();
   }
 
+  function pulseBoostHaptics() {
+    if (!reducedMotion.matches) navigator.vibrate?.(45);
+  }
+
   function activateHoverboardSurf() {
     if (!state.running || state.paused) return;
     if (state.hasShield && state.isBoosted) return; // already active
 
     state.hasShield = true;
     state.isBoosted = true;
+    pulseBoostHaptics();
     state.boostTimer = 16.0; // 16 seconds of surfboard fun
     if (hoverboardMesh) hoverboardMesh.visible = true;
     if (badgeShield) {
@@ -2413,6 +2418,7 @@
     if (state.overdriveCharge >= 25 || state.isBoosted) {
       state.isBoosted = true;
       state.hasShield = true;
+      pulseBoostHaptics();
       state.boostTimer = 6.0;
       state.overdriveCharge = 0;
       if (hoverboardMesh) hoverboardMesh.visible = true;

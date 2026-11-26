@@ -1,5 +1,5 @@
-// Network-First Service Worker for Urban Dash 3D PWA
-const CACHE_NAME = 'urbandash-v24-roller-skates-track-surf';
+// Network-First Service Worker for Urban Dash 4D PWA
+const CACHE_NAME = 'urbandash-v25-metro-rush-4d';
 
 const CORE_ASSETS = [
   './manifest.json',

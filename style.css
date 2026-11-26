@@ -1,4 +1,4 @@
-/* Urban Dash 3D: Metro Rush - Original High-End Mobile Franchise Stylesheet */
+/* Urban Dash 4D: Metro Rush - Original High-End Mobile Franchise Stylesheet */
 
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Montserrat:wght@600;700;800;900&display=swap');
 
@@ -1211,7 +1211,8 @@ html, body {
 
 #start-screen,
 body.theme-bright #start-screen {
-  --menu-accent: #cbff45;
+  --menu-accent: #dcff64;
+  isolation: isolate;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   justify-items: center;
@@ -1255,10 +1256,30 @@ body.theme-bright #start-screen {
   font-size: clamp(36px, 10vw, 62px);
   font-weight: 900;
   font-style: italic;
-  line-height: .86;
+  line-height: .93;
   letter-spacing: -.07em;
   text-transform: uppercase;
   text-shadow: 0 4px #13283c, 0 10px 26px #06111baf;
+}
+
+#start-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 75% 40%, #7af9ff36, transparent 48%),
+    repeating-linear-gradient(132deg, transparent 0 55px, #adf6ff22 56px 57px, transparent 58px 95px);
+  mask-image: linear-gradient(110deg, transparent 12%, #000 63%, transparent);
+}
+
+#start-screen .game-title span:first-child {
+  background: linear-gradient(180deg, #fff 35%, #bde7ee 85%);
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px #13283c);
+  text-shadow: none;
 }
 
 #start-screen .game-title span + span {
@@ -1266,9 +1287,17 @@ body.theme-bright #start-screen {
 }
 
 #start-screen .game-title small {
-  font-size: .32em;
-  letter-spacing: 0;
-  vertical-align: top;
+  display: inline-block;
+  margin-left: .14em;
+  padding: .16em .25em .12em;
+  border: 1px solid #f1ffb3;
+  background: linear-gradient(145deg, #f1ff9b, #9fdf35);
+  box-shadow: 0 3px #527c17, 0 0 24px #b6ff5e54;
+  color: #142200;
+  font-size: .40em;
+  letter-spacing: -.05em;
+  text-shadow: none;
+  vertical-align: .28em;
 }
 
 .menu-record {
@@ -1305,8 +1334,8 @@ body.theme-bright #start-screen {
   min-height: 54px;
   padding: 10px 18px;
   border: 1px solid #ddff8a;
-  border-radius: 8px;
-  background: var(--menu-accent);
+  border-radius: 3px 15px 3px 15px;
+  background: linear-gradient(110deg, #edff9a, var(--menu-accent) 38%, #a5ed38);
   color: #122000;
   box-shadow: 0 4px #6c981b, 0 10px 30px #bfff4340;
   text-shadow: none;
@@ -1318,6 +1347,12 @@ body.theme-bright #start-screen {
 }
 
 #start-screen .run-arrow {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border-left: 1px solid #28440045;
+  padding-left: 8px;
   font-size: 26px;
   line-height: 1;
 }
@@ -1387,6 +1422,17 @@ body.theme-bright #start-screen {
   }
 
   #start-screen .menu-actions-stack { align-items: flex-start; }
+  #start-screen .menu-center-hero { position: relative; isolation: isolate; }
+  #start-screen .menu-center-hero::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -14% -12% -9% -18%;
+    transform: skewX(-12deg);
+    border-right: 2px solid #a0eff955;
+    background: linear-gradient(100deg, #122b3c00 18%, #122b3c70 100%);
+    pointer-events: none;
+  }
 }
 
 @media (max-height: 440px) {

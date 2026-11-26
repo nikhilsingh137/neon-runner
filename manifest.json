@@ -1,7 +1,7 @@
 {
   "id": "urbandash-3d-metro-rush",
-  "name": "Urban Dash 3D: Metro Rush",
-  "short_name": "UrbanDash3D",
+  "name": "Urban Dash 4D: Metro Rush",
+  "short_name": "Urban Dash 4D",
   "start_url": "https://nikhilsingh137.github.io/neon-runner/",
   "scope": "https://nikhilsingh137.github.io/neon-runner/",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "background_color": "#0284c7",
   "theme_color": "#0284c7",
   "orientation": "portrait",
-  "description": "Urban Dash 3D: Metro Rush - High-octane 3D endless runner with magnetic rail tracks, jetpacks, crystal magnets, and monorail expresses!",
+  "description": "Urban Dash 4D: Metro Rush - High-octane 3D endless runner with magnetic rail tracks, jetpacks, crystal magnets, and monorail expresses!",
   "categories": ["games", "arcade"],
   "prefer_related_applications": false,
   "icons": [
