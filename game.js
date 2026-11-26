@@ -88,6 +88,10 @@
   let skyClouds = [], cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
+  const trailLength = 24;
+  const trailPoints = [];
+  let trailRibbons = [];
+  let trailDistance = 0;
   let hemiLight, sunLight;
 
   // DOM Elements
@@ -393,6 +397,7 @@
     buildCityBuildings();
     buildSkyClouds();
     buildHeroKai();
+    buildRunnerTrail();
 
     // Initialize Jetpack Billowing Flight Smoke Particle Pool
     flightSmokeParticles = [];
@@ -421,22 +426,17 @@
   function buildHeroKai() {
     playerGroup = new THREE.Group();
 
-    // High Quality Stylized PBR Materials (Organic soft matte fabrics, authentic Subway Surfers palette - zero machine look!)
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xfbd0b0, roughness: 0.65, metalness: 0.0 }); // Warm healthy cartoon teen skin
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x935116, roughness: 0.70, metalness: 0.0 }); // Caramel dirty-blonde skater hair
-    const capMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.55, metalness: 0.0 }); // Signature Jake Red backwards cap
+    // Kai wears matte cotton, denim, and canvas.
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xeeb28c, roughness: 0.65, metalness: 0.0 }); // Warm skin tone
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0x40261f, roughness: 0.70, metalness: 0.0 }); // Dark brown hair
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xe95f39, roughness: 0.83, metalness: 0.0 }); // Terracotta canvas cap
     const capWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.40, metalness: 0.0 }); // Crisp white visor trim & button
-    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.85, metalness: 0.0 }); // Crisp white fleece hoodie
-    const denimMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.75, metalness: 0.0 }); // Classic blue denim vest & jeans
-    const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.80, metalness: 0.0 }); // Deep indigo denim accents
+    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x94d8c0, roughness: 0.95, metalness: 0.0 }); // Mint cotton fleece
+    const denimMat = new THREE.MeshStandardMaterial({ color: 0x264f75, roughness: 0.96, metalness: 0.0 }); // Classic blue denim vest & jeans
+    const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x213950, roughness: 0.96, metalness: 0.0 }); // Deep indigo denim accents
     const denimStitchMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.55, metalness: 0.0 }); // Gold denim stitching & rolled cuffs
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.25, metalness: 0.85 }); // Buttons, buckles & aglets
-    const beltMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.65, metalness: 0.0 }); // Leather belt
-    const goldPatchMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.35, metalness: 0.25 }); // Gold graffiti street patch
-    const redPatchMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.40, metalness: 0.0 }); // Red emblem star
-    const slingBagMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.70, metalness: 0.0 }); // Urban canvas hip pack
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x89958e, roughness: 0.85, metalness: 0.0 }); // Buttons, buckles & aglets
     const strapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.80, metalness: 0.0 }); // Nylon strap
-    const sprayCanMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35, metalness: 0.25 }); // Red spray paint can
     const sneakerSoleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.30, metalness: 0.0 }); // White rubber sole & bumper
     const sneakerTreadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.0 }); // Black rubber grip
     const sneakerRedMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.60, metalness: 0.0 }); // Vibrant red skater canvas
@@ -446,7 +446,7 @@
 
     kaiModel = new THREE.Group();
 
-    // 1. ORGANIC CONTOURED TORSO (Crisp White Streetwear Fleece Hoodie with Open Blue Denim Vest)
+    // Contoured fleece hoodie
     // Upper Chest & Torso (White Hoodie Fleece)
     const chestGeom = new THREE.CylinderGeometry(0.40, 0.44, 0.74, 18);
     const hoodieChest = new THREE.Mesh(chestGeom, hoodieMat);
@@ -490,71 +490,19 @@
     hoodCollar.position.set(0, 2.16, 0.06);
     kaiModel.add(hoodCollar);
 
-    // Open Blue Denim Runner Vest over White Hoodie (Visible on back and sides, leaving white hoodie shoulders showing!)
-    const vestBack = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.86, 0.08), denimMat);
-    vestBack.position.set(0, 1.58, 0.35);
-    vestBack.castShadow = true;
-    kaiModel.add(vestBack);
+    // Folded fabric hood and a sewn back stripe.
+    const foldedHood = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), hoodieMat);
+    foldedHood.scale.set(0.30, 0.24, 0.15);
+    foldedHood.position.set(0, 2.02, 0.22);
+    foldedHood.castShadow = true;
+    kaiModel.add(foldedHood);
 
-    // Subway Surfers Street Graffiti Gold Star Back Emblem (Full view from behind!)
-    const backPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.02, 20), goldPatchMat);
-    backPatch.rotation.x = Math.PI / 2;
-    backPatch.position.set(0, 1.62, 0.40);
-    kaiModel.add(backPatch);
-
-    // Inner Red Star on Back Emblem
-    const patchIcon = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.025), redPatchMat);
-    patchIcon.rotation.z = Math.PI / 4;
-    patchIcon.position.set(0, 1.62, 0.415);
-    kaiModel.add(patchIcon);
-
-    // Denim Vest Front Left & Right Open Panels
-    [-0.30, 0.30].forEach((vx, idx) => {
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.86, 0.08), denimMat);
-      panel.position.set(vx, 1.58, -0.34);
-      kaiModel.add(panel);
-
-      const snap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), metalMat);
-      snap.rotation.x = Math.PI / 2;
-      snap.position.set(vx, 1.76, -0.39);
-      kaiModel.add(snap);
-    });
-
-    // Leather Belt & Silver Buckle at Waist
-    const beltMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 18), beltMat);
-    beltMesh.position.set(0, 1.05, 0);
-    kaiModel.add(beltMesh);
-
-    const buckleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.10, 0.05), metalMat);
-    buckleMesh.position.set(0, 1.05, -0.41);
-    kaiModel.add(buckleMesh);
-
-    // 2. URBAN HIP PACK & SIGNATURE GRAFFITI SPRAY CAN
-    const hipPack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.16), slingBagMat);
-    hipPack.position.set(0.24, 1.25, 0.28);
-    hipPack.rotation.z = -0.16;
-    hipPack.castShadow = true;
-    kaiModel.add(hipPack);
-
-    // Cross-body nylon strap
-    const crossStrap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.98, 0.03), strapMat);
-    crossStrap.position.set(0.10, 1.64, 0.33);
-    crossStrap.rotation.z = 0.42;
-    kaiModel.add(crossStrap);
-
-    // Subway Surfers Graffiti Spray Paint Can tucked in hip pack
-    const sprayCan = new THREE.Group();
-    sprayCan.position.set(0.36, 1.34, 0.31);
-    sprayCan.rotation.z = -0.22;
-    const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.28, 12), sprayCanMat);
-    const canCap = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.08, 12), sneakerSoleMat);
-    canCap.position.y = 0.18;
-    const canNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.04, 8), strapMat);
-    canNozzle.position.set(0, 0.24, -0.02);
-    sprayCan.add(canBody);
-    sprayCan.add(canCap);
-    sprayCan.add(canNozzle);
-    kaiModel.add(sprayCan);
+    const stripePath = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(-0.21, 1.66, 0.321),
+      new THREE.Vector3(0, 1.48, 0.452),
+      new THREE.Vector3(0.21, 1.66, 0.321)
+    );
+    kaiModel.add(new THREE.Mesh(new THREE.TubeGeometry(stripePath, 16, 0.021, 6, false), capMat));
 
     // 3. ORGANIC HANDSOME HEAD, FACE & BACKWARDS SNAPBACK CAP
     // Smooth Neck
@@ -567,7 +515,7 @@
 
     // Sculpted Stylized Head Base (Organic round cartoon teen head)
     const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.37, 24, 20), skinMat);
-    headBase.scale.set(0.92, 1.04, 0.98);
+    headBase.scale.set(0.95, 1.04, 0.98);
     headBase.castShadow = true;
     headMesh.add(headBase);
 
@@ -585,77 +533,74 @@
       headMesh.add(earGroup);
     });
 
-    // Expressive Cartoon Eyes (Facing -Z down the tracks)
-    const eyeGeom = new THREE.SphereGeometry(0.085, 16, 16);
-    const irisGeom = new THREE.SphereGeometry(0.052, 14, 14);
-    const pupilGeom = new THREE.SphereGeometry(0.032, 12, 12);
-    const shineGeom = new THREE.SphereGeometry(0.016, 8, 8);
+    // Shallow eye shapes sit against the face and turn with its curve.
+    const eyeShape = new THREE.SphereGeometry(1, 16, 12);
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xfff5e9, roughness: 0.7 });
+    const irisMat = new THREE.MeshStandardMaterial({ color: 0x694025, roughness: 0.65 });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x21151a });
+    const catchlightMat = new THREE.MeshBasicMaterial({ color: 0xfffaff });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.position.set(side * 0.125, 0.046, -0.331);
+      eye.rotation.y = -side * 0.36;
+      const white = new THREE.Mesh(eyeShape, eyeWhiteMat);
+      white.scale.set(0.077, 0.049, 0.025);
+      eye.add(white);
 
-    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const eyeIrisMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); // Bright blue anime eyes
-    const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x090e17 });
-    const eyeShineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const iris = new THREE.Mesh(eyeShape, irisMat);
+      iris.scale.set(0.034, 0.035, 0.009);
+      iris.position.set(-side * 0.008, -0.005, -0.024);
+      eye.add(iris);
 
-    [-0.14, 0.14].forEach((eyeX) => {
-      const eyeW = new THREE.Mesh(eyeGeom, eyeWhiteMat);
-      eyeW.position.set(eyeX, 0.04, -0.34);
-      headMesh.add(eyeW);
+      const pupil = new THREE.Mesh(eyeShape, pupilMat);
+      pupil.scale.set(0.018, 0.022, 0.006);
+      pupil.position.set(iris.position.x, iris.position.y, -0.032);
+      eye.add(pupil);
 
-      const iris = new THREE.Mesh(irisGeom, eyeIrisMat);
-      iris.position.set(eyeX, 0.04, -0.39);
-      headMesh.add(iris);
+      const catchlight = new THREE.Mesh(eyeShape, catchlightMat);
+      catchlight.scale.setScalar(0.008);
+      catchlight.position.set(pupil.position.x - 0.008, 0.007, -0.037);
+      eye.add(catchlight);
+      headMesh.add(eye);
 
-      const pupil = new THREE.Mesh(pupilGeom, eyePupilMat);
-      pupil.position.set(eyeX, 0.04, -0.415);
-      headMesh.add(pupil);
-
-      // Dual highlight sparkle dots for lively cartoon eyes
-      const shine1 = new THREE.Mesh(shineGeom, eyeShineMat);
-      shine1.position.set(eyeX - 0.018, 0.062, -0.425);
-      headMesh.add(shine1);
-
-      const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.009, 6, 6), eyeShineMat);
-      shine2.position.set(eyeX + 0.016, 0.022, -0.425);
-      headMesh.add(shine2);
-    });
-
-    // Expressive Stylized Eyebrows
-    [-0.14, 0.14].forEach((bx, idx) => {
-      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.035, 0.06), hairMat);
-      brow.position.set(bx, 0.155, -0.36);
-      brow.rotation.z = idx === 0 ? 0.14 : -0.14;
+      const brow = new THREE.Mesh(eyeShape, hairMat);
+      brow.scale.set(0.07, 0.016, 0.022);
+      brow.position.set(side * 0.132, 0.126, -0.313);
+      brow.rotation.set(0, -side * 0.37, side * -0.16);
       headMesh.add(brow);
-    });
+    }
 
     // Sculpted 3D Button Nose
     const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), skinMat);
     nose.position.set(0, -0.04, -0.39);
     headMesh.add(nose);
 
-    // Cheerful Runner Smile / Smirk
-    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.018, 8, 14, Math.PI * 0.75), hairMat);
-    smile.rotation.x = Math.PI * 0.45;
-    smile.position.set(0.02, -0.15, -0.36);
-    headMesh.add(smile);
+    const smileCurve = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(-0.074, -0.128, -0.329),
+      new THREE.Vector3(0.008, -0.197, -0.357),
+      new THREE.Vector3(0.082, -0.119, -0.333)
+    );
+    const smileMat = new THREE.MeshStandardMaterial({ color: 0x7f3d35, roughness: 0.85 });
+    headMesh.add(new THREE.Mesh(new THREE.TubeGeometry(smileCurve, 14, 0.009, 6, false), smileMat));
 
-    // Flowing Caramel Skater Hair Bangs & Sideburns
-    const bang1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.22, 10), hairMat);
-    bang1.position.set(-0.11, 0.20, -0.32);
-    bang1.rotation.set(-0.25, 0.18, -0.15);
-    headMesh.add(bang1);
-
-    const bang2 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.20, 10), hairMat);
-    bang2.position.set(0.11, 0.19, -0.32);
-    bang2.rotation.set(-0.20, -0.15, 0.15);
-    headMesh.add(bang2);
-
-    [-0.35, 0.35].forEach((sx) => {
-      const lock = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.22, 8), hairMat);
-      lock.position.set(sx, -0.02, -0.10);
+    // Rounded, overlapping locks give Kai a soft hairline.
+    const hairLock = new THREE.SphereGeometry(1, 14, 10);
+    for (const [x, y, z, length, tilt] of [
+      [-0.19, 0.18, -0.254, 0.13, -0.40],
+      [-0.10, 0.21, -0.292, 0.15, -0.66],
+      [0.012, 0.226, -0.302, 0.14, -0.86],
+      [0.13, 0.213, -0.278, 0.11, -0.90],
+      [-0.294, 0.015, -0.137, 0.10, -0.14],
+      [0.294, 0.015, -0.137, 0.10, 0.14]
+    ]) {
+      const lock = new THREE.Mesh(hairLock, hairMat);
+      lock.scale.set(0.077, length, 0.069);
+      lock.position.set(x, y, z);
+      lock.rotation.z = tilt;
       headMesh.add(lock);
-    });
+    }
 
-    // Backwards Baseball Cap (Vibrant Jake Red backwards cap, flat visor facing camera +Z)
+    // Backwards cap with a curved brim
     capGroup = new THREE.Group();
     const capDome = new THREE.Mesh(
       new THREE.SphereGeometry(0.40, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.60),
@@ -671,21 +616,24 @@
     capGroup.add(capButton);
 
     // Flat Backwards Visor Brim (facing camera +Z with authentic skate tilt)
-    const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.045, 0.32), capMat);
-    capBrim.position.set(0, 0.04, 0.38);
+    const capBrim = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10), capMat);
+    capBrim.position.set(0, 0.04, 0.37);
+    capBrim.scale.set(0.24, 0.024, 0.18);
     capBrim.rotation.x = 0.14;
     capBrim.castShadow = true;
     capGroup.add(capBrim);
 
     // Crisp White Trim on Visor Edge
-    const capTrim = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.025, 0.05), capWhiteMat);
-    capTrim.position.set(0, 0.06, 0.53);
+    const capTrim = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10), capWhiteMat);
+    capTrim.position.set(0, 0.024, 0.373);
+    capTrim.scale.set(0.23, 0.012, 0.18);
     capTrim.rotation.x = 0.14;
     capGroup.add(capTrim);
 
     // Flowing skater hair tufts peeking out under backwards cap
-    const hairUnderCap = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.20, 0.18), hairMat);
+    const hairUnderCap = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), hairMat);
     hairUnderCap.position.set(0, -0.08, 0.25);
+    hairUnderCap.scale.set(0.22, 0.13, 0.105);
     capGroup.add(hairUnderCap);
 
     // Snapback Strap Opening at Back
@@ -1040,6 +988,95 @@
   }
 
   // --- BUILD METRO ENVIRONMENT & MAGNETIC RAILS ---
+  function buildRunnerTrail() {
+    const indices = [];
+    for (let i = 0; i < trailLength - 1; i++) {
+      const edge = i * 2;
+      indices.push(edge, edge + 1, edge + 2, edge + 1, edge + 3, edge + 2);
+    }
+
+    trailRibbons = [0x61f4df, 0xffb681].map((color) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setIndex(indices);
+      const edges = Float32Array.from({ length: trailLength * 2 }, (_, i) => i % 2 === 0 ? -1 : 1);
+      geometry.setAttribute('edge', new THREE.BufferAttribute(edges, 1));
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(trailLength * 6), 3).setUsage(THREE.DynamicDrawUsage));
+      geometry.setAttribute('glow', new THREE.BufferAttribute(new Float32Array(trailLength * 2), 1).setUsage(THREE.DynamicDrawUsage));
+      const material = new THREE.ShaderMaterial({
+        uniforms: { tint: { value: new THREE.Color(color) } },
+        vertexShader: `
+          attribute float glow;
+          attribute float edge;
+          varying float opacity;
+          varying float across;
+          void main() {
+            opacity = glow;
+            across = edge;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 tint;
+          varying float opacity;
+          varying float across;
+          void main() {
+            float feather = 1.0 - smoothstep(0.08, 1.0, abs(across));
+            gl_FragColor = vec4(tint, opacity * feather);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      const ribbon = new THREE.Mesh(geometry, material);
+      ribbon.frustumCulled = false;
+      ribbon.visible = false;
+      scene.add(ribbon);
+      return ribbon;
+    });
+  }
+
+  function updateRunnerTrail(distance) {
+    trailDistance += distance;
+    const trailY = 0.075 + state.playerY * 0.65;
+    const last = trailPoints[0];
+    const gap = last ? trailDistance - last.distance : 0;
+    if (!last || gap >= 0.24) {
+      const point = trailPoints.length === trailLength ? trailPoints.pop() : {};
+      point.x = state.playerX;
+      point.y = trailY;
+      point.distance = trailDistance;
+      trailPoints.unshift(point);
+    }
+
+    const strength = state.isBoosted ? 0.86 : Math.min(0.62, 0.36 + state.speed * 0.005);
+    const reach = state.isBoosted ? 10 : 5.4;
+    for (let lane = 0; lane < trailRibbons.length; lane++) {
+      const geometry = trailRibbons[lane].geometry;
+      const vertices = geometry.getAttribute('position');
+      const glow = geometry.getAttribute('glow');
+      geometry.setDrawRange(0, trailPoints.length * 6 - 6);
+
+      for (let i = 0; i < trailPoints.length; i++) {
+        const point = trailPoints[i];
+        const depth = trailDistance - point.distance;
+        const taper = Math.max(0, 1 - depth / reach);
+        const width = (state.isBoosted ? 0.19 : 0.115) * taper;
+        const offset = (lane === 0 ? -1 : 1) * (0.21 + depth * 0.03);
+        const x = point.x + offset;
+        const y = point.y + lane * 0.014;
+        const opacity = strength * taper * taper * Math.min(1, (trailPoints.length - 1 - i) / 3);
+        vertices.setXYZ(i * 2, x - width, y, depth + 0.18);
+        vertices.setXYZ(i * 2 + 1, x + width, y, depth + 0.18);
+        glow.setX(i * 2, opacity);
+        glow.setX(i * 2 + 1, opacity);
+      }
+      vertices.needsUpdate = true;
+      glow.needsUpdate = true;
+    }
+  }
+
   function buildMetroEnvironment() {
     if (tracksGroup) scene.remove(tracksGroup);
     tracksGroup = new THREE.Group();
@@ -2441,6 +2478,9 @@
   function startGame() {
     state.running = true;
     state.paused = false;
+    trailPoints.length = 0;
+    trailDistance = 0;
+    if (headMesh) headMesh.rotation.set(0, 0, 0);
     if (playerGroup) {
       playerGroup.rotation.set(0, 0, 0);
     }
@@ -2574,6 +2614,9 @@
       if (kaiModel) {
         const breathe = Math.sin(menuIdleTime * 2.5) * 0.025;
         kaiModel.position.y = breathe;
+        kaiModel.scale.setScalar(1);
+        kaiModel.rotation.set(0, 0, 0);
+        headMesh.rotation.y = Math.sin(menuIdleTime * 0.65) * 0.09;
         if (leftArm) leftArm.rotation.x = 0.2 + Math.sin(menuIdleTime * 1.6) * 0.06;
         if (rightArm) rightArm.rotation.x = -0.15 + Math.sin(menuIdleTime * 1.6 + 1.2) * 0.06;
         if (leftLeg) leftLeg.rotation.x = 0;
@@ -2582,8 +2625,9 @@
       if (camera) {
         // Framed hero view showcasing runner boy and skyline behind transparent menu!
         const orbitX = Math.sin(menuIdleTime * 0.4) * 0.35;
-        camera.position.set(orbitX, 1.85, 4.3);
-        camera.lookAt(camera.aspect >= 1.35 ? -1.25 : 0, 1.25, 0);
+        const wideMenu = camera.aspect >= 1.35;
+        camera.position.set(orbitX, 1.94, wideMenu ? 3.9 : 4.65);
+        camera.lookAt(wideMenu ? -1.50 : 0, 1.43, 0);
       }
       return;
     }
@@ -2802,6 +2846,7 @@
 
     // Position player group
     playerGroup.position.set(state.playerX, state.playerY, 0);
+    updateRunnerTrail(distDelta);
 
     // Dynamic Camera follow (Classic Subway Surfers perspective - exact comfortable size as before)
     const targetCamX = state.playerX * 0.72;
@@ -3334,6 +3379,9 @@
     update(delta);
     const rushing = state.running && !state.paused && state.isBoosted;
     container.classList.toggle('is-rushing', rushing);
+    for (const ribbon of trailRibbons) {
+      ribbon.visible = state.running && trailPoints.length > 1;
+    }
     if (renderer && scene && camera) {
       const baseFov = camera.aspect < 0.65 ? 68 : 58;
       const targetFov = baseFov + (rushing && !reducedMotion.matches ? 7 : 0);
