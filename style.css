@@ -428,33 +428,6 @@ html, body {
   z-index: 5;
 }
 
-.game-logo-badge {
-  width: 76px;
-  height: 76px;
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.6) 0%, rgba(56, 189, 248, 0.25) 100%);
-  border: 2.5px solid #38bdf8;
-  border-radius: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.3);
-  margin-bottom: 12px;
-  animation: floatBadge 3.2s ease-in-out infinite;
-  overflow: hidden;
-  padding: 4px;
-}
-.app-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 17px;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
-}
-@keyframes floatBadge {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-6px) rotate(1deg); }
-}
-
 .game-title {
   font-family: 'Fredoka One', cursive, sans-serif;
   font-size: 38px;
@@ -470,19 +443,6 @@ html, body {
   gap: 6px;
 }
 
-.title-3d-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-  padding: 3px 10px;
-  border-radius: 10px;
-  font-size: 20px;
-  box-shadow: 0 4px 0 #b45309, 0 6px 14px rgba(245, 158, 11, 0.45);
-  letter-spacing: 1px;
-}
-
 .game-subtitle {
   font-size: 12.5px;
   font-weight: 800;
@@ -494,10 +454,6 @@ html, body {
   align-items: center;
   gap: 6px;
 }
-.sub-sparkle {
-  color: #f59e0b;
-  font-size: 11px;
-}
 
 .menu-actions-stack {
   width: 100%;
@@ -505,29 +461,6 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-}
-
-.cyber-btn.primary-start-btn {
-  max-width: 290px;
-  padding: 16px 26px;
-  font-size: 21px;
-  letter-spacing: 1.2px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 7px 0 #047857, 0 14px 28px rgba(16, 185, 129, 0.45);
-  border-radius: 36px;
-  animation: pulsePlayBtn 2.2s ease-in-out infinite;
-}
-@keyframes pulsePlayBtn {
-  0%, 100% {
-    box-shadow: 0 7px 0 #047857, 0 14px 28px rgba(16, 185, 129, 0.45);
-  }
-  50% {
-    box-shadow: 0 7px 0 #047857, 0 18px 36px rgba(16, 185, 129, 0.75);
-  }
-}
-.cyber-btn.primary-start-btn:active {
-  transform: translateY(4px) scale(0.98);
-  box-shadow: 0 2px 0 #047857;
 }
 
 /* Bottom Feature Capsule */
@@ -542,32 +475,10 @@ html, body {
   z-index: 5;
 }
 
-.feature-chips-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.feature-chip {
-  font-size: 11px;
-  font-weight: 800;
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  padding: 4px 11px;
-  border-radius: 9999px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
 .controls-quick-hint {
   font-size: 11px;
   color: #94a3b8;
   line-height: 1.4;
-}
-.controls-quick-hint b {
-  color: #38bdf8;
 }
 
 .cyber-btn {
@@ -1069,13 +980,6 @@ body.theme-bright .game-title {
   text-shadow: 0 4px 0 #38bdf8, 0 8px 24px rgba(2, 132, 199, 0.35);
 }
 
-body.theme-bright .cyber-btn.primary-start-btn {
-  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
-  border: 2px solid #34d399;
-  color: #ffffff;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
-}
-
 body.theme-bright .cyber-btn.blue {
   background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
   border: 2px solid #38bdf8;
@@ -1294,4 +1198,204 @@ body.theme-bright .cyber-btn.outline span {
 @keyframes pulseCombo {
   0% { transform: translateX(-50%) scale(0.96); }
   100% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* Metro Rush title screen and run effects */
+html, body {
+  background: #07121d;
+}
+
+#game-container {
+  max-width: none;
+}
+
+#start-screen,
+body.theme-bright #start-screen {
+  --menu-accent: #cbff45;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items: center;
+  align-items: start;
+  padding: calc(16px + var(--safe-top)) clamp(16px, 5vw, 80px) calc(18px + var(--safe-bottom));
+  background: linear-gradient(180deg, #06111be8, #06111b9e 26%, #06111b00 45%, #06111b00 60%, #06111bf0 92%);
+  color: #f7faf4;
+}
+
+#start-screen .top-menu-toolbar {
+  max-width: none;
+  margin: 0;
+  gap: 10px;
+}
+
+#start-screen .menu-pill-btn {
+  border: 1px solid #ffffff40;
+  background: #081523df;
+  color: #f7faf4;
+  border-radius: 7px;
+}
+
+#start-screen .menu-center-hero {
+  margin: clamp(10px, 3vh, 30px) 0 0;
+  width: auto;
+  max-width: none;
+}
+
+#start-screen .game-subtitle {
+  color: var(--menu-accent);
+  margin-bottom: 7px;
+  font-size: 11px;
+  letter-spacing: .3em;
+}
+
+#start-screen .game-title {
+  display: block;
+  margin: 0;
+  color: #f7faf4;
+  font-family: 'Montserrat', system-ui, sans-serif;
+  font-size: clamp(36px, 10vw, 62px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: .86;
+  letter-spacing: -.07em;
+  text-transform: uppercase;
+  text-shadow: 0 4px #13283c, 0 10px 26px #06111baf;
+}
+
+#start-screen .game-title span + span {
+  color: var(--menu-accent);
+}
+
+#start-screen .game-title small {
+  font-size: .32em;
+  letter-spacing: 0;
+  vertical-align: top;
+}
+
+.menu-record {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--menu-accent);
+  background: #081523e8;
+  color: #d9e4ee;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.menu-record strong {
+  color: #fff;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+#start-screen .menu-bottom-capsule {
+  grid-row: 4;
+  margin: 0;
+  gap: 9px;
+}
+
+#start-screen .primary-start-btn {
+  display: flex;
+  justify-content: space-between;
+  max-width: 350px;
+  min-height: 54px;
+  padding: 10px 18px;
+  border: 1px solid #ddff8a;
+  border-radius: 8px;
+  background: var(--menu-accent);
+  color: #122000;
+  box-shadow: 0 4px #6c981b, 0 10px 30px #bfff4340;
+  text-shadow: none;
+  animation: none;
+}
+
+#start-screen .primary-start-btn:hover {
+  background: #e2ff92;
+}
+
+#start-screen .run-arrow {
+  font-size: 26px;
+  line-height: 1;
+}
+
+#start-screen #btn-install-app {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 14px;
+  color: #f7faf4;
+  border: 1px solid #ffffff40;
+  border-radius: 7px;
+  background: #081523e8;
+  font-size: 11px;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+#start-screen button:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 4px;
+}
+
+#start-screen .controls-quick-hint {
+  color: #d9e4ee;
+  text-shadow: 0 1px 5px #07121d;
+}
+
+.hint-touch { display: none; }
+
+.rush-effect {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 52%, transparent 47%, #bfff431e 77%, #bfff436b);
+  box-shadow: inset 0 0 26px #abff8659;
+  transition: opacity .24s ease;
+}
+
+.is-rushing .rush-effect { opacity: 1; }
+
+@media (pointer: coarse) {
+  .hint-keyboard { display: none; }
+  .hint-touch { display: inline; }
+}
+
+@media (min-aspect-ratio: 27/20) {
+  #start-screen,
+  body.theme-bright #start-screen {
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr) 1fr;
+    justify-items: start;
+    background: linear-gradient(90deg, #06111bf7, #06111be0 28%, #06111b30 58%, transparent 80%),
+                linear-gradient(0deg, #06111bb5, transparent 30%);
+  }
+
+  #start-screen .top-menu-toolbar { grid-column: 1 / -1; }
+  #start-screen .menu-center-hero { align-self: end; align-items: flex-start; }
+  #start-screen .game-title { text-align: left; font-size: clamp(44px, min(9vw, 15vh), 142px); }
+  #start-screen .game-title span { display: block; }
+
+  #start-screen .menu-bottom-capsule {
+    grid-row: 3;
+    align-items: flex-start;
+    margin-top: clamp(10px, 4vh, 38px);
+  }
+
+  #start-screen .menu-actions-stack { align-items: flex-start; }
+}
+
+@media (max-height: 440px) {
+  #start-screen .menu-center-hero { margin-top: 6px; }
+  #start-screen .menu-bottom-capsule { margin-top: 10px; gap: 4px; }
+  #start-screen .primary-start-btn { min-height: 42px; font-size: 16px; }
+  #start-screen .menu-actions-stack { gap: 5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #start-screen, .rush-effect { transition: none; }
 }

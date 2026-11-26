@@ -2553,12 +2553,13 @@
   }
 
   let menuIdleTime = 0;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   // --- UPDATE LOOP ---
   function update(delta) {
     if (!state.running) {
       // 3D Menu Idle Animation: Showcase 3D Runner Kai in dynamic hero stance!
-      menuIdleTime += delta;
+      if (!reducedMotion.matches) menuIdleTime += delta;
       if (playerGroup) {
         playerGroup.position.set(0, 0, 0);
         // Face camera slightly at a confident hero angle
@@ -2576,7 +2577,7 @@
         // Framed hero view showcasing runner boy and skyline behind transparent menu!
         const orbitX = Math.sin(menuIdleTime * 0.4) * 0.35;
         camera.position.set(orbitX, 1.85, 4.3);
-        camera.lookAt(0, 1.25, 0);
+        camera.lookAt(camera.aspect >= 1.35 ? -1.25 : 0, 1.25, 0);
       }
       return;
     }
@@ -3325,7 +3326,15 @@
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.08);
     update(delta);
+    const rushing = state.running && !state.paused && state.isBoosted;
+    container.classList.toggle('is-rushing', rushing);
     if (renderer && scene && camera) {
+      const baseFov = camera.aspect < 0.65 ? 68 : 58;
+      const targetFov = baseFov + (rushing && !reducedMotion.matches ? 7 : 0);
+      if (Math.abs(camera.fov - targetFov) > 0.02) {
+        camera.fov += (targetFov - camera.fov) * Math.min(delta * 8, 1);
+        camera.updateProjectionMatrix();
+      }
       renderer.render(scene, camera);
     }
   }

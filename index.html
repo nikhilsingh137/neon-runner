@@ -41,12 +41,13 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=urbandash_v24">
+  <link rel="stylesheet" href="style.css?v=metro_rush">
 </head>
 <body>
   <div id="game-container">
     <!-- WebGL 3D Canvas -->
     <canvas id="gameCanvas"></canvas>
+    <div class="rush-effect" aria-hidden="true"></div>
 
     <!-- Transparent Touch Swipe Layer -->
     <div id="touch-overlay"></div>
@@ -140,49 +141,27 @@
         </button>
       </div>
 
-      <!-- CENTER HERO BANNER: Polished, attractive, high-end 3D arcade look -->
       <div class="menu-center-hero">
-        <div class="game-logo-badge">
-          <img src="icons/icon.svg" class="app-icon-img" alt="Urban Dash 3D Runner">
-        </div>
-        <h1 class="game-title">URBAN DASH<span class="title-3d-tag">3D</span></h1>
-        <div class="game-subtitle">
-          <span class="sub-sparkle">✦</span> METRO SKYLINE RUNNER <span class="sub-sparkle">✦</span>
-        </div>
-
-        <!-- ACTION BUTTONS -->
-        <div class="menu-actions-stack">
-          <button class="cyber-btn primary-start-btn" id="btn-start">
-            <span class="btn-glow-layer"></span>
-            <span class="btn-icon">⚡</span>
-            <span class="btn-text">PLAY NOW</span>
-          </button>
-
-          <!-- Install App Button -->
-          <button class="cyber-btn blue" id="btn-install-app">
-            <span class="btn-icon">📲</span>
-            <span class="btn-text">INSTALL APP</span>
-          </button>
+        <p class="game-subtitle">Metro Rush</p>
+        <h1 class="game-title"><span>Urban</span><span>Dash <small>3D</small></span></h1>
+        <div class="menu-record">
+          <span>Personal best</span>
+          <strong id="menu-high-score">0</strong>
         </div>
       </div>
 
-      <!-- BOTTOM FEATURE & CONTROLS CAPSULE: Compact, sleek & stylish -->
       <div class="menu-bottom-capsule">
-        <div class="feature-chips-row">
-          <span class="feature-chip">🎁 Mystery Box</span>
-          <span class="feature-chip">🛹 Double-Tap Surf</span>
-          <span class="feature-chip">🧲 Chumbak</span>
-          <span class="feature-chip">🚀 Jetpack</span>
-          <span class="feature-chip">👟 Super Shoes</span>
-          <span class="feature-chip">✖️2 Doubler</span>
-          <span class="feature-chip">⏱️ Time Warp</span>
-          <span class="feature-chip">💥 EMP Blast</span>
-          <span class="feature-chip">👻 Ghost Cloak</span>
-          <span class="feature-chip">🌈 Rainbow Vortex</span>
+        <div class="menu-actions-stack">
+          <button class="cyber-btn primary-start-btn" id="btn-start">
+            <span class="btn-text">Start run</span>
+            <span class="run-arrow" aria-hidden="true">&#8594;</span>
+          </button>
+          <button class="cyber-btn blue" id="btn-install-app">Install app</button>
         </div>
-        <div class="controls-quick-hint">
-          Swipe <b>Left / Right</b> • <b>Up</b> to jump • <b>Down</b> to roll • <b>Double Tap</b> for Hoverboard!
-        </div>
+        <p class="controls-quick-hint">
+          <span class="hint-keyboard">Arrow keys to move, jump and slide</span>
+          <span class="hint-touch">Swipe to move, jump and slide</span>
+        </p>
       </div>
     </div>
 
@@ -340,7 +319,7 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=urbandash_v21"></script>
-  <script src="game.js?v=urbandash_v24"></script>
+  <script src="game.js?v=metro_rush"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
