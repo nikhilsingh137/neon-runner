@@ -1382,11 +1382,19 @@ body.theme-bright #start-screen {
   animation: none;
 }
 
+#start-screen #btn-start {
+  position: relative;
+  justify-content: center;
+  padding-inline: 44px;
+}
+
 #start-screen .primary-start-btn:hover {
   background: #fff1b5;
 }
 
 #start-screen .run-arrow {
+  position: absolute;
+  right: 14px;
   display: grid;
   place-items: center;
   width: 34px;

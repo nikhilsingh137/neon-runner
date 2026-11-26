@@ -89,6 +89,8 @@
   let clock = new THREE.Clock();
   let runAnimTime = 0;
   const metroSkies = new Map();
+  const platformTiles = new Map();
+  const TRACK_SLEEPER_SPACING = 2.5;
   const trailLength = 24;
   const trailPoints = [];
   let trailRibbons = [];
@@ -278,15 +280,15 @@
       if (optBright) optBright.classList.remove('active');
       if (scene) {
         scene.background = getMetroSky('dark');
-        if (scene.fog) scene.fog.color.setHex(0x242044);
+        if (scene.fog) scene.fog.color.setHex(0x9d6381);
       }
       if (hemiLight) {
-        hemiLight.color.setHex(0xe0f2fe);
-        hemiLight.groundColor.setHex(0x1e293b);
+        hemiLight.color.setHex(0xffe1c2);
+        hemiLight.groundColor.setHex(0xbb7887);
         hemiLight.intensity = 1.0;
       }
       if (sunLight) {
-        sunLight.color.setHex(0xfff8ee); // Warm, clean white directional light so skin, red kicks, white hoodie and blue denim pop!
+        sunLight.color.setHex(0xffcda2); // Warm, clean white directional light so skin, red kicks, white hoodie and blue denim pop!
         sunLight.intensity = 1.35;
       }
     }
@@ -492,19 +494,35 @@
     hoodCollar.position.set(0, 2.16, 0.06);
     kaiModel.add(hoodCollar);
 
-    // Folded fabric hood and a sewn back stripe.
-    const foldedHood = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), hoodieMat);
-    foldedHood.scale.set(0.30, 0.24, 0.15);
-    foldedHood.position.set(0, 2.02, 0.22);
-    foldedHood.castShadow = true;
-    kaiModel.add(foldedHood);
+    // Folded hood and a soft canvas daypack, visible from the chase camera.
+    const fabricShape = new THREE.SphereGeometry(1, 20, 14);
+    const hood = new THREE.Mesh(fabricShape, hoodieMat);
+    hood.scale.set(0.33, 0.27, 0.17);
+    hood.position.set(0, 2.04, 0.30);
+    hood.castShadow = true;
+    kaiModel.add(hood);
 
-    const stripePath = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(-0.21, 1.66, 0.321),
-      new THREE.Vector3(0, 1.48, 0.452),
-      new THREE.Vector3(0.21, 1.66, 0.321)
-    );
-    kaiModel.add(new THREE.Mesh(new THREE.TubeGeometry(stripePath, 16, 0.021, 6, false), capMat));
+    const packFabric = new THREE.MeshStandardMaterial({ color: 0xa64939, roughness: 0.95 });
+    const packPocket = new THREE.MeshStandardMaterial({ color: 0xe17852, roughness: 0.9 });
+    const pack = new THREE.Mesh(fabricShape, packFabric);
+    pack.scale.set(0.31, 0.40, 0.19);
+    pack.position.set(0, 1.57, 0.36);
+    pack.castShadow = true;
+    const pocket = new THREE.Mesh(fabricShape, packPocket);
+    pocket.scale.set(0.237, 0.18, 0.08);
+    pocket.position.set(0, 1.45, 0.51);
+    kaiModel.add(pack, pocket);
+
+    for (const side of [-1, 1]) {
+      const strapPath = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(side * 0.25, 1.36, -0.28),
+        new THREE.Vector3(side * 0.29, 1.83, -0.30),
+        new THREE.Vector3(side * 0.25, 2.07, 0),
+        new THREE.Vector3(side * 0.24, 1.87, 0.40)
+      ]);
+      const strap = new THREE.Mesh(new THREE.TubeGeometry(strapPath, 12, 0.041, 6, false), packFabric);
+      kaiModel.add(strap);
+    }
 
     // 3. ORGANIC HANDSOME HEAD, FACE & BACKWARDS SNAPBACK CAP
     // Smooth Neck
@@ -637,6 +655,18 @@
     hairUnderCap.position.set(0, -0.08, 0.25);
     hairUnderCap.scale.set(0.22, 0.13, 0.105);
     capGroup.add(hairUnderCap);
+
+    // Curls below the cap keep the boy's silhouette recognizable from behind.
+    for (const [x, y, z, radius] of [
+      [-0.24, -0.07, 0.25, 0.10], [-0.12, -0.15, 0.29, 0.10],
+      [0.00, -0.16, 0.31, 0.10], [0.13, -0.14, 0.29, 0.11],
+      [0.25, -0.07, 0.25, 0.10]
+    ]) {
+      const curl = new THREE.Mesh(hairLock, hairMat);
+      curl.position.set(x, y, z);
+      curl.scale.set(radius, radius * 0.95, radius * 0.83);
+      headMesh.add(curl);
+    }
 
     // Snapback Strap Opening at Back
     const strapMesh = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.03), strapMat);
@@ -1087,12 +1117,11 @@
     speedLines = [];
 
     const isBright = state.theme === 'bright';
-    const groundColor = isBright ? 0xdbeafe : 0x090d16; // Crisp light ballast in Day vs Deep midnight in Night
-    const wallColor = isBright ? 0xca787e : 0x55345a;
-    const trimColor = isBright ? 0x0284c7 : 0x00f5d4; // Subway Blue trim in Day vs Electric Cyan neon in Night
-    const dividerColor = isBright ? 0x94a3b8 : 0x334155;
-    const tieWoodColor = isBright ? 0x451a03 : 0x0284c7; // High contrast: Rich dark timber in Day, glowing electric cyan composite in Night!
-    const railColor = isBright ? 0x1e293b : 0xe2e8f0;
+    const groundColor = isBright ? 0xae786d : 0x805662; // Crisp light ballast in Day vs Deep midnight in Night
+    const trimColor = isBright ? 0xffd875 : 0xfbb06b;
+    const dividerColor = isBright ? 0xd0a897 : 0xa47d84;
+    const tieWoodColor = isBright ? 0x905b42 : 0x744555;
+    const railColor = isBright ? 0xc9b4ab : 0xb99ba2;
 
     // 1. High-Tech Ground Bed
     const groundGeom = new THREE.PlaneGeometry(36, 600);
@@ -1103,27 +1132,23 @@
     ground.receiveShadow = true;
     tracksGroup.add(ground);
 
-    // 2. Concrete Side Retaining Walls
-    const wallGeom = new THREE.BoxGeometry(1.6, 6, 600);
-    const wallMat = new THREE.MeshLambertMaterial({ color: wallColor });
+    // Raised platforms leave the skyline open on both sides of the tracks.
+    const platformGeom = new THREE.BoxGeometry(5, 0.75, 600);
+    const platformMat = new THREE.MeshLambertMaterial({ color: isBright ? 0xd69e88 : 0xa16c75 });
+    const platformTop = new THREE.MeshLambertMaterial({ map: getPlatformTiles(isBright) });
+    const platformMaterials = [platformMat, platformMat, platformTop, platformMat, platformMat, platformMat];
+    const edgeGeom = new THREE.BoxGeometry(0.32, 0.07, 600);
+    const edgeMat = new THREE.MeshLambertMaterial({ color: trimColor });
+    for (const side of [-1, 1]) {
+      const platform = new THREE.Mesh(platformGeom, platformMaterials);
+      platform.position.set(side * 9.8, 0.29, -150);
+      platform.receiveShadow = true;
+      tracksGroup.add(platform);
 
-    const leftWall = new THREE.Mesh(wallGeom, wallMat);
-    leftWall.position.set(-8.2, 3, -150);
-    tracksGroup.add(leftWall);
-
-    const rightWall = new THREE.Mesh(wallGeom, wallMat);
-    rightWall.position.set(8.2, 3, -150);
-    tracksGroup.add(rightWall);
-
-    // Luminous edge rails along the walls
-    const trimGeom = new THREE.BoxGeometry(0.12, 0.2, 600);
-    const trimMat = new THREE.MeshBasicMaterial({ color: trimColor });
-    const trimL = new THREE.Mesh(trimGeom, trimMat);
-    trimL.position.set(-7.3, 5.8, -150);
-    tracksGroup.add(trimL);
-    const trimR = new THREE.Mesh(trimGeom, trimMat);
-    trimR.position.set(7.3, 5.8, -150);
-    tracksGroup.add(trimR);
+      const edge = new THREE.Mesh(edgeGeom, edgeMat);
+      edge.position.set(side * 7.49, 0.70, -150);
+      tracksGroup.add(edge);
+    }
 
     // 3. Track Dividers (Safety Curbs between lanes)
     const dividerGeom = new THREE.BoxGeometry(0.3, 0.25, 600);
@@ -1137,8 +1162,8 @@
     // 4. Steel Rail Tracks for the 3 Lanes
     const railMat = new THREE.MeshStandardMaterial({
       color: railColor,
-      metalness: 0.9,
-      roughness: 0.2
+      metalness: 0.37,
+      roughness: 0.42
     });
 
     LANES.forEach((laneX) => {
@@ -1151,79 +1176,36 @@
       tracksGroup.add(railR);
     });
 
-    // 5. DYNAMIC TRACK SLEEPERS (Continuously scrolled backward in animate() so boy never feels running in one place!)
-    const tieGeom = new THREE.BoxGeometry(2.15, 0.14, 0.46);
-    const tieMat = new THREE.MeshStandardMaterial({
-      color: tieWoodColor,
-      roughness: isBright ? 0.7 : 0.3,
-      metalness: isBright ? 0.1 : 0.4,
-      emissive: isBright ? 0x000000 : 0x0369a1,
-      emissiveIntensity: isBright ? 0 : 0.35
-    });
-
-    const clipGeom = new THREE.BoxGeometry(0.28, 0.16, 0.48);
-    const clipMat = new THREE.MeshBasicMaterial({ color: isBright ? 0x94a3b8 : 0x38bdf8 });
-
-    for (let z = 25; z > -320; z -= 2.5) {
-      LANES.forEach((laneX) => {
-        const tieGroup = new THREE.Group();
-        tieGroup.position.set(laneX, 0.02, z);
-
-        const tie = new THREE.Mesh(tieGeom, tieMat);
-        tie.receiveShadow = true;
-        tieGroup.add(tie);
-
-        const clipL = new THREE.Mesh(clipGeom, clipMat);
-        clipL.position.set(-0.85, 0.02, 0);
-        tieGroup.add(clipL);
-
-        const clipR = clipL.clone();
-        clipR.position.x = 0.85;
-        tieGroup.add(clipR);
-
-        tracksGroup.add(tieGroup);
-        trackTies.push(tieGroup);
-      });
+    const rowCount = 138;
+    const sleeperCount = rowCount * LANES.length;
+    const sleeperMesh = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(2.15, 0.14, 0.46),
+      new THREE.MeshStandardMaterial({ color: tieWoodColor, roughness: 0.85 }),
+      sleeperCount
+    );
+    sleeperMesh.receiveShadow = true;
+    const fasteners = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.28, 0.16, 0.48),
+      new THREE.MeshLambertMaterial({ color: isBright ? 0x9c7776 : 0x775967 }),
+      sleeperCount * 2
+    );
+    const sleeperMatrix = new THREE.Matrix4();
+    let index = 0;
+    for (let row = 0; row < rowCount; row++) {
+      const z = 25 - row * TRACK_SLEEPER_SPACING;
+      for (const laneX of LANES) {
+        sleeperMesh.setMatrixAt(index, sleeperMatrix.makeTranslation(laneX, 0.02, z));
+        fasteners.setMatrixAt(index * 2, sleeperMatrix.makeTranslation(laneX - 0.85, 0.04, z));
+        fasteners.setMatrixAt(index * 2 + 1, sleeperMatrix.makeTranslation(laneX + 0.85, 0.04, z));
+        index++;
+      }
     }
+    sleeperMesh.frustumCulled = false;
+    fasteners.frustumCulled = false;
+    tracksGroup.add(sleeperMesh, fasteners);
+    trackTies.push(sleeperMesh, fasteners);
 
-    // 6. SIDE SCENERY: Subway Graffiti Murals & Street Art Panels along walls
-    const muralColors = isBright
-      ? [0xef4444, 0x3b82f6, 0xf59e0b, 0x10b981, 0x8b5cf6, 0xec4899]
-      : [0x00f5d4, 0x38bdf8, 0xf43f5e, 0xa855f7, 0xfbbf24];
-
-    for (let z = 20; z > -320; z -= 16) {
-      [-7.35, 7.35].forEach((wx, sideIdx) => {
-        const mural = new THREE.Group();
-        mural.position.set(wx, 3.2, z);
-
-        const mColor = muralColors[Math.floor(Math.random() * muralColors.length)];
-        const posterBg = new THREE.Mesh(
-          new THREE.BoxGeometry(0.08, 1.8, 3.6),
-          new THREE.MeshLambertMaterial({ color: mColor })
-        );
-        mural.add(posterBg);
-
-        // Graffiti tag / stripe accent
-        const tag = new THREE.Mesh(
-          new THREE.BoxGeometry(0.09, 0.45, 2.6),
-          new THREE.MeshBasicMaterial({ color: isBright ? 0xffffff : 0x090e17 })
-        );
-        tag.position.y = (Math.random() - 0.5) * 0.4;
-        tag.rotation.x = (Math.random() - 0.5) * 0.2;
-        mural.add(tag);
-
-        // Trackside glow lantern
-        const lantern = new THREE.Mesh(
-          new THREE.SphereGeometry(0.18, 8, 8),
-          new THREE.MeshBasicMaterial({ color: isBright ? 0xf59e0b : 0x00f5d4 })
-        );
-        lantern.position.set(sideIdx === 0 ? 0.35 : -0.35, 1.3, 0);
-        mural.add(lantern);
-
-        tracksGroup.add(mural);
-        sideScenery.push(mural);
-      });
-    }
+    addStationCanopies(isBright);
 
     // 7. HIGH-SPEED AERODYNAMIC WIND STREAKS (Visual speed sensation)
     const lineMat = new THREE.MeshBasicMaterial({
@@ -1243,39 +1225,113 @@
       speedLines.push(sLine);
     }
 
-    // Overhead High-Voltage Arch Gantries
-    const archMat = new THREE.MeshLambertMaterial({ color: isBright ? 0x64748b : 0x475569 });
-    const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
-
-    for (let z = 0; z > -320; z -= 48) {
-      const gantryGroup = new THREE.Group();
-      gantryGroup.position.set(0, 0, z);
-
-      const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8.5, 8), archMat);
-      pL.position.set(-7.5, 4.25, 0);
-      const pR = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8.5, 8), archMat);
-      pR.position.set(7.5, 4.25, 0);
-
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(15.5, 0.45, 0.45), archMat);
-      beam.position.set(0, 8.2, 0);
-
-      LANES.forEach((lx) => {
-        const signal = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), greenLightMat);
-        signal.position.set(lx, 7.8, 0.25);
-        gantryGroup.add(signal);
-      });
-
-      gantryGroup.add(pL);
-      gantryGroup.add(pR);
-      gantryGroup.add(beam);
-      tracksGroup.add(gantryGroup);
-      sideScenery.push(gantryGroup);
-    }
-
     scene.add(tracksGroup);
   }
 
-  // --- 3D CITY BUILDINGS SKYLINE (SUBWAY SURFERS REALISTIC CITY PALETTE) ---
+  // The metro skyline sits behind the open platforms.
+  function getPlatformTiles(isBright) {
+    if (platformTiles.has(isBright)) return platformTiles.get(isBright);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const palette = isBright
+      ? ['#d89c8b', '#e3ad95', '#cd9088', '#de9d86']
+      : ['#b67d86', '#c68a88', '#d4948b', '#a87381'];
+
+    ctx.fillStyle = isBright ? '#af766e' : '#895b6e';
+    ctx.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < palette.length; i++) {
+      const x = (i % 2) * 64;
+      const y = Math.floor(i / 2) * 64;
+      ctx.fillStyle = palette[i];
+      ctx.fillRect(x + 1, y + 1, 62, 62);
+      ctx.fillStyle = '#ffdfbc3b';
+      ctx.fillRect(x + 2, y + 2, 60, 2);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 150);
+    platformTiles.set(isBright, texture);
+    return texture;
+  }
+
+  function addStationCanopies(isBright) {
+    const coral = new THREE.MeshLambertMaterial({ color: isBright ? 0xef806b : 0xd66b76 });
+    const trim = new THREE.MeshLambertMaterial({ color: 0xfcad76 });
+    const gold = new THREE.MeshBasicMaterial({ color: 0xffd69b });
+    const planter = new THREE.MeshLambertMaterial({ color: 0xb96267 });
+    const foliage = new THREE.MeshLambertMaterial({ color: 0x398757 });
+    const blooms = new THREE.MeshLambertMaterial({ color: 0xea598b });
+
+    const column = new THREE.CylinderGeometry(0.24, 0.30, 4, 12);
+    const roof = new THREE.SphereGeometry(1, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    const soffit = new THREE.CylinderGeometry(1, 1, 0.11, 22);
+    const lamp = new THREE.SphereGeometry(1, 8, 6);
+    const potShape = new THREE.CylinderGeometry(0.70, 0.52, 0.75, 12);
+    const leaf = new THREE.SphereGeometry(1, 8, 5);
+    const cluster = new THREE.IcosahedronGeometry(0.22, 0);
+    const palmStem = new THREE.CylinderGeometry(0.11, 0.19, 4.8, 8);
+    const palmBark = new THREE.MeshLambertMaterial({ color: 0x8c5b4a });
+
+    for (let z = 18; z > -327; z -= 23) {
+      for (const side of [-1, 1]) {
+        const station = new THREE.Group();
+        station.position.set(side * 9.65, 0.68, z + (side > 0 ? -9 : 0));
+
+        const support = new THREE.Mesh(column, coral);
+        support.position.set(side * 0.65, 2, 0);
+        const canopy = new THREE.Mesh(roof, coral);
+        canopy.position.set(0, 4.02, 0);
+        canopy.scale.set(2.22, 0.55, 4.1);
+        const rim = new THREE.Mesh(soffit, trim);
+        rim.position.copy(canopy.position);
+        rim.scale.set(2.22, 1, 4.1);
+        const light = new THREE.Mesh(lamp, gold);
+        light.position.set(-side * 1.15, 3.92, 0);
+        light.scale.set(0.16, 0.075, 2.35);
+        station.add(support, canopy, rim, light);
+
+        const pot = new THREE.Mesh(potShape, planter);
+        pot.position.set(-side * 1.13, 0.37, 5.4);
+        const bush = new THREE.Mesh(leaf, foliage);
+        bush.position.set(pot.position.x, 0.91, 5.4);
+        bush.scale.set(0.7, 0.48, 0.65);
+        station.add(pot, bush);
+        for (let i = 0; i < 3; i++) {
+          const flower = new THREE.Mesh(cluster, blooms);
+          flower.position.set(pot.position.x + (i - 1) * 0.36, 1.16 + (i % 2) * 0.13, 5.45);
+          station.add(flower);
+        }
+
+        if (side > 0) {
+          const palm = new THREE.Group();
+          palm.position.set(1.45, 0, -6);
+          const trunk = new THREE.Mesh(palmStem, palmBark);
+          trunk.position.y = 2.35;
+          palm.add(trunk);
+          for (let i = 0; i < 5; i++) {
+            const branch = new THREE.Group();
+            branch.position.y = 4.74;
+            branch.rotation.y = i * Math.PI * 0.4;
+            const frond = new THREE.Mesh(leaf, foliage);
+            frond.position.set(0, -0.06, 0.77);
+            frond.scale.set(0.31, 0.12, 1.06);
+            frond.rotation.x = 0.20;
+            branch.add(frond);
+            palm.add(branch);
+          }
+          station.add(palm);
+        }
+
+        tracksGroup.add(station);
+        sideScenery.push(station);
+      }
+    }
+  }
+
   function buildCityBuildings() {
     if (cityBuildingsGroup) scene.remove(cityBuildingsGroup);
     cityBuildingsGroup = new THREE.Group();
@@ -1334,10 +1390,10 @@
     const ctx = canvas.getContext('2d');
     const bright = theme === 'bright';
     const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    sky.addColorStop(0, bright ? '#945fbb' : '#22224c');
-    sky.addColorStop(0.27, bright ? '#f38fbc' : '#663f8d');
-    sky.addColorStop(0.52, bright ? '#ffd097' : '#c4709d');
-    sky.addColorStop(1, bright ? '#e7a4c7' : '#242044');
+    sky.addColorStop(0, bright ? '#945fbb' : '#70508a');
+    sky.addColorStop(0.27, bright ? '#f38fbc' : '#b3649d');
+    sky.addColorStop(0.52, bright ? '#ffd097' : '#f4ab8d');
+    sky.addColorStop(1, bright ? '#e7a4c7' : '#9d6381');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -1411,10 +1467,26 @@
 
     const trainDepth = 26;
 
-    // Aerodynamic Monorail Express Carriage Body (Electric Blue & Silver)
-    const bodyGeom = new THREE.BoxGeometry(2.35, TRAIN_HEIGHT, trainDepth);
+    // Rounded teal carriage shell
+    const shell = new THREE.Shape();
+    shell.moveTo(-1.05, -TRAIN_HEIGHT / 2 + 0.12);
+    shell.lineTo(1.05, -TRAIN_HEIGHT / 2 + 0.12);
+    shell.lineTo(1.05, TRAIN_HEIGHT / 2 - 0.43);
+    shell.quadraticCurveTo(1.05, TRAIN_HEIGHT / 2 - 0.12, 0.72, TRAIN_HEIGHT / 2 - 0.12);
+    shell.lineTo(-0.72, TRAIN_HEIGHT / 2 - 0.12);
+    shell.quadraticCurveTo(-1.05, TRAIN_HEIGHT / 2 - 0.12, -1.05, TRAIN_HEIGHT / 2 - 0.43);
+    shell.closePath();
+    const bodyGeom = new THREE.ExtrudeGeometry(shell, {
+      depth: trainDepth - 0.24,
+      bevelEnabled: true,
+      bevelThickness: 0.12,
+      bevelSize: 0.12,
+      bevelSegments: 3,
+      curveSegments: 5
+    });
+    bodyGeom.translate(0, 0, -trainDepth / 2 + 0.12);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: state.theme === 'bright' ? 0x24a9a1 : 0x236981,
+      color: 0x27aaa1,
       roughness: 0.42,
       metalness: 0.15
     });
@@ -1424,35 +1496,49 @@
     body.receiveShadow = true;
     trainGroup.add(body);
 
-    // Neon Speed Stripe along sides
-    const stripeGeom = new THREE.BoxGeometry(2.38, 0.25, trainDepth);
-    const stripeMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
+    // Gold carriage beltline
+    const stripeGeom = new THREE.BoxGeometry(2.36, 0.19, trainDepth);
+    const stripeMat = new THREE.MeshLambertMaterial({ color: 0xffc764 });
     const stripe = new THREE.Mesh(stripeGeom, stripeMat);
-    stripe.position.y = TRAIN_HEIGHT * 0.65;
+    stripe.position.y = TRAIN_HEIGHT * 0.48;
     trainGroup.add(stripe);
 
     // Runnable Roof
-    const roofGeom = new THREE.BoxGeometry(2.45, 0.32, trainDepth + 0.2);
+    const roofGeom = new THREE.BoxGeometry(1.82, 0.15, trainDepth - 0.4);
     const roofMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
+      color: 0xedbb9d,
       roughness: 0.35,
       metalness: 0.3
     });
     const roof = new THREE.Mesh(roofGeom, roofMat);
-    roof.position.y = TRAIN_HEIGHT + 0.15;
+    roof.position.y = TRAIN_HEIGHT + 0.06;
     roof.receiveShadow = true;
     trainGroup.add(roof);
 
     // Aerodynamic Bullet Nose Windshield (+Z)
     const frontWindshield = new THREE.Mesh(
-      new THREE.BoxGeometry(1.9, 1.2, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.8 })
+      new THREE.BoxGeometry(1.88, 1.23, 0.1),
+      new THREE.MeshStandardMaterial({ color: 0x3a344d, roughness: 0.24, metalness: 0.23 })
     );
     frontWindshield.position.set(0, 2.4, trainDepth / 2 + 0.05);
     trainGroup.add(frontWindshield);
 
-    // Glowing Dual Xenon Headlights
-    const lightMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
+    const windowMaterial = new THREE.MeshStandardMaterial({
+      color: 0x865066, roughness: 0.32, metalness: 0.17,
+      emissive: 0xd17f4b, emissiveIntensity: 0.26
+    });
+    const sideWindows = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.88, 1.86), windowMaterial, 16);
+    const windowMatrix = new THREE.Matrix4();
+    for (let i = 0; i < 8; i++) {
+      const z = -10.5 + i * 3;
+      sideWindows.setMatrixAt(i * 2, windowMatrix.makeTranslation(-1.18, 2.34, z));
+      sideWindows.setMatrixAt(i * 2 + 1, windowMatrix.makeTranslation(1.18, 2.34, z));
+    }
+    sideWindows.frustumCulled = false;
+    trainGroup.add(sideWindows);
+
+    // Warm carriage headlights
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffdfa0 });
     const lightL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.2, 10), lightMat);
     lightL.rotation.x = Math.PI / 2;
     lightL.position.set(-0.75, 1.1, trainDepth / 2 + 0.05);
@@ -1473,7 +1559,7 @@
     if (hasRamp) {
       const rampLength = 5.5;
       const rampGeom = new THREE.BoxGeometry(2.3, 0.3, rampLength);
-      const rampMat = new THREE.MeshLambertMaterial({ color: 0x0284c7 });
+      const rampMat = new THREE.MeshLambertMaterial({ color: 0x358b88 });
       const ramp = new THREE.Mesh(rampGeom, rampMat);
       ramp.position.set(0, TRAIN_HEIGHT / 2, trainDepth / 2 + rampLength / 2);
       ramp.rotation.x = -Math.atan2(TRAIN_HEIGHT, rampLength);
@@ -2889,11 +2975,8 @@
     }
 
     // Continuously scroll track ties backward at run speed (Fixes boy running in one place!)
-    for (let i = 0; i < trackTies.length; i++) {
-      trackTies[i].position.z += distDelta;
-      if (trackTies[i].position.z > 25) {
-        trackTies[i].position.z -= 345;
-      }
+    for (const sleepers of trackTies) {
+      sleepers.position.z = (sleepers.position.z + distDelta) % TRACK_SLEEPER_SPACING;
     }
 
     // Scroll side murals, lanterns & scenery
