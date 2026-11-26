@@ -84,6 +84,14 @@ html, body {
   pointer-events: none;
 }
 
+.hud-top-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 5px 8px;
+  align-items: start;
+  min-width: 0;
+}
+
 .hud-top-left {
   display: flex;
   flex-direction: column;
@@ -101,17 +109,16 @@ html, body {
 
 .hud-score-val {
   font-family: 'Fredoka One', cursive, sans-serif;
-  font-size: 34px;
+  font-size: clamp(23px, 9vw, 34px);
   font-weight: 900;
   color: #ffffff;
   line-height: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   text-shadow: 0 3px 0 #0369a1, 0 6px 15px rgba(0,0,0,0.5);
 }
 
 .hud-top-right {
-  position: absolute;
-  top: calc(14px + var(--safe-top));
-  right: 108px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -145,22 +152,29 @@ html, body {
 
 /* Active Power-Up Badges (Magnet, Jetpack, Multiplier) */
 .hud-powerups-list {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-powerups-list:not(:has(.powerup-pill[style*="flex"])) {
+  display: none;
 }
 
 .powerup-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   border: 2px solid var(--primary-cyan);
-  padding: 4px 10px;
+  min-height: 25px;
+  max-width: 100%;
+  padding: 2px 7px;
   border-radius: 16px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   color: #ffffff;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
@@ -210,9 +224,6 @@ html, body {
 
 /* Top Buttons: Pause & Home */
 .hud-top-actions {
-  position: absolute;
-  top: calc(14px + var(--safe-top));
-  right: 16px;
   display: flex;
   gap: 8px;
   pointer-events: auto;
@@ -273,10 +284,13 @@ html, body {
 
 /* Virtual Buttons: Only shown if user selects 'Buttons Mode' in Settings */
 .virtual-buttons {
-  display: flex;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+  gap: clamp(3px, 1.5vw, 10px);
+  justify-items: center;
   align-items: center;
-  width: 100%;
+  width: min(100%, 520px);
+  margin-inline: auto;
   pointer-events: auto;
 }
 
@@ -285,8 +299,8 @@ html, body {
 }
 
 .touch-btn {
-  width: 58px;
-  height: 58px;
+  width: min(100%, 58px);
+  height: clamp(37px, 14vw, 58px);
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(10px);
@@ -313,10 +327,10 @@ html, body {
 }
 
 .touch-btn.boost-btn {
-  width: 82px;
+  width: min(100%, 82px);
   border-radius: 29px;
-  font-size: 14.5px;
-  letter-spacing: 0.5px;
+  font-size: clamp(10px, 3.3vw, 14px);
+  letter-spacing: 0.35px;
   font-family: 'Fredoka One', cursive, sans-serif;
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   border-color: #fde047;
@@ -857,10 +871,9 @@ html, body {
 
 /* Floating HUD Toast Notification */
 .hud-toast-msg {
-  position: absolute;
-  top: 95px;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-column: 1 / -1;
+  justify-self: center;
+  max-width: 100%;
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid var(--primary-cyan);
   box-shadow: 0 8px 24px rgba(0, 245, 212, 0.4);
@@ -874,13 +887,11 @@ html, body {
   z-index: 25;
   transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-align: center;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .hud-toast-msg.hidden {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-12px);
-  pointer-events: none;
+  display: none;
 }
 
 /* Career Stats & Hero Banner in Settings Modal */
@@ -1189,17 +1200,16 @@ body.theme-bright .cyber-btn.outline span {
 
 /* --- DYNAMIC COMBO STREAK BADGE --- */
 .hud-combo-badge {
-  position: absolute;
-  top: calc(78px + var(--safe-top));
-  left: 50%;
-  transform: translateX(-50%);
+  grid-column: 1 / -1;
+  justify-self: center;
   padding: 6px 16px;
   border-radius: 30px;
   font-family: 'Fredoka One', cursive, sans-serif;
   font-size: 15px;
   letter-spacing: 0.5px;
-  white-space: nowrap;
-  max-width: 90vw;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  text-align: center;
   z-index: 15;
   pointer-events: none;
   animation: pulseCombo 0.8s ease infinite alternate;
@@ -1225,8 +1235,8 @@ body.theme-bright .cyber-btn.outline span {
 }
 
 @keyframes pulseCombo {
-  0% { transform: translateX(-50%) scale(0.96); }
-  100% { transform: translateX(-50%) scale(1.05); }
+  0% { transform: scale(0.96); }
+  100% { transform: scale(1.02); }
 }
 
 /* Metro Rush title screen and run effects */
@@ -1244,6 +1254,7 @@ body.theme-bright #start-screen {
   isolation: isolate;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-items: start;
   padding: calc(16px + var(--safe-top)) clamp(16px, 5vw, 80px) calc(18px + var(--safe-bottom));
@@ -1254,12 +1265,18 @@ body.theme-bright #start-screen {
 }
 
 #start-screen .top-menu-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   max-width: none;
   margin: 0;
   gap: 10px;
 }
 
 #start-screen .menu-pill-btn {
+  min-width: 0;
+  justify-content: center;
+  padding-inline: clamp(6px, 2vw, 12px);
+  font-size: clamp(10px, 3.5vw, 13px);
   border: 1px solid #ffffff40;
   background: #081523df;
   color: #f7faf4;
@@ -1369,7 +1386,7 @@ body.theme-bright #start-screen {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  max-width: 350px;
+  max-width: 100%;
   height: 54px;
   flex-shrink: 0;
   padding: 0 18px;
@@ -1474,7 +1491,7 @@ body.theme-bright #start-screen {
                 linear-gradient(0deg, #261529bb, transparent 29%);
   }
 
-  #start-screen .top-menu-toolbar { grid-column: 1 / -1; }
+  #start-screen .top-menu-toolbar { grid-column: 1 / -1; display: flex; }
   #start-screen .menu-center-hero { align-self: end; align-items: flex-start; }
   #start-screen .game-title { text-align: left; font-size: clamp(44px, min(9vw, 15vh), 142px); }
   #start-screen .game-title span { display: block; }

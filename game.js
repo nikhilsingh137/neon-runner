@@ -89,6 +89,10 @@
   let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
+  let runnerSprite, runnerSpriteShadow;
+  let runnerSpritePhase = 0;
+  const RUNNER_ATLAS_COLUMNS = 4;
+  const RUNNER_ATLAS_ROWS = 2;
   const metroSkies = new Map();
   const metroSkyArtwork = {};
   const platformTiles = new Map();
@@ -429,6 +433,7 @@
     loadMetroSkyArtwork();
     buildHeroKai();
     buildRunnerTrail();
+    loadRunnerSprite();
 
     // Initialize Jetpack Billowing Flight Smoke Particle Pool
     flightSmokeParticles = [];
@@ -1034,6 +1039,73 @@
   }
 
   // --- BUILD METRO ENVIRONMENT & MAGNETIC RAILS ---
+  function loadRunnerSprite() {
+    new THREE.TextureLoader().load('assets/kai-run-frames.png', (atlas) => {
+      atlas.encoding = renderer.outputEncoding;
+      atlas.minFilter = THREE.LinearFilter;
+      atlas.generateMipmaps = false;
+      atlas.repeat.set(1 / RUNNER_ATLAS_COLUMNS, 1 / RUNNER_ATLAS_ROWS);
+      runnerSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: atlas,
+        transparent: true,
+        alphaTest: 0.48,
+        toneMapped: false
+      }));
+      const height = 3.25;
+      const cellAspect = (atlas.image.width / RUNNER_ATLAS_COLUMNS) / (atlas.image.height / RUNNER_ATLAS_ROWS);
+      runnerSprite.scale.set(height * cellAspect, height, 1);
+      runnerSprite.center.set(0.5, 0.045);
+      runnerSprite.visible = false;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(32, 32, 3, 32, 32, 30);
+      gradient.addColorStop(0, '#ffffffb0');
+      gradient.addColorStop(0.52, '#ffffff62');
+      gradient.addColorStop(1, '#ffffff00');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 64, 64);
+      runnerSpriteShadow = new THREE.Mesh(new THREE.PlaneGeometry(1.67, 1.10), new THREE.MeshBasicMaterial({
+        map: new THREE.CanvasTexture(canvas),
+        color: 0x291a2c,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.66
+      }));
+      runnerSpriteShadow.rotation.x = -Math.PI / 2;
+      runnerSpriteShadow.position.y = 0.035;
+      runnerSpriteShadow.visible = false;
+      playerGroup.add(runnerSpriteShadow, runnerSprite);
+    });
+  }
+
+  function updateRunnerSprite(delta) {
+    if (!runnerSprite) return;
+
+    const showRunner = state.running && !state.isJumping && !state.isSliding &&
+      !state.isBoosted && state.jetpackTimer <= 0 && state.skatesTimer <= 0 &&
+      state.playerY <= state.groundY + 0.06;
+    runnerSprite.visible = showRunner;
+    runnerSpriteShadow.visible = showRunner;
+    kaiModel.visible = !showRunner;
+    if (!showRunner) return;
+
+    const count = RUNNER_ATLAS_COLUMNS * RUNNER_ATLAS_ROWS;
+    if (!state.paused) {
+      runnerSpritePhase = (runnerSpritePhase + delta * (10 + Math.min(8, state.speed * 0.25))) % count;
+    }
+    const frame = Math.floor(runnerSpritePhase);
+    const atlas = runnerSprite.material.map;
+    atlas.offset.set(
+      (frame % RUNNER_ATLAS_COLUMNS) / RUNNER_ATLAS_COLUMNS,
+      1 - (Math.floor(frame / RUNNER_ATLAS_COLUMNS) + 1) / RUNNER_ATLAS_ROWS
+    );
+    runnerSprite.position.y = 0.04 + Math.abs(Math.sin(runnerSpritePhase * Math.PI / 4)) * 0.065;
+    runnerSprite.material.rotation = THREE.MathUtils.clamp((state.targetX - state.playerX) * -0.09, -0.22, 0.22);
+    runnerSprite.material.opacity = state.ghostTimer > 0 ? 0.52 : 1;
+  }
+
   function buildRunnerTrail() {
     const indices = [];
     for (let i = 0; i < trailLength - 1; i++) {
@@ -2621,6 +2693,7 @@
     state.paused = false;
     trailPoints.length = 0;
     trailDistance = 0;
+    runnerSpritePhase = 0;
     if (headMesh) headMesh.rotation.set(0, 0, 0);
     if (playerGroup) {
       playerGroup.rotation.set(0, 0, 0);
@@ -3457,6 +3530,7 @@
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.08);
     update(delta);
+    updateRunnerSprite(delta);
     const rushing = state.running && !state.paused && state.isBoosted;
     const flying = state.running && !state.paused && state.jetpackTimer > 0;
     container.classList.toggle('is-rushing', rushing);
