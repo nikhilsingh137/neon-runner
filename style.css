@@ -1440,7 +1440,13 @@ body.theme-bright #start-screen {
   transition: opacity .24s ease;
 }
 
-.is-rushing .rush-effect { opacity: 1; }
+.is-rushing .rush-effect,
+.is-flying .rush-effect { opacity: 1; }
+
+.is-flying .rush-effect {
+  background: radial-gradient(ellipse at 50% 48%, transparent 46%, #ffd68e33 80%, #efaeb688);
+  box-shadow: inset 0 0 30px #ffcb765e;
+}
 
 @media (pointer: coarse) {
   .hint-keyboard { display: none; }

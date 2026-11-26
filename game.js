@@ -14,6 +14,8 @@
   const GRAVITY = 32.0;
   const TRAIN_HEIGHT = 3.5;
   const JETPACK_FLIGHT_Y = 8.5;
+  const GROUND_CRYSTAL_Y = 1.2;
+  let nextFlightCrystalZ = -16;
 
   // --- GAME STATE ---
   const state = {
@@ -23,7 +25,6 @@
     coins: 0, // Energy Crystals
     distance: 0,
     speed: 11, // Super relaxed beginner-friendly gentle start (13 KM/H)
-    baseSpeed: 11,
     maxSpeed: 65, // Scales up smoothly as score & distance grow!
     currentLane: 0, // -1, 0, 1
     playerX: 0,
@@ -85,10 +86,11 @@
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
   let trackTies = [], sideScenery = [], speedLines = [], flightSmokeParticles = [];
-  let skyClouds = [], cityBuildingsGroup;
+  let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
   const metroSkies = new Map();
+  const metroSkyArtwork = {};
   const platformTiles = new Map();
   const TRACK_SLEEPER_SPACING = 2.5;
   const trailLength = 24;
@@ -207,21 +209,48 @@
     }
   }
 
+  function startJetpack(duration) {
+    if (state.jetpackTimer <= 0) nextFlightCrystalZ = -16;
+    state.jetpackTimer = Math.max(state.jetpackTimer, duration);
+    state.vy = 0;
+    state.isJumping = false;
+    state.isSliding = false;
+    state.slideTimer = 0;
+    state.jumpBuffered = false;
+  }
+
+  function fillFlightCrystalTrail(distance) {
+    nextFlightCrystalZ += distance;
+    while (nextFlightCrystalZ > -84) {
+      for (let lane = 0; lane < LANES.length; lane++) {
+        createCrystal(lane, nextFlightCrystalZ, Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7), true);
+      }
+      nextFlightCrystalZ -= 4.5;
+    }
+  }
+
+  function updateFlightCrystal(crystal, delta) {
+    if (!crystal.userData.flightTrail) return;
+    if (state.jetpackTimer > 0) {
+      const targetY = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7);
+      crystal.position.y += (targetY - crystal.position.y) * (1 - Math.exp(-12 * delta));
+    } else if (state.playerY <= state.groundY + 0.05) {
+      crystal.position.y = GROUND_CRYSTAL_Y;
+      crystal.userData.flightTrail = false;
+    } else {
+      crystal.position.y = Math.min(crystal.position.y, Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7));
+    }
+  }
+
   function useStoredJetpack() {
     if (!state.running || state.paused || state.storedJetpacks <= 0) return;
     state.storedJetpacks--;
-    state.jetpackTimer = 11.0;
+    startJetpack(11);
     updatePowerupSlotsUI();
     showToast('🚀 JETPACK BLAST OFF!');
     if (window.soundEngine) {
       window.soundEngine.playJetpackSFX();
       window.soundEngine.playPowerupSFX();
-    }
-    // Launch runway of sky crystals immediately ahead!
-    for (let l = 0; l < 3; l++) {
-      for (let z = 0; z < 6; z++) {
-        createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
-      }
     }
   }
 
@@ -262,7 +291,7 @@
       if (optDark) optDark.classList.remove('active');
       if (scene) {
         scene.background = getMetroSky('bright');
-        if (scene.fog) scene.fog.color.setHex(0xe7a4c7);
+        if (scene.fog) scene.fog.color.setHex(0xe4a4a2);
       }
       if (hemiLight) {
         hemiLight.color.setHex(0xffffff);
@@ -280,7 +309,7 @@
       if (optBright) optBright.classList.remove('active');
       if (scene) {
         scene.background = getMetroSky('dark');
-        if (scene.fog) scene.fog.color.setHex(0x9d6381);
+        if (scene.fog) scene.fog.color.setHex(0xd091a0);
       }
       if (hemiLight) {
         hemiLight.color.setHex(0xffe1c2);
@@ -396,10 +425,8 @@
     updateCareerStatsUI();
     updatePowerupSlotsUI();
 
-    // Build World, City Skyline & 3D Sky Clouds
     buildMetroEnvironment();
-    buildCityBuildings();
-    buildSkyClouds();
+    loadMetroSkyArtwork();
     buildHeroKai();
     buildRunnerTrail();
 
@@ -439,7 +466,6 @@
     const denimMat = new THREE.MeshStandardMaterial({ color: 0x264f75, roughness: 0.96, metalness: 0.0 }); // Classic blue denim vest & jeans
     const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x213950, roughness: 0.96, metalness: 0.0 }); // Deep indigo denim accents
     const denimStitchMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.55, metalness: 0.0 }); // Gold denim stitching & rolled cuffs
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x89958e, roughness: 0.85, metalness: 0.0 }); // Buttons, buckles & aglets
     const strapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.80, metalness: 0.0 }); // Nylon strap
     const sneakerSoleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.30, metalness: 0.0 }); // White rubber sole & bumper
     const sneakerTreadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.0 }); // Black rubber grip
@@ -450,43 +476,31 @@
 
     kaiModel = new THREE.Group();
 
-    // Contoured fleece hoodie
-    // Upper Chest & Torso (White Hoodie Fleece)
-    const chestGeom = new THREE.CylinderGeometry(0.40, 0.44, 0.74, 18);
-    const hoodieChest = new THREE.Mesh(chestGeom, hoodieMat);
-    hoodieChest.position.y = 1.74;
-    hoodieChest.castShadow = true;
-    kaiModel.add(hoodieChest);
+    // Continuous fabric silhouette with rounded shoulders and a folded hem.
+    const profile = [
+      [0, 1.07], [0.33, 1.07], [0.409, 1.10], [0.427, 1.16],
+      [0.445, 1.27], [0.465, 1.44], [0.452, 1.67], [0.432, 1.90],
+      [0.375, 2.03], [0.288, 2.12], [0.19, 2.15], [0, 2.15]
+    ].map(([radius, y]) => new THREE.Vector2(radius, y));
+    const hoodie = new THREE.Mesh(new THREE.LatheGeometry(profile, 28), hoodieMat);
+    hoodie.scale.z = 0.81;
+    hoodie.castShadow = true;
+    kaiModel.add(hoodie);
 
-    // Lower Waist & Abdomen (White Hoodie Fleece)
-    const waistGeom = new THREE.CylinderGeometry(0.44, 0.40, 0.44, 18);
-    const hoodieWaist = new THREE.Mesh(waistGeom, hoodieMat);
-    hoodieWaist.position.y = 1.28;
-    hoodieWaist.castShadow = true;
-    kaiModel.add(hoodieWaist);
-
-    // Soft Rounded Hoodie Bottom Ribbed Hem
-    const hoodieHem = new THREE.Mesh(new THREE.TorusGeometry(0.40, 0.055, 8, 20), hoodieMat);
-    hoodieHem.rotation.x = Math.PI / 2;
-    hoodieHem.position.y = 1.08;
-    kaiModel.add(hoodieHem);
-
-    // Front Kangaroo Pouch Pocket (Smooth curved white fleece pocket)
-    const pouchGeom = new THREE.CylinderGeometry(0.28, 0.33, 0.28, 14, 1, false, -Math.PI * 0.45, Math.PI * 0.90);
-    const hoodiePocket = new THREE.Mesh(pouchGeom, hoodieMat);
-    hoodiePocket.rotation.y = Math.PI;
-    hoodiePocket.position.set(0, 1.34, -0.16);
+    const hoodiePocket = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), hoodieMat);
+    hoodiePocket.scale.set(0.309, 0.153, 0.075);
+    hoodiePocket.position.set(0, 1.34, -0.345);
     kaiModel.add(hoodiePocket);
 
-    // Hanging White Drawstrings with Silver Metal Aglet Tips
-    [-0.10, 0.10].forEach((strX) => {
-      const stringMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.38, 8), hoodieMat);
-      stringMesh.position.set(strX, 1.84, -0.38);
-      kaiModel.add(stringMesh);
-      const agletMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.06, 8), metalMat);
-      agletMesh.position.set(strX, 1.63, -0.38);
-      kaiModel.add(agletMesh);
-    });
+    const drawstring = new THREE.MeshLambertMaterial({ color: 0xffead1 });
+    for (const side of [-1, 1]) {
+      const path = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(side * 0.11, 2.04, -0.24),
+        new THREE.Vector3(side * 0.04, 1.88, -0.40),
+        new THREE.Vector3(side * 0.095, 1.67 + side * 0.025, -0.383)
+      );
+      kaiModel.add(new THREE.Mesh(new THREE.TubeGeometry(path, 12, 0.016, 6, false), drawstring));
+    }
 
     // Folded White Hoodie Cowl / Neck Collar
     const hoodCollar = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.08, 10, 20), hoodieMat);
@@ -1335,52 +1349,66 @@
   function buildCityBuildings() {
     if (cityBuildingsGroup) scene.remove(cityBuildingsGroup);
     cityBuildingsGroup = new THREE.Group();
+    const bright = state.theme === 'bright';
+    const stone = new THREE.MeshLambertMaterial({ color: bright ? 0xc5a2d5 : 0xb382b3 });
+    const ledges = new THREE.MeshLambertMaterial({ color: bright ? 0xebc4d4 : 0xd5a0b9 });
+    const panes = new THREE.MeshBasicMaterial({ color: bright ? 0xffdcad : 0xebb389 });
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    const crownGeometry = new THREE.CylinderGeometry(0.42, 0.5, 1, 12);
 
-    // Pastel skyline by day and saturated jewel tones at night.
-    const buildingColorsDark = [0x263260, 0x3c2862, 0x523259, 0x19455d, 0x33446a];
-    const buildingColorsBright = [0xf47b67, 0xe2a655, 0xae8de2, 0x72c8be, 0x658ec5, 0xd980ad, 0xffc293];
-    const windowColorsDark = [0x59d9f2, 0xffbd79, 0x73e3c1, 0xe197ff];
-    const windowColorsBright = [0xbae6fd, 0x93c5fd, 0xe0f2fe, 0x38bdf8];
+    const addStone = (tower, geometry, material, width, height, depth, x, y, z) => {
+      const piece = new THREE.Mesh(geometry, material);
+      piece.scale.set(width, height, depth);
+      piece.position.set(x, y, z);
+      tower.add(piece);
+    };
 
-    const isBright = state.theme === 'bright';
-    const bColors = isBright ? buildingColorsBright : buildingColorsDark;
-    const wColors = isBright ? windowColorsBright : windowColorsDark;
+    for (const side of [-1, 1]) {
+      for (let row = 0; row < 8; row++) {
+        const tower = new THREE.Group();
+        const height = 11 + (row * 7 + (side > 0 ? 5 : 0)) % 12;
+        const width = 6.2 + row % 3;
+        tower.position.set(side * (26 + (row % 3) * 4), 0, -20 - row * 37 - (side < 0 ? 9 : 0));
 
-    // Both sides beyond track walls
-    [-1, 1].forEach((side) => {
-      for (let z = 20; z > -340; z -= 14) {
-        const height = 20 + Math.random() * 34;
-        const width = 8 + Math.random() * 5;
-        const depth = 10 + Math.random() * 5;
-        const posX = side * (16.5 + Math.random() * 10);
+        addStone(tower, box, stone, width, height, 8, 0, height / 2, 0);
+        addStone(tower, box, ledges, width + 0.36, 0.29, 8.36, 0, height, 0);
+        addStone(tower, box, stone, width * 0.73, 3.5, 5.5, 0, height + 1.75, 0);
+        addStone(tower, crownGeometry, ledges, width * 0.57, 2.9, 4.3, 0, height + 4.8, 0);
+        addStone(tower, crownGeometry, ledges, 0.34, 1.5, 0.34, 0, height + 6.9, 0);
 
-        const bColor = bColors[Math.floor(Math.random() * bColors.length)];
-        const bMat = new THREE.MeshLambertMaterial({ color: bColor });
-        const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), bMat);
-        building.position.set(posX, height / 2, z);
-        building.castShadow = true;
-        building.receiveShadow = true;
-        cityBuildingsGroup.add(building);
-
-        // Windows illuminated pattern
-        const winMat = new THREE.MeshBasicMaterial({
-          color: wColors[Math.floor(Math.random() * wColors.length)]
-        });
-        const winGeom = new THREE.BoxGeometry(width * 0.88, 0.45, depth + 0.1);
-        for (let wy = 4; wy < height - 2; wy += 3.2) {
-          if (Math.random() < 0.7) {
-            const winStripe = new THREE.Mesh(winGeom, winMat);
-            winStripe.position.set(posX, wy, z);
-            cityBuildingsGroup.add(winStripe);
+        const windowRows = Math.floor(height / 2.6);
+        const windows = new THREE.InstancedMesh(box, panes, windowRows * 6);
+        const marker = new THREE.Matrix4();
+        let index = 0;
+        for (let floor = 0; floor < windowRows; floor++) {
+          const y = 2 + floor * 2.6;
+          for (const spacing of [-1, 0, 1]) {
+            marker.makeScale(0.66, 1.28, 0.08).setPosition(spacing * width * 0.28, y, 4.02);
+            windows.setMatrixAt(index++, marker);
+            marker.makeScale(0.08, 1.28, 0.65).setPosition(-side * (width / 2 + 0.02), y, spacing * 2.3);
+            windows.setMatrixAt(index++, marker);
           }
         }
+        windows.frustumCulled = false;
+        tower.add(windows);
+        cityBuildingsGroup.add(tower);
       }
-    });
-
+    }
     scene.add(cityBuildingsGroup);
   }
 
-  // --- 3D SKY CLOUDS (SUBWAY SURFERS SKY HIGH ELEVATION) ---
+  function loadMetroSkyArtwork() {
+    const loader = new THREE.TextureLoader();
+    loader.load('assets/metro-sunset-wide.jpg', (texture) => setMetroSkyArtwork('wide', texture));
+    loader.load('assets/metro-sunset-portrait.jpg', (texture) => setMetroSkyArtwork('portrait', texture));
+  }
+
+  function setMetroSkyArtwork(layout, texture) {
+    texture.encoding = THREE.sRGBEncoding;
+    metroSkyArtwork[layout] = texture;
+    fitMetroSky();
+  }
+
   function getMetroSky(theme) {
     if (metroSkies.has(theme)) return metroSkies.get(theme);
 
@@ -1415,51 +1443,16 @@
   }
 
   function fitMetroSky() {
-    const sky = scene?.background;
-    if (!sky?.isTexture || !camera) return;
-
+    if (!scene || !camera) return;
     const aspect = camera.aspect;
-    sky.repeat.set(Math.min(1, aspect / 2), Math.min(1, 2 / aspect));
-    sky.offset.set((1 - sky.repeat.x) * 0.63, (1 - sky.repeat.y) * 0.61);
+    const layout = aspect <= 1 ? 'portrait' : 'wide';
+    const sky = metroSkyArtwork[layout] || getMetroSky(state.theme);
+    const imageAspect = sky.image.width / sky.image.height;
+    sky.repeat.set(Math.min(1, aspect / imageAspect), Math.min(1, imageAspect / aspect));
+    sky.offset.set((1 - sky.repeat.x) / 2, (1 - sky.repeat.y) / 2);
+    scene.background = sky;
   }
 
-  function buildSkyClouds() {
-    skyClouds.forEach((c) => scene.remove(c));
-    skyClouds = [];
-
-    const cloudMat = new THREE.MeshLambertMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.92
-    });
-
-    for (let i = 0; i < 26; i++) {
-      const cloud = new THREE.Group();
-      const r = 2.4 + Math.random() * 2.2;
-      const p1 = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 8), cloudMat);
-      const p2 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.75, 7, 7), cloudMat);
-      p2.position.set(r * 0.75, -r * 0.15, 0);
-      const p3 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 7, 7), cloudMat);
-      p3.position.set(-r * 0.75, -r * 0.15, 0);
-      const p4 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.6, 7, 7), cloudMat);
-      p4.position.set(0, r * 0.45, r * 0.2);
-
-      cloud.add(p1);
-      cloud.add(p2);
-      cloud.add(p3);
-      cloud.add(p4);
-
-      cloud.position.set(
-        (Math.random() - 0.5) * 85,
-        12.0 + Math.random() * 14.0,
-        -Math.random() * 320
-      );
-      scene.add(cloud);
-      skyClouds.push(cloud);
-    }
-  }
-
-  // --- SLEEK HIGH-SPEED METRO MONORAIL TRAINS ---
   function createMonorailObstacle(laneIndex, zPos, hasRamp = false) {
     const trainGroup = new THREE.Group();
     const laneX = LANES[laneIndex];
@@ -1537,10 +1530,45 @@
     sideWindows.frustumCulled = false;
     trainGroup.add(sideWindows);
 
+    const underframe = new THREE.Mesh(
+      new THREE.BoxGeometry(1.99, 0.28, trainDepth - 0.82),
+      new THREE.MeshStandardMaterial({ color: 0x37323d, roughness: 0.82 })
+    );
+    underframe.position.y = 0.21;
+    trainGroup.add(underframe);
+
+    const wheels = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.36, 0.36, 0.18, 12),
+      new THREE.MeshStandardMaterial({ color: 0x302934, roughness: 0.76 }),
+      8
+    );
+    const wheelMatrix = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
+    let wheelIndex = 0;
+    for (const x of [-1.14, 1.14]) {
+      for (const z of [-9.4, -7.6, 7.6, 9.4]) {
+        wheels.setMatrixAt(wheelIndex++, wheelMatrix.setPosition(x, 0.36, z));
+      }
+    }
+    wheels.frustumCulled = false;
+    trainGroup.add(wheels);
+
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0x186e73 });
+    const seamGeometry = new THREE.BoxGeometry(0.035, 2.78, 0.042);
+    for (const x of [-1.188, 1.188]) {
+      for (const z of [-6, 6]) {
+        for (const offset of [-0.83, 0, 0.83]) {
+          const seam = new THREE.Mesh(seamGeometry, doorMat);
+          seam.position.set(x, 1.65, z + offset);
+          trainGroup.add(seam);
+        }
+      }
+    }
+
     // Warm carriage headlights
     const lightMat = new THREE.MeshBasicMaterial({ color: 0xffdfa0 });
     const lightL = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.2, 10), lightMat);
     lightL.rotation.x = Math.PI / 2;
+    lightL.scale.x = 1.45;
     lightL.position.set(-0.75, 1.1, trainDepth / 2 + 0.05);
     const lightR = lightL.clone();
     lightR.position.x = 0.75;
@@ -1582,9 +1610,9 @@
     scene.add(trainGroup);
     obstacles.push(trainGroup);
 
-    // Crystals on top of the train roof
-    for (let rz = -8; rz <= 8; rz += 3.5) {
-      createCrystal(laneIndex, zPos + rz, TRAIN_HEIGHT + 1.2);
+    // Ground-level rewards resume just past the train.
+    for (let gap = 3; gap <= 9; gap += 3) {
+      createCrystal(laneIndex, zPos - trainDepth / 2 - gap);
     }
   }
 
@@ -1765,11 +1793,12 @@
     metalness: 0.85
   });
 
-  function createCrystal(laneIndex, zPos, yPos = 1.2) {
+  function createCrystal(laneIndex, zPos, yPos = GROUND_CRYSTAL_Y, flightTrail = false) {
     const crystal = new THREE.Mesh(crystalGeom, crystalMat);
     crystal.position.set(LANES[laneIndex], yPos, zPos);
     crystal.castShadow = true;
     crystal.userData = { lane: laneIndex, collected: false };
+    crystal.userData.flightTrail = flightTrail;
     scene.add(crystal);
     coins.push(crystal);
   }
@@ -1852,22 +1881,38 @@
     const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
     const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), coreMat);
 
-    // Cyan Flight Beacon Ring
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    const beacon = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.05, 8, 24), ringMat);
-    beacon.rotation.x = Math.PI / 2;
+    const pulse = new THREE.Mesh(
+      new THREE.TorusGeometry(0.85, 0.06, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffde8f, transparent: true, opacity: 0.9 })
+    );
+    pulse.rotation.x = Math.PI / 2;
+    pulse.position.y = -1.12;
 
-    jetpackGroup.add(cL);
-    jetpackGroup.add(fL);
-    jetpackGroup.add(cR);
-    jetpackGroup.add(fR);
-    jetpackGroup.add(brace);
-    jetpackGroup.add(core);
-    jetpackGroup.add(beacon);
-
-    jetpackGroup.userData = { type: 'jetpack', lane: laneIndex, collected: false };
+    const arrowGeometry = new THREE.ConeGeometry(0.27, 0.36, 4);
+    const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xffbd57, transparent: true });
+    const arrows = [0, 1, 2].map(() => new THREE.Mesh(arrowGeometry, arrowMaterial.clone()));
+    jetpackGroup.add(cL, fL, cR, fR, brace, core, pulse, ...arrows);
+    jetpackGroup.userData = { type: 'jetpack', lane: laneIndex, collected: false, pulse, arrows, flames: [fL, fR], glowTime: 0 };
     scene.add(jetpackGroup);
     powerups.push(jetpackGroup);
+  }
+
+  function animateJetpackPickup(pickup, delta) {
+    const { pulse, arrows, flames } = pickup.userData;
+    const time = pickup.userData.glowTime += delta;
+    pickup.position.y = 1.45 + Math.sin(time * 4) * 0.13;
+    pulse.position.y = 0.28 - pickup.position.y;
+    const ripple = (time * 1.2) % 1;
+    pulse.scale.setScalar(0.65 + ripple * 1.4);
+    pulse.material.opacity = 0.95 * (1 - ripple);
+
+    for (let i = 0; i < arrows.length; i++) {
+      const phase = (time * 1.5 + i / arrows.length) % 1;
+      arrows[i].position.y = 0.72 + phase * 1.5;
+      arrows[i].scale.setScalar(1 - phase * 0.36);
+      arrows[i].material.opacity = Math.sin(phase * Math.PI);
+    }
+    for (const flame of flames) flame.scale.y = 0.8 + Math.sin(time * 22) * 0.2;
   }
 
   // 3. Super Jump Sneakers (Red High-Tops with Golden Spring Coils)
@@ -2208,20 +2253,6 @@
 
   function spawnWorldPattern() {
     while (nextSpawnZ > -280) {
-      // 🚀 Sky Flight Mode: Continuous Runway of Sky Crystals (Subway Surfers Style!)
-      if (state.jetpackTimer > 0) {
-        const flyLane = Math.floor(Math.random() * 3);
-        const secondLane = (flyLane + 1) % 3;
-        for (let cz = -3; cz <= 3; cz++) {
-          createCrystal(flyLane, nextSpawnZ + cz * 3.4, JETPACK_FLIGHT_Y);
-        }
-        for (let cz = -2; cz <= 2; cz++) {
-          createCrystal(secondLane, nextSpawnZ + cz * 3.4, JETPACK_FLIGHT_Y);
-        }
-        nextSpawnZ -= 36;
-        continue;
-      }
-
       const roll = Math.random();
       const openLane = Math.floor(Math.random() * 3);
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
@@ -2282,14 +2313,14 @@
         createHurdleObstacle(obstacleLane, nextSpawnZ);
 
         // High crystal jump arc rewarding player
-        createCrystal(obstacleLane, nextSpawnZ + 3.8, 1.4);
-        createCrystal(obstacleLane, nextSpawnZ, 3.4);
-        createCrystal(obstacleLane, nextSpawnZ - 3.8, 1.4);
+        createCrystal(obstacleLane, nextSpawnZ + 3.8);
+        createCrystal(openLane, nextSpawnZ);
+        createCrystal(obstacleLane, nextSpawnZ - 3.8);
         nextSpawnZ -= 52;
       } else {
         // Pattern 4: Parkour Rhythm Agility Combo (Jump ➔ Slide / Duck!)
         createHurdleObstacle(obstacleLane, nextSpawnZ);
-        createCrystal(obstacleLane, nextSpawnZ, 3.4);
+        createCrystal(openLane, nextSpawnZ);
 
         // Followed 18m later by an overhead laser gantry
         createOverheadSlideObstacle(obstacleLane, nextSpawnZ - 18);
@@ -2602,7 +2633,6 @@
     state.coins = 0;
     state.distance = 0;
     state.speed = 11; // 13 KM/H ultra-relaxed gentle beginner start
-    state.baseSpeed = 11;
     state.currentLane = 0;
     state.playerX = 0;
     state.targetX = 0;
@@ -2709,6 +2739,14 @@
   let menuIdleTime = 0;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+  function getNextRunSpeed(run, delta) {
+    const distanceSpeed = Math.min(42, 11 + run.distance * 0.014);
+    const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0);
+    const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
+    const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
+    return run.speed + change;
+  }
+
   // --- UPDATE LOOP ---
   function update(delta) {
     if (!state.running) {
@@ -2767,14 +2805,15 @@
 
     // 2. Jetpack (Fly Thing) Timer & HUD
     if (state.jetpackTimer > 0) {
-      state.jetpackTimer -= delta;
+      state.jetpackTimer = Math.max(0, state.jetpackTimer - delta);
       if (badgeJetpack) badgeJetpack.style.display = 'flex';
       if (timerJetpack) timerJetpack.textContent = Math.ceil(state.jetpackTimer) + 's';
       if (jetpackMesh) jetpackMesh.visible = true;
 
       // Fly high in the sky!
-      state.targetY = JETPACK_FLIGHT_Y;
-      state.playerY += (JETPACK_FLIGHT_Y - state.playerY) * 6 * delta;
+      if (state.jetpackTimer > 0) {
+        state.playerY += (JETPACK_FLIGHT_Y - state.playerY) * (1 - Math.exp(-3.6 * delta));
+      }
 
       if (state.jetpackTimer <= 0) {
         if (badgeJetpack) badgeJetpack.style.display = 'none';
@@ -2856,8 +2895,6 @@
       if (skateWheelsL) skateWheelsL.forEach((w) => { w.rotation.x += wheelSpin; });
       if (skateWheelsR) skateWheelsR.forEach((w) => { w.rotation.x += wheelSpin; });
 
-      state.speed = Math.max(state.speed, 34);
-
       if (state.skatesTimer <= 0) {
         if (badgeSkates) badgeSkates.style.display = 'none';
         if (skateFrameL) skateFrameL.visible = false;
@@ -2868,29 +2905,20 @@
       if (skateFrameR && skateFrameR.visible) skateFrameR.visible = false;
     }
 
-    // Progressive Speed: Starts super calm & slow at 13 KM/H (speed 11), gentle gradual acceleration like big games!
-    const distFactor = Math.max(0, state.distance - 40) * 0.016;
-    const scoreFactor = Math.sqrt(Math.max(0, state.score - 50)) * 0.14;
-    const naturalSpeed = Math.min(65, 11 + distFactor + scoreFactor);
-
     if (state.isBoosted) {
       state.boostTimer -= delta;
-      state.speed = 60;
       if (state.boostTimer <= 0) {
         state.isBoosted = false;
         state.hasShield = false;
-        state.speed = naturalSpeed;
         if (hoverboardMesh) hoverboardMesh.visible = false;
         if (badgeShield) badgeShield.style.display = 'none';
       }
-    } else {
-      state.speed = naturalSpeed;
     }
 
-    // Time Dilation when Time Warp is active (Slow-mo world & obstacles by 55%)
-    const timeScale = (state.warpTimer > 0) ? 0.45 : 1.0;
-    const distDelta = state.speed * delta * timeScale;
-    state.distance += state.speed * delta;
+    state.speed = getNextRunSpeed(state, delta);
+    const distDelta = state.speed * delta;
+    state.distance += distDelta;
+    if (state.jetpackTimer > 0) fillFlightCrystalTrail(distDelta);
     state.score += distDelta * state.multiplier * 1.5;
 
     // Overdrive gauge
@@ -2898,7 +2926,7 @@
     if (hudOverdriveFill) hudOverdriveFill.style.width = state.overdriveCharge + '%';
 
     // Snappy Lane Transition
-    state.playerX += (state.targetX - state.playerX) * 28 * delta;
+    state.playerX += (state.targetX - state.playerX) * (1 - Math.exp(-28 * delta));
 
     // Check train roof ground support
     let activeRoofGround = 0;
@@ -2962,9 +2990,9 @@
 
     if (state.jetpackTimer > 0) {
       // High Sky View during Jetpack Flight (Subway Surfers High Elevation)
-      camera.position.y += ((JETPACK_FLIGHT_Y + 3.8) - camera.position.y) * 8 * delta;
+      camera.position.y += ((state.playerY + 3.8) - camera.position.y) * (1 - Math.exp(-8 * delta));
       camera.position.z += (8.6 - camera.position.z) * 8 * delta;
-      camera.lookAt(state.playerX * 0.45, JETPACK_FLIGHT_Y - 0.8, -25);
+      camera.lookAt(state.playerX * 0.45, camera.position.y - 4.6, -25);
     } else {
       // Classic Ground Track 3rd-Person Framing with Footstep Bounce
       const runBounce = (!state.isJumping && !state.isSliding) ? Math.sin(runAnimTime * 2.2) * 0.05 : 0;
@@ -2996,15 +3024,6 @@
       }
     }
 
-    // Scroll & Drift 3D Sky Clouds
-    skyClouds.forEach((c) => {
-      c.position.z += distDelta * 0.45;
-      if (c.position.z > 25) {
-        c.position.z = -300 - Math.random() * 40;
-        c.position.x = (Math.random() - 0.5) * 85;
-      }
-    });
-
     // Update active jetpack flight smoke particles
     for (let i = 0; i < flightSmokeParticles.length; i++) {
       const sp = flightSmokeParticles[i];
@@ -3016,7 +3035,7 @@
           const progress = sp.userData.life / sp.userData.maxLife;
           sp.position.x += sp.userData.vx * delta;
           sp.position.y += sp.userData.vy * delta;
-          sp.position.z += (sp.userData.vz + distDelta) * delta;
+          sp.position.z += sp.userData.vz * delta + distDelta;
           const sc = 0.4 + progress * 2.2;
           sp.scale.set(sc, sc, sc);
           sp.material.opacity = Math.max(0, 0.75 * (1 - progress));
@@ -3178,6 +3197,7 @@
       const p = powerups[i];
       p.position.z += moveZ;
       p.rotation.y += delta * 3.0;
+      if (p.userData.type === 'jetpack') animateJetpackPickup(p, delta);
 
       const dist = p.position.distanceTo(playerGroup.position);
       if (dist < 2.2 && !p.userData.collected) {
@@ -3196,7 +3216,7 @@
             window.soundEngine.playPowerupSFX();
           }
         } else if (pType === 'jetpack') {
-          state.jetpackTimer = 12.0;
+          startJetpack(12);
           careerStats.totalJetpacks = (careerStats.totalJetpacks || 0) + 1;
           saveCareerStats();
           updateCareerStatsUI();
@@ -3205,12 +3225,6 @@
           if (window.soundEngine) {
             window.soundEngine.playJetpackSFX();
             window.soundEngine.playPowerupSFX();
-          }
-          // Launch a sparkling runway of sky crystals ahead
-          for (let l = 0; l < 3; l++) {
-            for (let z = 0; z < 8; z++) {
-              createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
-            }
           }
         } else if (pType === 'sneakers') {
           state.sneakersTimer = 14.0;
@@ -3294,13 +3308,8 @@
             activateHoverboardSurf();
             showToast('🎁 MYSTERY BOX: 🛹 CYBER HOVERBOARD SURF!');
           } else if (rolls < 0.85) {
-            state.jetpackTimer = 14.0;
+            startJetpack(14);
             showToast('🎁 MYSTERY BOX: 🚀 MEGA SKY FLIGHT!');
-            for (let l = 0; l < 3; l++) {
-              for (let z = 0; z < 8; z++) {
-                createCrystal(l, -18 - z * 4.2, JETPACK_FLIGHT_Y);
-              }
-            }
           } else {
             showToast('🎁 MYSTERY BOX: 💥 SONIC EMP BLAST!');
             for (let oi = obstacles.length - 1; oi >= 0; oi--) {
@@ -3332,31 +3341,34 @@
     }
 
     // Move & collect crystals (Supports Chumbak / Magnet / Jetpack / Vortex pulls!)
+    const isMagnet = state.magnetTimer > 0;
+    const isFlying = state.jetpackTimer > 0;
+    const isVortex = state.vortexTimer > 0;
+    const pullHeight = isFlying ? state.playerY + 0.7 : GROUND_CRYSTAL_Y;
     for (let i = coins.length - 1; i >= 0; i--) {
       const crystal = coins[i];
       crystal.position.z += moveZ;
       crystal.rotation.y += delta * 4.5;
       crystal.rotation.x += delta * 2.0;
+      updateFlightCrystal(crystal, delta);
 
       const dist = crystal.position.distanceTo(playerGroup.position);
 
-      const isMagnet = state.magnetTimer > 0;
-      const isFlying = state.jetpackTimer > 0;
-      const isVortex = state.vortexTimer > 0;
+      const canPull = isFlying === Boolean(crystal.userData.flightTrail);
 
-      if (isVortex && dist < 85) {
+      if (canPull && isVortex && dist < 85) {
         // Ultra-strong Rainbow Singularity Vortex pulls across all lanes & roofs
         crystal.position.x += (state.playerX - crystal.position.x) * 24 * delta;
-        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 24 * delta;
+        crystal.position.y += (pullHeight - crystal.position.y) * 24 * delta;
         crystal.position.z += (playerGroup.position.z - crystal.position.z) * 20 * delta;
-      } else if ((isMagnet || isFlying) && dist < 42) {
+      } else if (canPull && (isMagnet || isFlying) && dist < 42) {
         // Strong 3D vacuum pull towards player in X, Y, and Z!
         crystal.position.x += (state.playerX - crystal.position.x) * 18 * delta;
-        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 18 * delta;
+        crystal.position.y += (pullHeight - crystal.position.y) * 18 * delta;
         crystal.position.z += (playerGroup.position.z - crystal.position.z) * 15 * delta;
-      } else if ((state.isBoosted || state.skatesTimer > 0) && dist < 22) {
+      } else if (canPull && (state.isBoosted || state.skatesTimer > 0) && dist < 22) {
         crystal.position.x += (state.playerX - crystal.position.x) * 16 * delta;
-        crystal.position.y += (state.playerY + 1.2 - crystal.position.y) * 16 * delta;
+        crystal.position.y += (pullHeight - crystal.position.y) * 16 * delta;
         crystal.position.z += (playerGroup.position.z - crystal.position.z) * 14 * delta;
       }
 
@@ -3446,13 +3458,15 @@
     const delta = Math.min(clock.getDelta(), 0.08);
     update(delta);
     const rushing = state.running && !state.paused && state.isBoosted;
+    const flying = state.running && !state.paused && state.jetpackTimer > 0;
     container.classList.toggle('is-rushing', rushing);
+    container.classList.toggle('is-flying', flying);
     for (const ribbon of trailRibbons) {
       ribbon.visible = state.running && trailPoints.length > 1;
     }
     if (renderer && scene && camera) {
       const baseFov = camera.aspect < 0.65 ? 68 : 58;
-      const targetFov = baseFov + (rushing && !reducedMotion.matches ? 7 : 0);
+      const targetFov = baseFov + (reducedMotion.matches ? 0 : rushing ? 7 : flying ? 4 : 0);
       if (Math.abs(camera.fov - targetFov) > 0.02) {
         camera.fov += (targetFov - camera.fov) * Math.min(delta * 8, 1);
         camera.updateProjectionMatrix();
