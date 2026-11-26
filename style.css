@@ -1343,7 +1343,6 @@ body.theme-bright #start-screen {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
   padding: 6px 10px;
   border-left: 2px solid var(--menu-accent);
   background: #081523e8;
@@ -1498,7 +1497,13 @@ body.theme-bright #start-screen {
 
 @media (max-width: 390px) and (max-height: 600px) {
   #start-screen .menu-center-hero { margin-top: 8px; }
-  #start-screen .menu-record { margin-top: 6px; padding: 3px 7px; }
+  #start-screen .menu-record { padding: 3px 7px; }
+  .menu-key-art {
+    top: 28px;
+    height: calc(100% - 28px);
+    object-position: 50% 10%;
+    mask-image: linear-gradient(transparent, #000 48px);
+  }
   #start-screen .menu-bottom-capsule { gap: 6px; }
   #start-screen .menu-actions-stack { gap: 6px; }
   #start-screen .primary-start-btn { min-height: 46px; }
