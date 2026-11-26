@@ -1370,8 +1370,9 @@ body.theme-bright #start-screen {
   justify-content: space-between;
   width: 100%;
   max-width: 350px;
-  min-height: 54px;
-  padding: 10px 18px;
+  height: 54px;
+  flex-shrink: 0;
+  padding: 0 18px;
   border: 1px solid #fff1ae;
   border-radius: 3px 15px 3px 15px;
   background: linear-gradient(110deg, #fff5b9, var(--menu-accent) 42%, #ffb65b);
@@ -1487,7 +1488,7 @@ body.theme-bright #start-screen {
 @media (max-height: 440px) {
   #start-screen .menu-center-hero { margin-top: 6px; }
   #start-screen .menu-bottom-capsule { margin-top: 10px; gap: 4px; }
-  #start-screen :is(.primary-start-btn, #btn-install-app) { min-height: 42px; font-size: 16px; }
+  #start-screen :is(.primary-start-btn, #btn-install-app) { height: 42px; font-size: 16px; }
   #start-screen .menu-actions-stack { gap: 5px; }
 }
 
@@ -1506,5 +1507,5 @@ body.theme-bright #start-screen {
   }
   #start-screen .menu-bottom-capsule { gap: 6px; }
   #start-screen .menu-actions-stack { gap: 6px; }
-  #start-screen :is(.primary-start-btn, #btn-install-app) { min-height: 46px; }
+  #start-screen :is(.primary-start-btn, #btn-install-app) { height: 46px; }
 }
