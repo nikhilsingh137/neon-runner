@@ -12,15 +12,15 @@
   const VISIBLE_DISTANCE = 260;
   const JUMP_HEIGHT = 4.6;
   const GRAVITY = 32.0;
-  const START_SPEED = 15.5;
+  const START_SPEED = 20;
   const SKATE_WHEEL_RADIUS = 0.097;
   const TRAIN_HEIGHT = 3.5;
   const JETPACK_FLIGHT_Y = 8.5;
   const GROUND_CRYSTAL_Y = 1.2;
   let nextFlightCrystalZ = -16;
   let flightCrystalIndex = 0;
-  const FLIGHT_CRYSTAL_LANES = [1, 1, 0, 2, 2, 1, 0, 1, 2, 0, 0, 1];
-  const FLIGHT_CRYSTAL_GAPS = [3.2, 4.7, 3.6, 5.2];
+  const FLIGHT_CRYSTAL_LANES = [1, 0, 1, 2, 1, 0, 1, 2];
+  const FLIGHT_CRYSTAL_GAPS = [6.2, 6.9, 6.4, 7.2];
 
   // --- GAME STATE ---
   const state = {
@@ -237,10 +237,8 @@
       const index = flightCrystalIndex++;
       const lane = FLIGHT_CRYSTAL_LANES[index % FLIGHT_CRYSTAL_LANES.length];
       const height = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7);
-      createCrystal(lane, nextFlightCrystalZ, height, true);
-      if (index % 5 === 3) {
-        createCrystal((lane + 1) % LANES.length, nextFlightCrystalZ - 1.6, height, true);
-      }
+      const offset = index % 2 === 0 ? -0.43 : 0.43;
+      createCrystal(lane, nextFlightCrystalZ, height, true, offset);
       nextFlightCrystalZ -= FLIGHT_CRYSTAL_GAPS[index % FLIGHT_CRYSTAL_GAPS.length];
     }
   }
@@ -1860,9 +1858,9 @@
     metalness: 0.85
   });
 
-  function createCrystal(laneIndex, zPos, yPos = GROUND_CRYSTAL_Y, flightTrail = false) {
+  function createCrystal(laneIndex, zPos, yPos = GROUND_CRYSTAL_Y, flightTrail = false, lateralOffset = 0) {
     const crystal = new THREE.Mesh(crystalGeom, crystalMat);
-    crystal.position.set(LANES[laneIndex], yPos, zPos);
+    crystal.position.set(LANES[laneIndex] + lateralOffset, yPos, zPos);
     crystal.castShadow = true;
     crystal.userData = { lane: laneIndex, collected: false };
     crystal.userData.flightTrail = flightTrail;
@@ -2432,10 +2430,12 @@
   let nextSpawnZ = -45;
 
   function scatterGroundCrystals(anchorZ, primaryLane, alternateLane, count = 6) {
-    const laneOrder = [primaryLane, primaryLane, alternateLane, primaryLane, alternateLane, alternateLane];
-    const offsets = [0, 2.2, 5.6, 8.7, 12.2, 14.4];
+    const canChangeLane = Math.abs(primaryLane - alternateLane) === 1;
+    const offsets = [0, 4, 8.8, 13, 18, 22.6];
+    const lateralOffsets = [-0.66, 0.66, -0.52, 0.57, -0.61, 0.65];
     for (let i = 0; i < count; i++) {
-      createCrystal(laneOrder[i], anchorZ - offsets[i]);
+      const lane = canChangeLane && i % 2 === 1 ? alternateLane : primaryLane;
+      createCrystal(lane, anchorZ - offsets[i], GROUND_CRYSTAL_Y, false, lateralOffsets[i]);
     }
   }
 
@@ -2844,11 +2844,11 @@
     powerups.forEach((p) => scene.remove(p));
     powerups.length = 0;
 
-    nextSpawnZ = -95;
+    nextSpawnZ = -104;
     scatterGroundCrystals(-10, 1, 0, 5);
-    scatterGroundCrystals(-29, 1, 2);
-    scatterGroundCrystals(-48, 2, 1, 5);
-    scatterGroundCrystals(-67, 0, 1, 5);
+    scatterGroundCrystals(-33, 1, 2, 5);
+    scatterGroundCrystals(-56, 1, 0, 4);
+    scatterGroundCrystals(-76, 1, 2, 4);
 
     spawnWorldPattern();
 
@@ -2917,7 +2917,7 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function getNextRunSpeed(run, delta) {
-    const distanceSpeed = Math.min(42, START_SPEED + run.distance * 0.0125);
+    const distanceSpeed = Math.min(46, START_SPEED + run.distance * 0.0155);
     const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0);
     const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
     const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
