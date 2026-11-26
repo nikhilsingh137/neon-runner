@@ -326,6 +326,16 @@ html, body {
   border-color: #ffffff;
 }
 
+#btn-slide {
+  background: #482a32e8;
+  border-color: #ffc477;
+  color: #fff2d7;
+}
+
+#btn-slide:active {
+  background: #983f3f;
+}
+
 .touch-btn.boost-btn {
   width: min(100%, 82px);
   border-radius: 29px;

@@ -1767,80 +1767,92 @@
     obstacles.push(hurdleGroup);
   }
 
+  let slideGateSign;
+
+  function getSlideGateSign() {
+    if (slideGateSign) return slideGateSign;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 384;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#401f29';
+    ctx.fillRect(0, 0, 384, 192);
+    ctx.fillStyle = '#ef9a54';
+    ctx.fillRect(0, 0, 384, 24);
+    ctx.fillRect(0, 170, 384, 22);
+    ctx.fillStyle = '#45262c';
+    for (let x = -28; x < 384; x += 46) {
+      for (const y of [0, 170]) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 16, y);
+        ctx.lineTo(x + 38, y + 22);
+        ctx.lineTo(x + 22, y + 22);
+        ctx.fill();
+      }
+    }
+
+    ctx.fillStyle = '#fff3d8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 64px sans-serif';
+    ctx.fillText('SLIDE', 192, 68);
+
+    ctx.lineWidth = 12;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#ffc36d';
+    for (const x of [112, 192, 272]) {
+      ctx.beginPath();
+      ctx.moveTo(x - 24, 115);
+      ctx.lineTo(x, 139);
+      ctx.lineTo(x + 24, 115);
+      ctx.stroke();
+    }
+
+    slideGateSign = new THREE.CanvasTexture(canvas);
+    return slideGateSign;
+  }
+
   function createOverheadSlideObstacle(laneIndex, zPos) {
     const beamGroup = new THREE.Group();
-    const laneX = LANES[laneIndex];
-    beamGroup.position.set(laneX, 0, zPos);
+    beamGroup.position.set(LANES[laneIndex], 0, zPos);
 
-    // Cyber Overhead Laser Gantry (Must Duck / Slide Under - "jhukna padhta hai")
-    const gantryGeom = new THREE.BoxGeometry(2.55, 1.5, 0.38);
-    const gantryMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      roughness: 0.3,
-      metalness: 0.7
-    });
-    const gantry = new THREE.Mesh(gantryGeom, gantryMat);
-    gantry.position.y = 2.45;
+    const frame = new THREE.MeshStandardMaterial({ color: 0xaa4436, roughness: 0.72 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0xffb777, roughness: 0.52 });
+    const lamp = new THREE.MeshBasicMaterial({ color: 0xffd28a });
+    const gantry = new THREE.Mesh(new THREE.BoxGeometry(2.55, 1.12, 0.38), frame);
+    gantry.position.y = 2.25;
     gantry.castShadow = true;
-    beamGroup.add(gantry);
 
-    // Amber Laser Security Warning Plate
-    const plateGeom = new THREE.BoxGeometry(2.2, 0.5, 0.42);
-    const plateMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      emissive: 0xd97706,
-      emissiveIntensity: 0.5
-    });
-    const plate = new THREE.Mesh(plateGeom, plateMat);
-    plate.position.set(0, 2.55, 0);
-    beamGroup.add(plate);
-
-    // Holographic Down Arrow Indicating "SLIDE UNDER / DUCK"
-    const arrowGeom = new THREE.ConeGeometry(0.22, 0.35, 4);
-    const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    [-0.6, 0, 0.6].forEach((ax) => {
-      const arrow = new THREE.Mesh(arrowGeom, arrowMat);
-      arrow.position.set(ax, 2.55, 0.23);
-      arrow.rotation.z = Math.PI; // pointing down
-      beamGroup.add(arrow);
-    });
-
-    // Intense Red Clearance Laser Beam along the bottom
-    const laserBeam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8),
-      new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    const sign = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.27, 1.04),
+      new THREE.MeshBasicMaterial({ map: getSlideGateSign(), toneMapped: false })
     );
-    laserBeam.rotation.z = Math.PI / 2;
-    laserBeam.position.set(0, 1.7, 0);
-    beamGroup.add(laserBeam);
+    sign.position.set(0, 2.25, 0.199);
 
-    // Floating Glowing Hologram "▼ SLIDE ▼"
-    const slCanvas = document.createElement('canvas');
-    slCanvas.width = 160;
-    slCanvas.height = 64;
-    const slctx = slCanvas.getContext('2d');
-    slctx.fillStyle = '#f59e0b';
-    slctx.font = 'bold 30px Fredoka One, sans-serif';
-    slctx.textAlign = 'center';
-    slctx.textBaseline = 'middle';
-    slctx.shadowColor = '#d97706';
-    slctx.shadowBlur = 10;
-    slctx.fillText('▼ SLIDE ▼', 80, 32);
-    const slTex = new THREE.CanvasTexture(slCanvas);
-    const slSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: slTex, transparent: true, opacity: 0.95 }));
-    slSprite.scale.set(1.6, 0.64, 1);
-    slSprite.position.set(0, 3.65, 0);
-    beamGroup.add(slSprite);
+    const clearance = new THREE.Mesh(new THREE.BoxGeometry(2.56, 0.10, 0.38), lamp);
+    clearance.position.y = 1.69;
+    beamGroup.add(gantry, sign, clearance);
 
-    // Carbon Reinforced Vertical Stanchions
-    const postGeom = new THREE.CylinderGeometry(0.12, 0.14, 3.4, 8);
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
-    const postL = new THREE.Mesh(postGeom, postMat);
-    postL.position.set(-1.28, 1.7, 0);
-    const postR = postL.clone();
-    postR.position.x = 1.28;
-    beamGroup.add(postL);
-    beamGroup.add(postR);
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.85, 0.34), frame);
+      post.position.set(side * 1.27, 1.43, 0);
+      const footing = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.24, 0.59), trim);
+      footing.position.set(side * 1.27, 0.12, 0);
+      const light = new THREE.Mesh(new THREE.SphereGeometry(0.096, 10, 8), lamp);
+      light.position.set(side * 1.19, 2.89, 0.08);
+      beamGroup.add(post, footing, light);
+    }
+
+    const approach = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.36, 2.25),
+      new THREE.MeshBasicMaterial({ color: 0xf9a152, transparent: true, opacity: 0.26, depthWrite: false })
+    );
+    approach.rotation.x = -Math.PI / 2;
+    approach.position.set(0, 0.055, 2.7);
+    beamGroup.add(approach);
 
     beamGroup.userData = {
       type: 'overhead',
@@ -2682,8 +2694,10 @@
     state.paused = !state.paused;
     if (state.paused) {
       pauseScreen.classList.remove('hidden');
+      window.soundEngine?.pauseMusic();
     } else {
       pauseScreen.classList.add('hidden');
+      window.soundEngine?.startMusic();
     }
   }
 

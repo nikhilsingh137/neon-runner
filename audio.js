@@ -1,5 +1,5 @@
 /**
- * Urban Dash 3D - Catchy Dynamic Audio & Arcade Sound Synthesizer
+ * Urban Dash 4D - Metro soundtrack and sound effects
  * Built with Web Audio API for zero-latency, high-energy mobile runner audio.
  */
 
@@ -7,11 +7,11 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.isMuted = localStorage.getItem('urban_dash_muted') === 'true';
-    this.musicVolume = 0.52;
+    this.musicVolume = 0.43;
     this.sfxVolume = 0.75;
     this.isPlayingMusic = false;
     this.currentStep = 0;
-    this.tempo = 132; // Energetic, bouncy subway runner tempo
+    this.nextNoteTime = 0;
     this.stepInterval = null;
     this.masterGain = null;
     this.musicGain = null;
@@ -25,20 +25,31 @@ class SoundEngine {
       C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880.00, C6: 1046.50
     };
 
-    // Catchy, Funky, Bouncy Bassline (Subway Surfers groove inspired)
-    this.bassPattern = [
-      'C2', null, 'C3', 'C2',  'G2', null, 'C2', 'E2',
-      'F2', null, 'F3', 'F2',  'A2', null, 'F2', 'G2',
-      'A2', null, 'A3', 'A2',  'E2', null, 'A2', 'C3',
-      'G2', null, 'G3', 'G2',  'B2', null, 'D3', 'G2'
-    ];
-
-    // Catchy, Joyful Arcade Runner Lead Melody
-    this.melodyPattern = [
-      'C4', 'E4', 'G4', 'C5',  null, 'G4', 'E4', 'G4',
-      'A4', null, 'G4', 'E4',  'D4', 'E4', 'G4', null,
-      'C5', null, 'B4', 'A4',  'G4', null, 'E4', 'D4',
-      'C4', 'D4', 'E4', 'G4',  'C5', null, 'C5', null
+    this.sections = [
+      {
+        tempo: 116,
+        chords: [[57, 60, 64, 67], [53, 57, 60, 64], [60, 64, 67, 71], [55, 59, 62, 67]],
+        bass: [0, 6, 8, 14],
+        melody: [[2, 1], [5, 2], [8, 4], [11, 3], [14, 2]],
+        kicks: [0, 8, 11],
+        tone: 'sine'
+      },
+      {
+        tempo: 123,
+        chords: [[60, 64, 67, 74], [55, 59, 62, 69], [57, 60, 64, 67], [53, 57, 60, 67]],
+        bass: [0, 3, 7, 10, 12],
+        melody: [[0, 4], [3, 6], [6, 5], [9, 4], [12, 3], [15, 1]],
+        kicks: [0, 4, 8, 12],
+        tone: 'triangle'
+      },
+      {
+        tempo: 128,
+        chords: [[53, 57, 60, 64], [55, 59, 62, 65], [57, 60, 64, 71], [60, 64, 67, 69]],
+        bass: [0, 4, 7, 8, 12, 15],
+        melody: [[1, 2], [4, 4], [7, 5], [10, 7], [12, 6], [14, 4]],
+        kicks: [0, 6, 8, 12, 14],
+        tone: 'sine'
+      }
     ];
 
     this.pickupPitchStep = 0;
@@ -82,55 +93,94 @@ class SoundEngine {
   startMusic() {
     if (this.isPlayingMusic) return;
     this.resumeContext();
-    this.isPlayingMusic = true;
-    this.currentStep = 0;
+    if (!this.ctx) return;
 
-    const stepDuration = (60 / this.tempo) / 4;
-    this.stepInterval = setInterval(() => {
-      if (!this.isPlayingMusic || !this.ctx) return;
-      this.playStep(this.currentStep);
-      this.currentStep = (this.currentStep + 1) % 32;
-    }, stepDuration * 1000);
+    this.isPlayingMusic = true;
+    const now = this.ctx.currentTime;
+    this.musicGain.gain.cancelScheduledValues(now);
+    this.musicGain.gain.setTargetAtTime(this.musicVolume, now, 0.018);
+    this.nextNoteTime = now + 0.045;
+    this.stepInterval = setInterval(() => this.scheduleMusic(), 25);
+    this.scheduleMusic();
   }
 
-  stopMusic() {
+  pauseMusic() {
     this.isPlayingMusic = false;
-    if (this.stepInterval) {
+    if (this.stepInterval !== null) {
       clearInterval(this.stepInterval);
       this.stepInterval = null;
     }
+    if (this.ctx) {
+      const now = this.ctx.currentTime;
+      this.musicGain.gain.cancelScheduledValues(now);
+      this.musicGain.gain.setTargetAtTime(0, now, 0.018);
+    }
   }
 
-  playStep(step) {
-    if (this.isMuted || !this.ctx) return;
+  stopMusic() {
+    this.pauseMusic();
+    this.currentStep = 0;
+  }
+
+  scheduleMusic() {
+    if (!this.isPlayingMusic || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
+    if (this.nextNoteTime < now) this.nextNoteTime = now + 0.015;
 
-    // 1. Kick on beats 0, 4, 8, 12, 16, 20, 24, 28 (Punchy arcade 4-on-the-floor)
-    if (step % 4 === 0) {
-      this.playKick(now);
+    const stepsPerSection = 16 * 8;
+    while (this.nextNoteTime < now + 0.1) {
+      const section = this.sections[Math.floor(this.currentStep / stepsPerSection) % this.sections.length];
+      const stepDuration = 15 / section.tempo;
+      this.playStep(this.currentStep, section, this.nextNoteTime, stepDuration);
+      this.currentStep += 1;
+      this.nextNoteTime += stepDuration;
+    }
+  }
+
+  playStep(step, section, time, stepDuration) {
+    if (this.isMuted) return;
+
+    const beat = step % 16;
+    const bar = Math.floor(step / 16) % 8;
+    const chord = section.chords[bar % section.chords.length];
+    if (section.kicks.includes(beat)) this.playKick(time);
+    if (beat === 4 || beat === 12 || (bar === 7 && beat === 15)) this.playSnare(time);
+    if (beat % 2 === 0) this.playHiHat(time, beat % 4 === 2 ? 0.055 : 0.027);
+
+    if (section.bass.includes(beat)) {
+      const bassNote = (beat === 7 || beat === 14 ? chord[2] : chord[0]) - 24;
+      this.playBass(this.midiFrequency(bassNote), time);
     }
 
-    // 2. Snare / Clap on beats 4, 12, 20, 28
-    if (step % 8 === 4) {
-      this.playSnare(now);
+    if (beat === 0 || beat === 10) {
+      const voicing = beat === 0 ? chord.slice(0, 3) : chord.slice(1);
+      for (const note of voicing) this.playMusicVoice(note, time, stepDuration * 5.4, 0.027, 'sine');
     }
 
-    // 3. Shaker / Hi-Hat on offbeats
-    if (step % 2 === 0) {
-      this.playHiHat(now, step % 4 === 2 ? 0.08 : 0.04);
+    const melody = section.melody.find(([position]) => position === beat);
+    if (melody) {
+      const degree = melody[1] + (bar === 7 && beat >= 12 ? 1 : 0);
+      const note = chord[degree % chord.length] + Math.floor(degree / chord.length) * 12;
+      this.playMusicVoice(note, time, stepDuration * 1.65, 0.115, section.tone);
     }
+  }
 
-    // 4. Funky Bouncy Bass
-    const bNote = this.bassPattern[step % this.bassPattern.length];
-    if (bNote && this.notes[bNote]) {
-      this.playBass(this.notes[bNote], now);
-    }
+  midiFrequency(note) {
+    return 440 * Math.pow(2, (note - 69) / 12);
+  }
 
-    // 5. Catchy Marimba-style Melodic Lead
-    const mNote = this.melodyPattern[step % this.melodyPattern.length];
-    if (mNote && this.notes[mNote]) {
-      this.playMarimbaLead(this.notes[mNote], now);
-    }
+  playMusicVoice(note, time, duration, volume, type) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(this.midiFrequency(note), time);
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.exponentialRampToValueAtTime(volume, time + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+    osc.start(time);
+    osc.stop(time + duration + 0.01);
   }
 
   playKick(time) {
@@ -215,24 +265,6 @@ class SoundEngine {
 
     osc.start(time);
     osc.stop(time + 0.18);
-  }
-
-  playMarimbaLead(freq, time) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, time);
-
-    // Bouncy arcade mallet attack
-    gain.gain.setValueAtTime(0.18, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
-
-    osc.connect(gain);
-    gain.connect(this.musicGain);
-
-    osc.start(time);
-    osc.stop(time + 0.16);
   }
 
   // --- CRISP ARCADE SOUND EFFECTS (SFX) ---
