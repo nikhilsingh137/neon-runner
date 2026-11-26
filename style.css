@@ -1365,9 +1365,10 @@ body.theme-bright #start-screen {
   gap: 9px;
 }
 
-#start-screen .primary-start-btn {
+#start-screen :is(.primary-start-btn, #btn-install-app) {
   display: flex;
   justify-content: space-between;
+  width: 100%;
   max-width: 350px;
   min-height: 54px;
   padding: 10px 18px;
@@ -1396,16 +1397,15 @@ body.theme-bright #start-screen {
 }
 
 #start-screen #btn-install-app {
-  width: auto;
-  min-height: 36px;
-  padding: 6px 14px;
-  color: #f7faf4;
-  border: 1px solid #ffffff40;
-  border-radius: 7px;
-  background: #081523e8;
-  font-size: 11px;
-  box-shadow: none;
-  text-shadow: none;
+  justify-content: center;
+  color: #fff9ed;
+  border-color: #f9cabe9c;
+  background: #352340ed;
+  box-shadow: 0 4px #201329;
+}
+
+#start-screen #btn-install-app:hover {
+  background: #523052;
 }
 
 #start-screen button:focus-visible {
@@ -1487,7 +1487,7 @@ body.theme-bright #start-screen {
 @media (max-height: 440px) {
   #start-screen .menu-center-hero { margin-top: 6px; }
   #start-screen .menu-bottom-capsule { margin-top: 10px; gap: 4px; }
-  #start-screen .primary-start-btn { min-height: 42px; font-size: 16px; }
+  #start-screen :is(.primary-start-btn, #btn-install-app) { min-height: 42px; font-size: 16px; }
   #start-screen .menu-actions-stack { gap: 5px; }
 }
 
@@ -1506,6 +1506,5 @@ body.theme-bright #start-screen {
   }
   #start-screen .menu-bottom-capsule { gap: 6px; }
   #start-screen .menu-actions-stack { gap: 6px; }
-  #start-screen .primary-start-btn { min-height: 46px; }
-  #start-screen #btn-install-app { min-height: 33px; }
+  #start-screen :is(.primary-start-btn, #btn-install-app) { min-height: 46px; }
 }

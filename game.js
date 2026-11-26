@@ -88,6 +88,7 @@
   let skyClouds = [], cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
+  const metroSkies = new Map();
   const trailLength = 24;
   const trailPoints = [];
   let trailRibbons = [];
@@ -258,7 +259,7 @@
       if (optBright) optBright.classList.add('active');
       if (optDark) optDark.classList.remove('active');
       if (scene) {
-        scene.background = new THREE.Color(0xe7a4c7);
+        scene.background = getMetroSky('bright');
         if (scene.fog) scene.fog.color.setHex(0xe7a4c7);
       }
       if (hemiLight) {
@@ -276,7 +277,7 @@
       if (optDark) optDark.classList.add('active');
       if (optBright) optBright.classList.remove('active');
       if (scene) {
-        scene.background = new THREE.Color(0x242044);
+        scene.background = getMetroSky('dark');
         if (scene.fog) scene.fog.color.setHex(0x242044);
       }
       if (hemiLight) {
@@ -290,6 +291,7 @@
       }
     }
     if (scene) {
+      fitMetroSky();
       buildCityBuildings();
       if (tracksGroup) buildMetroEnvironment();
     }
@@ -1086,7 +1088,7 @@
 
     const isBright = state.theme === 'bright';
     const groundColor = isBright ? 0xdbeafe : 0x090d16; // Crisp light ballast in Day vs Deep midnight in Night
-    const wallColor = isBright ? 0x94a3b8 : 0x1e293b;
+    const wallColor = isBright ? 0xca787e : 0x55345a;
     const trimColor = isBright ? 0x0284c7 : 0x00f5d4; // Subway Blue trim in Day vs Electric Cyan neon in Night
     const dividerColor = isBright ? 0x94a3b8 : 0x334155;
     const tieWoodColor = isBright ? 0x451a03 : 0x0284c7; // High contrast: Rich dark timber in Day, glowing electric cyan composite in Night!
@@ -1323,6 +1325,48 @@
   }
 
   // --- 3D SKY CLOUDS (SUBWAY SURFERS SKY HIGH ELEVATION) ---
+  function getMetroSky(theme) {
+    if (metroSkies.has(theme)) return metroSkies.get(theme);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    const bright = theme === 'bright';
+    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, bright ? '#945fbb' : '#22224c');
+    sky.addColorStop(0.27, bright ? '#f38fbc' : '#663f8d');
+    sky.addColorStop(0.52, bright ? '#ffd097' : '#c4709d');
+    sky.addColorStop(1, bright ? '#e7a4c7' : '#242044');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const glow = ctx.createRadialGradient(710, 172, 12, 710, 172, 180);
+    glow.addColorStop(0, bright ? '#fff1abdd' : '#ffae9aa0');
+    glow.addColorStop(0.4, bright ? '#ffcc7880' : '#ff9a9d52');
+    glow.addColorStop(1, '#ffb38f00');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = bright ? '#fff5c4' : '#ffd2b3';
+    ctx.beginPath();
+    ctx.arc(710, 172, bright ? 33 : 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    metroSkies.set(theme, texture);
+    return texture;
+  }
+
+  function fitMetroSky() {
+    const sky = scene?.background;
+    if (!sky?.isTexture || !camera) return;
+
+    const aspect = camera.aspect;
+    sky.repeat.set(Math.min(1, aspect / 2), Math.min(1, 2 / aspect));
+    sky.offset.set((1 - sky.repeat.x) * 0.63, (1 - sky.repeat.y) * 0.61);
+  }
+
   function buildSkyClouds() {
     skyClouds.forEach((c) => scene.remove(c));
     skyClouds = [];
@@ -2382,19 +2426,8 @@
       state.isJumping = true;
       state.isSliding = false;
       state.jumpBuffered = false;
-      state.lastJumpTime = Date.now();
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
       state.vy = Math.sqrt(2 * GRAVITY * jumpHeight);
-
-      // 🦘 Hurdle Breaker Guarantee: Immediately mark ALL approaching hurdles as safely cleared!
-      // Even if player lands slightly early or jumped early, jump clearance is 100% granted!
-      obstacles.forEach((obs) => {
-        if (obs.userData && obs.userData.type === 'hurdle') {
-          if (obs.position.z >= -35 && obs.position.z <= 4.0) {
-            obs.userData.cleared = true;
-          }
-        }
-      });
 
       if (state.sneakersTimer > 0 && window.soundEngine && window.soundEngine.playSneakersSFX) {
         window.soundEngine.playSneakersSFX();
@@ -2411,19 +2444,10 @@
     if (state.jetpackTimer > 0) return;
     state.isSliding = true;
     state.slideTimer = state.slideDuration;
-    state.lastSlideTime = Date.now();
     state.jumpBuffered = false;
     if (state.isJumping) {
       state.vy = -26; // Fast downward stomp if sliding while in mid-air (Subway Surfers feel!)
     }
-    // Mark approaching overhead beams as cleared!
-    obstacles.forEach((obs) => {
-      if (obs.userData && obs.userData.type === 'overhead') {
-        if (obs.position.z >= -35 && obs.position.z <= 4.0) {
-          obs.userData.cleared = true;
-        }
-      }
-    });
     if (window.soundEngine) window.soundEngine.playSlideSFX();
   }
 
@@ -2502,8 +2526,6 @@
     state.isJumping = false;
     state.isSliding = false;
     state.slideTimer = 0;
-    state.lastJumpTime = 0;
-    state.lastSlideTime = 0;
     state.isBoosted = false;
     state.boostTimer = 0;
     state.overdriveCharge = 0;
@@ -3045,21 +3067,20 @@
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
+      const previousZ = obs.position.z;
       obs.position.z += moveZ;
 
-      if (obs.position.z > -30 && obs.position.z < 18) {
-        if (checkCollision(obs)) {
-          // If shielded by hoverboard, absorb hit!
-          if (state.hasShield) {
-            state.hasShield = false;
-            state.isBoosted = false;
-            if (hoverboardMesh) hoverboardMesh.visible = false;
-            if (badgeShield) badgeShield.style.display = 'none';
-            if (window.soundEngine) window.soundEngine.playPowerupSFX();
-          } else {
-            gameOver();
-            return;
-          }
+      if (checkCollision(obs, previousZ)) {
+        if (state.hasShield) {
+          obs.userData.cleared = true;
+          state.hasShield = false;
+          state.isBoosted = false;
+          if (hoverboardMesh) hoverboardMesh.visible = false;
+          if (badgeShield) badgeShield.style.display = 'none';
+          if (window.soundEngine) window.soundEngine.playPowerupSFX();
+        } else {
+          gameOver();
+          return;
         }
       }
 
@@ -3288,7 +3309,7 @@
   }
 
   // --- COLLISION LOGIC ---
-  function checkCollision(obs) {
+  function checkCollision(obs, previousZ) {
     if (state.godMode) return false;
     // Jetpack or Quantum Ghost Phase: 100% immune from all obstacles!
     if (state.jetpackTimer > 0 || state.ghostTimer > 0) return false;
@@ -3297,7 +3318,7 @@
     // Check if player is horizontally in the obstacle's lane
     if (Math.abs(state.playerX - laneX) > 1.05) return false;
 
-    // If previously cleared during jump/slide approach, never crash!
+    // A hoverboard shield absorbs one hit from this obstacle.
     if (obs.userData.cleared) return false;
 
     const zPos = obs.position.z;
@@ -3317,55 +3338,19 @@
       if (zPos >= -12.5 && zPos <= 12.0) {
         return true; // CRASH! Hit the train (head-on or side impact)!
       }
-    } else if (obs.userData.type === 'hurdle') {
-      // 🦘 High Hurdle Jump Clearance:
-      // If player jumped, is currently jumping, feet are airborne, recently jumped (1.8s buffer), or already cleared: NEVER CRASH!
-      const recentlyJumped = state.lastJumpTime && (Date.now() - state.lastJumpTime < 1800);
-      if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
-        obs.userData.cleared = true;
-        return false;
-      }
+    } else {
+      // Check the entire distance the obstacle traveled during this frame.
+      const contactDepth = obs.userData.depth / 2 + 0.18;
+      if (previousZ > contactDepth || zPos < -contactDepth) return false;
 
-      // If within 30m approaching hurdle, check airborne/jump state
-      if (zPos >= -30.0 && zPos <= 4.0) {
-        if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
-          obs.userData.cleared = true;
-          return false;
-        }
+      if (obs.userData.type === 'hurdle') {
+        return state.playerY < obs.userData.height;
       }
-
-      // Physical hurdle contact window (Depth is 0.28m)
-      if (zPos >= -0.32 && zPos <= 0.32) {
-        if (state.isJumping || state.playerY > 0.05 || recentlyJumped || obs.userData.cleared) {
-          obs.userData.cleared = true;
-          return false;
-        }
-        return true; // CRASH! Ran straight into low hurdle while standing/running on the ground without jumping!
-      }
-    } else if (obs.userData.type === 'overhead') {
-      // 🛹 Overhead Laser Gantry Clearance:
-      const recentlySlid = state.lastSlideTime && (Date.now() - state.lastSlideTime < 1600);
-      const isUnderBeam = (state.isSliding || state.slideTimer > 0 || recentlySlid);
-      // High Jump Clearance: if player jumps high over top of beam (> 2.8m, e.g. with Super Sneakers or High Jump)
-      const isOverBeam = (state.playerY >= 2.8);
-
-      if (isUnderBeam || isOverBeam || obs.userData.cleared) {
-        obs.userData.cleared = true;
-        return false;
-      }
-      if (zPos >= -30.0 && zPos <= 4.0) {
-        if (isUnderBeam || isOverBeam || obs.userData.cleared) {
-          obs.userData.cleared = true;
-          return false;
-        }
-      }
-      // Tight physical overhead gantry contact window ONLY
-      if (zPos >= -0.38 && zPos <= 0.38) {
-        if (isUnderBeam || isOverBeam || obs.userData.cleared) {
-          obs.userData.cleared = true;
-          return false;
-        }
-        return true; // CRASH! Ran upright into overhead laser gantry!
+      if (obs.userData.type === 'overhead') {
+        const runnerHeight = state.isSliding ? 1.35 : 2.95;
+        const underBeam = state.playerY + runnerHeight < obs.userData.slideClearance;
+        const overBeam = state.playerY >= 2.8;
+        return !underBeam && !overBeam;
       }
     }
 
@@ -3402,6 +3387,7 @@
     camera.fov = aspect < 0.65 ? 68 : 58;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    fitMetroSky();
   }
 
   window.addEventListener('DOMContentLoaded', () => {
