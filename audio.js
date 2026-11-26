@@ -12,7 +12,7 @@ class SoundEngine {
     this.sfxGain = null;
     this.pickupPitchStep = 0;
 
-    this.soundtrack = new Audio('assets/metro-indian-instrumentals.mp3');
+    this.soundtrack = new Audio('assets/metro-five-devotional-cues.mp3');
     this.soundtrack.preload = 'auto';
     this.soundtrack.loop = true;
     this.soundtrack.volume = 0.43;

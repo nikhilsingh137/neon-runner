@@ -651,7 +651,7 @@ html, body {
   margin: 6px 0;
 }
 
-.soundtrack-credits ul {
+.soundtrack-credits ol {
   padding-inline-start: 18px;
   margin-bottom: 6px;
 }
