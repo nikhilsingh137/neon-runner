@@ -12,6 +12,8 @@
   const VISIBLE_DISTANCE = 260;
   const JUMP_HEIGHT = 4.6;
   const GRAVITY = 32.0;
+  const START_SPEED = 15.5;
+  const SKATE_WHEEL_RADIUS = 0.097;
   const TRAIN_HEIGHT = 3.5;
   const JETPACK_FLIGHT_Y = 8.5;
   const GROUND_CRYSTAL_Y = 1.2;
@@ -24,7 +26,7 @@
     score: 0,
     coins: 0, // Energy Crystals
     distance: 0,
-    speed: 11, // Super relaxed beginner-friendly gentle start (13 KM/H)
+    speed: START_SPEED,
     maxSpeed: 65, // Scales up smoothly as score & distance grow!
     currentLane: 0, // -1, 0, 1
     playerX: 0,
@@ -89,7 +91,7 @@
   let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
-  let runnerSprite, runnerSpriteShadow;
+  let runnerSprite, runnerSpriteShadow, runnerSpriteAtlas, slideSpriteAtlas;
   let runnerSpritePhase = 0;
   const RUNNER_ATLAS_COLUMNS = 4;
   const RUNNER_ATLAS_ROWS = 2;
@@ -893,38 +895,7 @@
         sneakerGroup.add(lace);
       });
 
-      // 3D Inline Roller Skate Chassis & Glowing Wheels ("foot me wheel")
-      const skateFrame = new THREE.Group();
-      const frameBlade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.10, 0.08, 0.64),
-        new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.85, roughness: 0.2 })
-      );
-      frameBlade.position.set(0, -0.13, -0.06);
-      skateFrame.add(frameBlade);
-
-      const wheelGeom = new THREE.CylinderGeometry(0.09, 0.09, 0.07, 14);
-      wheelGeom.rotateZ(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({
-        color: 0x06b6d4,
-        emissive: 0x22d3ee,
-        emissiveIntensity: 0.85,
-        roughness: 0.2
-      });
-      const wheelCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-      const skateWheels = [];
-      [-0.24, -0.06, 0.12].forEach((wZ) => {
-        const wheelGroup = new THREE.Group();
-        wheelGroup.position.set(0, -0.21, wZ);
-        const wMesh = new THREE.Mesh(wheelGeom, wheelMat);
-        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.08, 10), wheelCoreMat);
-        core.rotation.z = Math.PI / 2;
-        wheelGroup.add(wMesh);
-        wheelGroup.add(core);
-        skateFrame.add(wheelGroup);
-        skateWheels.push(wheelGroup);
-      });
-
+      const { frame: skateFrame, wheels: skateWheels } = buildInlineSkateFrame();
       skateFrame.visible = false;
       sneakerGroup.add(skateFrame);
       sneakerGroup.userData = { skateFrame, skateWheels };
@@ -1039,22 +1010,28 @@
   }
 
   // --- BUILD METRO ENVIRONMENT & MAGNETIC RAILS ---
+  function configureRunnerAtlas(atlas, columns, rows) {
+    atlas.encoding = renderer.outputEncoding;
+    atlas.minFilter = THREE.LinearFilter;
+    atlas.generateMipmaps = false;
+    atlas.repeat.set(1 / columns, 1 / rows);
+  }
+
   function loadRunnerSprite() {
-    new THREE.TextureLoader().load('assets/kai-run-frames.png', (atlas) => {
-      atlas.encoding = renderer.outputEncoding;
-      atlas.minFilter = THREE.LinearFilter;
-      atlas.generateMipmaps = false;
-      atlas.repeat.set(1 / RUNNER_ATLAS_COLUMNS, 1 / RUNNER_ATLAS_ROWS);
+    const loader = new THREE.TextureLoader();
+    loader.load('assets/kai-slide-frames.png', (atlas) => {
+      configureRunnerAtlas(atlas, 3, 1);
+      slideSpriteAtlas = atlas;
+    });
+    loader.load('assets/kai-run-frames.png', (atlas) => {
+      configureRunnerAtlas(atlas, RUNNER_ATLAS_COLUMNS, RUNNER_ATLAS_ROWS);
+      runnerSpriteAtlas = atlas;
       runnerSprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: atlas,
         transparent: true,
         alphaTest: 0.48,
         toneMapped: false
       }));
-      const height = 3.25;
-      const cellAspect = (atlas.image.width / RUNNER_ATLAS_COLUMNS) / (atlas.image.height / RUNNER_ATLAS_ROWS);
-      runnerSprite.scale.set(height * cellAspect, height, 1);
-      runnerSprite.center.set(0.5, 0.045);
       runnerSprite.visible = false;
 
       const canvas = document.createElement('canvas');
@@ -1083,25 +1060,33 @@
   function updateRunnerSprite(delta) {
     if (!runnerSprite) return;
 
-    const showRunner = state.running && !state.isJumping && !state.isSliding &&
+    const sliding = state.isSliding && Boolean(slideSpriteAtlas);
+    const showSprite = state.running && !state.isJumping && (!state.isSliding || sliding) &&
       !state.isBoosted && state.jetpackTimer <= 0 && state.skatesTimer <= 0 &&
       state.playerY <= state.groundY + 0.06;
-    runnerSprite.visible = showRunner;
-    runnerSpriteShadow.visible = showRunner;
-    kaiModel.visible = !showRunner;
-    if (!showRunner) return;
+    runnerSprite.visible = showSprite;
+    runnerSpriteShadow.visible = showSprite;
+    kaiModel.visible = !showSprite;
+    if (!showSprite) return;
 
-    const count = RUNNER_ATLAS_COLUMNS * RUNNER_ATLAS_ROWS;
-    if (!state.paused) {
-      runnerSpritePhase = (runnerSpritePhase + delta * (10 + Math.min(8, state.speed * 0.25))) % count;
+    const columns = sliding ? 3 : RUNNER_ATLAS_COLUMNS;
+    const rows = sliding ? 1 : RUNNER_ATLAS_ROWS;
+    const atlas = sliding ? slideSpriteAtlas : runnerSpriteAtlas;
+    const height = sliding ? 1.63 : 3.25;
+    const cellAspect = (atlas.image.width / columns) / (atlas.image.height / rows);
+    runnerSprite.scale.set(height * cellAspect, height, 1);
+    runnerSprite.center.set(0.5, sliding ? 0.024 : 0.045);
+    runnerSprite.material.map = atlas;
+
+    if (!sliding && !state.paused) {
+      runnerSpritePhase = (runnerSpritePhase + delta * (10 + Math.min(8, state.speed * 0.25))) % (columns * rows);
     }
-    const frame = Math.floor(runnerSpritePhase);
-    const atlas = runnerSprite.material.map;
-    atlas.offset.set(
-      (frame % RUNNER_ATLAS_COLUMNS) / RUNNER_ATLAS_COLUMNS,
-      1 - (Math.floor(frame / RUNNER_ATLAS_COLUMNS) + 1) / RUNNER_ATLAS_ROWS
-    );
-    runnerSprite.position.y = 0.04 + Math.abs(Math.sin(runnerSpritePhase * Math.PI / 4)) * 0.065;
+    const slideProgress = 1 - state.slideTimer / state.slideDuration;
+    const frame = sliding ? THREE.MathUtils.clamp(Math.floor(slideProgress * 3), 0, 2) : Math.floor(runnerSpritePhase);
+    atlas.offset.set(frame % columns / columns, 1 - (Math.floor(frame / columns) + 1) / rows);
+
+    runnerSprite.position.y = sliding ? 0.048 : 0.04 + Math.abs(Math.sin(runnerSpritePhase * Math.PI / 4)) * 0.065;
+    runnerSpriteShadow.scale.set(sliding ? 1.28 : 1, sliding ? 1.46 : 1, 1);
     runnerSprite.material.rotation = THREE.MathUtils.clamp((state.targetX - state.playerX) * -0.09, -0.22, 0.22);
     runnerSprite.material.opacity = state.ghostTimer > 0 ? 0.52 : 1;
   }
@@ -2229,53 +2214,108 @@
   }
 
   // 10. 3D Turbo Roller Skates / Wheels on Feet Boost ("foot me wheel")
+  function buildInlineSkateFrame() {
+    const frame = new THREE.Group();
+    const chassis = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13, 0.085, 0.74),
+      new THREE.MeshStandardMaterial({ color: 0x4b3538, roughness: 0.48, metalness: 0.22 })
+    );
+    chassis.position.set(0, -0.12, -0.025);
+    frame.add(chassis);
+
+    const tireGeometry = new THREE.CylinderGeometry(SKATE_WHEEL_RADIUS, SKATE_WHEEL_RADIUS, 0.085, 16);
+    tireGeometry.rotateZ(Math.PI / 2);
+    const rimGeometry = new THREE.CylinderGeometry(0.063, 0.063, 0.092, 14);
+    rimGeometry.rotateZ(Math.PI / 2);
+    const markerGeometry = new THREE.SphereGeometry(0.019, 8, 6);
+    const tire = new THREE.MeshStandardMaterial({ color: 0x332935, roughness: 0.94 });
+    const rim = new THREE.MeshStandardMaterial({ color: 0xffa151, roughness: 0.58 });
+    const hub = new THREE.MeshBasicMaterial({ color: 0xffefbb });
+
+    const wheels = [];
+    for (const z of [-0.32, -0.119, 0.082, 0.283]) {
+      const wheel = new THREE.Group();
+      wheel.position.set(0, -0.205, z);
+      wheel.add(new THREE.Mesh(tireGeometry, tire), new THREE.Mesh(rimGeometry, rim));
+      for (const side of [-1, 1]) {
+        const marker = new THREE.Mesh(markerGeometry, hub);
+        marker.position.set(side * 0.05, 0.034, 0);
+        wheel.add(marker);
+      }
+      frame.add(wheel);
+      wheels.push(wheel);
+    }
+    return { frame, wheels };
+  }
+
+  const skateAxle = new THREE.Vector3();
+
+  function updateSkatingPose() {
+    const push = Math.sin(runAnimTime * 0.72);
+    kaiModel.scale.set(1, 1, 1);
+    kaiModel.position.set(0, 0, 0);
+    kaiModel.rotation.set(-0.15, push * 0.055, (state.targetX - state.playerX) * -0.1);
+    leftLeg.rotation.x = 0.15 + Math.max(0, push) * 0.38;
+    rightLeg.rotation.x = 0.15 + Math.max(0, -push) * 0.38;
+    leftLowerLeg.rotation.x = 0.19;
+    rightLowerLeg.rotation.x = 0.19;
+    leftArm.rotation.x = -0.25 + push * 0.32;
+    rightArm.rotation.x = -0.25 - push * 0.32;
+    leftArm.rotation.z = -0.32;
+    rightArm.rotation.z = 0.32;
+    leftForearm.rotation.x = 0.55;
+    rightForearm.rotation.x = 0.55;
+
+    playerGroup.updateMatrixWorld(true);
+    let lowestWheel = Infinity;
+    for (const wheels of [skateWheelsL, skateWheelsR]) {
+      for (const wheel of wheels) {
+        skateAxle.setFromMatrixPosition(wheel.matrixWorld);
+        lowestWheel = Math.min(lowestWheel, skateAxle.y - SKATE_WHEEL_RADIUS);
+      }
+    }
+    kaiModel.position.y = state.playerY + 0.019 - lowestWheel;
+  }
+
   function createRollerSkatesPowerup(laneIndex, zPos) {
     const group = new THREE.Group();
     group.position.set(LANES[laneIndex], 1.35, zPos);
+    const canvas = new THREE.MeshStandardMaterial({ color: 0xcc5946, roughness: 0.88 });
+    const sole = new THREE.MeshStandardMaterial({ color: 0xffdfac, roughness: 0.82 });
+    const shell = new THREE.SphereGeometry(1, 16, 12);
+    const soleShape = new THREE.BoxGeometry(0.39, 0.10, 0.83);
+    const buckle = new THREE.BoxGeometry(0.23, 0.067, 0.12);
+    const wheels = [];
 
-    const bootMat = new THREE.MeshStandardMaterial({
-      color: 0x06b6d4,
-      roughness: 0.25,
-      metalness: 0.5,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.5
-    });
-    const wheelMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      roughness: 0.2,
-      emissive: 0xfbbf24,
-      emissiveIntensity: 0.85
-    });
+    for (const side of [-1, 1]) {
+      const skate = new THREE.Group();
+      skate.position.x = side * 0.36;
+      skate.rotation.y = side * -0.14;
 
-    [-0.32, 0.32].forEach((xOff) => {
-      const boot = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.38, 0.70), bootMat);
-      boot.position.set(xOff, 0.18, 0);
-      group.add(boot);
-
-      const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.08, 0.64),
-        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-      );
-      blade.position.set(xOff, -0.06, 0);
-      group.add(blade);
-
-      [-0.22, 0, 0.22].forEach((wZ) => {
-        const wGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
-        wGeom.rotateZ(Math.PI / 2);
-        const wheel = new THREE.Mesh(wGeom, wheelMat);
-        wheel.position.set(xOff, -0.16, wZ);
-        group.add(wheel);
-      });
-    });
+      const upper = new THREE.Mesh(shell, canvas);
+      upper.scale.set(0.20, 0.185, 0.42);
+      upper.position.y = 0.14;
+      const heel = new THREE.Mesh(shell, canvas);
+      heel.scale.set(0.19, 0.28, 0.244);
+      heel.position.set(0, 0.24, 0.18);
+      const fastener = new THREE.Mesh(buckle, sole);
+      fastener.position.set(0, 0.34, -0.068);
+      const footbed = new THREE.Mesh(soleShape, sole);
+      const inline = buildInlineSkateFrame();
+      inline.frame.scale.setScalar(1.12);
+      wheels.push(...inline.wheels);
+      skate.add(upper, heel, footbed, fastener, inline.frame);
+      group.add(skate);
+    }
 
     const halo = new THREE.Mesh(
-      new THREE.TorusGeometry(1.15, 0.04, 8, 24),
-      new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+      new THREE.TorusGeometry(1.03, 0.042, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffba72 })
     );
     halo.rotation.x = Math.PI / 2;
+    halo.position.y = -0.36;
     group.add(halo);
-
-    group.userData = { type: 'skates', lane: laneIndex, collected: false };
+    group.userData = { type: 'skates', lane: laneIndex, collected: false, wheels };
     scene.add(group);
     powerups.push(group);
   }
@@ -2719,7 +2759,7 @@
     state.score = 0;
     state.coins = 0;
     state.distance = 0;
-    state.speed = 11; // 13 KM/H ultra-relaxed gentle beginner start
+    state.speed = START_SPEED;
     state.currentLane = 0;
     state.playerX = 0;
     state.targetX = 0;
@@ -2827,7 +2867,7 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function getNextRunSpeed(run, delta) {
-    const distanceSpeed = Math.min(42, 11 + run.distance * 0.014);
+    const distanceSpeed = Math.min(42, START_SPEED + run.distance * 0.0125);
     const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0);
     const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
     const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
@@ -2978,7 +3018,7 @@
       if (skateFrameL) skateFrameL.visible = true;
       if (skateFrameR) skateFrameR.visible = true;
 
-      const wheelSpin = delta * (state.speed * 1.8 + 14);
+      const wheelSpin = -delta * state.speed / 0.30;
       if (skateWheelsL) skateWheelsL.forEach((w) => { w.rotation.x += wheelSpin; });
       if (skateWheelsR) skateWheelsR.forEach((w) => { w.rotation.x += wheelSpin; });
 
@@ -3191,10 +3231,11 @@
 
       if (state.isSliding) {
         // 🛹 Athletic Low Skater Slide Under Laser Beams ("jhukna padhta hai")
-        kaiModel.scale.set(1.0, 0.45, 1.05);
-        kaiModel.rotation.x = 1.05; // Lean back flat
+        kaiModel.scale.set(1, 0.49, 1.02);
+        kaiModel.rotation.x = 0.74;
         kaiModel.rotation.y = 0;
-        kaiModel.position.y = -0.42;
+        kaiModel.position.x = 0;
+        kaiModel.position.y = 0.18;
         kaiModel.rotation.z = (state.targetX - state.playerX) * -0.12;
 
         leftLeg.rotation.x = -1.35;
@@ -3219,6 +3260,8 @@
 
         leftArm.rotation.x = -1.1;
         rightArm.rotation.x = -1.1;
+      } else if (state.skatesTimer > 0 && state.playerY <= state.groundY + 0.06) {
+        updateSkatingPose();
       } else {
         // 🏃 Energetic Authentic Subway Surfers Running Cycle with Dynamic Knee Flexion
         kaiModel.scale.set(1, 1, 1);
@@ -3285,6 +3328,9 @@
       p.position.z += moveZ;
       p.rotation.y += delta * 3.0;
       if (p.userData.type === 'jetpack') animateJetpackPickup(p, delta);
+      if (p.userData.type === 'skates') {
+        for (const wheel of p.userData.wheels) wheel.rotation.x -= delta * 9;
+      }
 
       const dist = p.position.distanceTo(playerGroup.position);
       if (dist < 2.2 && !p.userData.collected) {

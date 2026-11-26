@@ -3,6 +3,9 @@
  * Built with Web Audio API for zero-latency, high-energy mobile runner audio.
  */
 
+const METRO_BEATS_PER_MINUTE = 96;
+const METRO_STEPS_PER_SECTION = 64;
+
 class SoundEngine {
   constructor() {
     this.ctx = null;
@@ -27,28 +30,36 @@ class SoundEngine {
 
     this.sections = [
       {
-        tempo: 116,
-        chords: [[57, 60, 64, 67], [53, 57, 60, 64], [60, 64, 67, 71], [55, 59, 62, 67]],
-        bass: [0, 6, 8, 14],
-        melody: [[2, 1], [5, 2], [8, 4], [11, 3], [14, 2]],
-        kicks: [0, 8, 11],
-        tone: 'sine'
+        chords: [[50, 57, 60, 65], [55, 59, 65, 69], [48, 55, 59, 64], [45, 52, 55, 60]],
+        bass: [0, 5, 8, 11, 14],
+        melody: [[0, 3], [3, 5], [6, 4], [9, 6], [12, 3], [14, 2]],
+        kicks: [0, 7, 10],
+        chordsOn: [2, 8, 14],
+        voice: 'pluck'
       },
       {
-        tempo: 123,
-        chords: [[60, 64, 67, 74], [55, 59, 62, 69], [57, 60, 64, 67], [53, 57, 60, 67]],
-        bass: [0, 3, 7, 10, 12],
-        melody: [[0, 4], [3, 6], [6, 5], [9, 4], [12, 3], [15, 1]],
+        chords: [[48, 55, 59, 64], [52, 59, 62, 67], [45, 52, 55, 60], [53, 60, 64, 69]],
+        bass: [0, 4, 6, 8, 12, 14],
+        melody: [[2, 5], [4, 7], [7, 6], [10, 4], [12, 6], [15, 5]],
         kicks: [0, 4, 8, 12],
-        tone: 'triangle'
+        chordsOn: [2, 6, 10, 14],
+        voice: 'keys'
       },
       {
-        tempo: 128,
-        chords: [[53, 57, 60, 64], [55, 59, 62, 65], [57, 60, 64, 71], [60, 64, 67, 69]],
-        bass: [0, 4, 7, 8, 12, 15],
-        melody: [[1, 2], [4, 4], [7, 5], [10, 7], [12, 6], [14, 4]],
-        kicks: [0, 6, 8, 12, 14],
-        tone: 'sine'
+        chords: [[45, 52, 55, 60], [53, 60, 64, 69], [48, 55, 59, 67], [55, 59, 62, 69]],
+        bass: [0, 3, 7, 10, 13],
+        melody: [[1, 4], [5, 6], [7, 7], [10, 5], [13, 4], [15, 3]],
+        kicks: [0, 5, 10, 14],
+        chordsOn: [0, 9],
+        voice: 'bell'
+      },
+      {
+        chords: [[53, 60, 64, 67], [50, 57, 60, 65], [45, 52, 55, 64], [55, 59, 62, 65]],
+        bass: [0, 6, 8, 13],
+        melody: [[0, 6], [4, 4], [8, 5], [11, 7], [14, 6]],
+        kicks: [0, 8, 11],
+        chordsOn: [0, 7, 12],
+        voice: 'pluck'
       }
     ];
 
@@ -127,10 +138,9 @@ class SoundEngine {
     const now = this.ctx.currentTime;
     if (this.nextNoteTime < now) this.nextNoteTime = now + 0.015;
 
-    const stepsPerSection = 16 * 8;
+    const stepDuration = 15 / METRO_BEATS_PER_MINUTE;
     while (this.nextNoteTime < now + 0.1) {
-      const section = this.sections[Math.floor(this.currentStep / stepsPerSection) % this.sections.length];
-      const stepDuration = 15 / section.tempo;
+      const section = this.sections[Math.floor(this.currentStep / METRO_STEPS_PER_SECTION) % this.sections.length];
       this.playStep(this.currentStep, section, this.nextNoteTime, stepDuration);
       this.currentStep += 1;
       this.nextNoteTime += stepDuration;
@@ -141,27 +151,34 @@ class SoundEngine {
     if (this.isMuted) return;
 
     const beat = step % 16;
-    const bar = Math.floor(step / 16) % 8;
-    const chord = section.chords[bar % section.chords.length];
+    const bar = Math.floor(step / 16) % 4;
+    const chord = section.chords[bar];
     if (section.kicks.includes(beat)) this.playKick(time);
-    if (beat === 4 || beat === 12 || (bar === 7 && beat === 15)) this.playSnare(time);
-    if (beat % 2 === 0) this.playHiHat(time, beat % 4 === 2 ? 0.055 : 0.027);
-
-    if (section.bass.includes(beat)) {
-      const bassNote = (beat === 7 || beat === 14 ? chord[2] : chord[0]) - 24;
-      this.playBass(this.midiFrequency(bassNote), time);
+    if (beat === 4 || beat === 12) this.playSnare(time);
+    if (beat % 2 === 0 || (bar === 3 && beat >= 13)) {
+      this.playHiHat(time, beat % 4 === 2 ? 0.078 : 0.038);
     }
 
-    if (beat === 0 || beat === 10) {
-      const voicing = beat === 0 ? chord.slice(0, 3) : chord.slice(1);
-      for (const note of voicing) this.playMusicVoice(note, time, stepDuration * 5.4, 0.027, 'sine');
+    if (section.bass.includes(beat)) {
+      const degree = beat === 6 || beat === 14 ? 1 : 0;
+      this.playBass(chord[degree] - 12, time, stepDuration * 1.65);
+    }
+
+    if (section.chordsOn.includes(beat)) {
+      for (let i = 1; i < chord.length; i++) {
+        this.playMusicVoice(chord[i], time + i * 0.009, stepDuration * 3.4, 0.046, 'keys', (i - 2) * 0.23);
+      }
     }
 
     const melody = section.melody.find(([position]) => position === beat);
-    if (melody) {
-      const degree = melody[1] + (bar === 7 && beat >= 12 ? 1 : 0);
-      const note = chord[degree % chord.length] + Math.floor(degree / chord.length) * 12;
-      this.playMusicVoice(note, time, stepDuration * 1.65, 0.115, section.tone);
+    if (!melody) return;
+
+    const degree = melody[1] + (bar === 3 && beat >= 12 ? 1 : 0);
+    const note = chord[degree % chord.length] + Math.floor(degree / chord.length) * 12;
+    const pan = beat % 2 === 0 ? -0.15 : 0.15;
+    this.playMusicVoice(note, time, stepDuration * 2.15, 0.15, section.voice, pan);
+    if (beat < 13) {
+      this.playMusicVoice(note, time + stepDuration * 3, stepDuration * 1.5, 0.043, section.voice, -pan);
     }
   }
 
@@ -169,18 +186,33 @@ class SoundEngine {
     return 440 * Math.pow(2, (note - 69) / 12);
   }
 
-  playMusicVoice(note, time, duration, volume, type) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(this.midiFrequency(note), time);
-    gain.gain.setValueAtTime(0.001, time);
-    gain.gain.exponentialRampToValueAtTime(volume, time + 0.014);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(gain);
-    gain.connect(this.musicGain);
-    osc.start(time);
-    osc.stop(time + duration + 0.01);
+  playMusicVoice(note, time, duration, volume, voice, pan) {
+    const frequency = this.midiFrequency(note);
+    const audio = this.ctx;
+    const partials = voice === 'bell' ? [[1, 0.76, 'sine'], [2.01, 0.16, 'sine'], [3.93, 0.08, 'sine']]
+      : voice === 'keys' ? [[1, 0.69, 'triangle'], [2.003, 0.19, 'sine'], [3, 0.12, 'sine']]
+      : [[1, 0.64, 'triangle'], [2.006, 0.24, 'sine'], [3, 0.12, 'sine']];
+    const stereo = audio.createStereoPanner?.();
+    const target = stereo || this.musicGain;
+    if (stereo) {
+      stereo.pan.setValueAtTime(pan, time);
+      stereo.connect(this.musicGain);
+    }
+    for (const [multiple, weight, shape] of partials) {
+      const osc = audio.createOscillator();
+      const envelope = audio.createGain();
+      const decay = multiple === 1 ? duration : duration * 0.52;
+      osc.type = shape;
+      osc.frequency.setValueAtTime(frequency * multiple, time);
+      envelope.gain.setValueAtTime(0.0001, time);
+      envelope.gain.exponentialRampToValueAtTime(volume * weight, time + 0.008);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+      osc.connect(envelope);
+      envelope.connect(target);
+      if (stereo && multiple === 1) osc.onended = () => stereo.disconnect();
+      osc.start(time);
+      osc.stop(time + decay + 0.01);
+    }
   }
 
   playKick(time) {
@@ -244,27 +276,26 @@ class SoundEngine {
     noise.start(time);
   }
 
-  playBass(freq, time) {
+  playBass(note, time, duration) {
+    const frequency = this.midiFrequency(note);
     const osc = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, time);
-
+    osc.frequency.setValueAtTime(frequency, time);
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(450, time);
-    filter.frequency.exponentialRampToValueAtTime(180, time + 0.15);
-
-    gain.gain.setValueAtTime(0.42, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+    filter.frequency.setValueAtTime(685, time);
+    filter.frequency.exponentialRampToValueAtTime(222, time + duration);
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.exponentialRampToValueAtTime(0.40, time + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.musicGain);
-
     osc.start(time);
-    osc.stop(time + 0.18);
+    osc.stop(time + duration + 0.01);
   }
 
   // --- CRISP ARCADE SOUND EFFECTS (SFX) ---

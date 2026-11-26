@@ -217,9 +217,9 @@ html, body {
 }
 
 .powerup-pill.skates {
-  border-color: #22d3ee;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.4) 0%, rgba(245, 158, 11, 0.4) 100%);
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.55);
+  border-color: #ffbd79;
+  background: #693438e8;
+  box-shadow: 0 0 12px #ef9e6066;
 }
 
 /* Top Buttons: Pause & Home */
