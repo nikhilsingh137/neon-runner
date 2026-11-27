@@ -2507,7 +2507,8 @@
   // 9. Golden Mystery Surprise Box (Lucky Crate with Holographic ?)
   function buildParachuteCanopy() {
     const rig = new THREE.Group();
-    const colors = [0xffbd71, 0xee717c, 0x8c69d8, 0x59b8c3, 0xffbd71, 0xee717c, 0x8c69d8, 0x59b8c3];
+    const canopyHeight = 4.45;
+    const colors = [0xffca80, 0xff735e, 0xb794f1, 0x68d4d0, 0xffca80, 0xff735e, 0xb794f1, 0x68d4d0];
     const seamPoints = [];
     for (let i = 0; i < colors.length; i++) {
       const angle = i * Math.PI * 2 / colors.length;
@@ -2516,15 +2517,20 @@
         new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.85, side: THREE.DoubleSide })
       );
       segment.scale.set(1, 0.67, 0.84);
-      segment.position.y = 2.88;
+      segment.position.y = canopyHeight;
       rig.add(segment);
       const x = -Math.cos(angle) * 1.64;
       const z = Math.sin(angle) * 1.38;
-      seamPoints.push(new THREE.Vector3(x, 2.88, z), new THREE.Vector3(x * 0.32, 1.96, z * 0.15));
+      seamPoints.push(new THREE.Vector3(x, canopyHeight, z), new THREE.Vector3(x * 0.27, 1.96, z * 0.15));
     }
     const straps = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seamPoints),
       new THREE.LineBasicMaterial({ color: 0xffe7cb }));
-    rig.add(straps);
+    const trim = new THREE.Mesh(new THREE.TorusGeometry(1.64, 0.038, 8, 48),
+      new THREE.MeshStandardMaterial({ color: 0xffe4a7, emissive: 0x724028, roughness: 0.52 }));
+    trim.rotation.x = Math.PI / 2;
+    trim.scale.y = 0.84;
+    trim.position.y = canopyHeight;
+    rig.add(straps, trim);
     return rig;
   }
 
@@ -2588,7 +2594,7 @@
     pickup.position.set(LANES[lane], isStar ? 1.52 : 1.34, z);
     if (!isStar) {
       icon.scale.setScalar(0.47);
-      icon.position.y = -1.2;
+      icon.position.y = -1.55;
     }
     const halo = new THREE.Mesh(new THREE.TorusGeometry(0.91, 0.035, 8, 32),
       new THREE.MeshBasicMaterial({ color: isStar ? 0xffc275 : 0xc9aaf9, transparent: true, opacity: 0.7, depthWrite: false }));
@@ -2620,8 +2626,10 @@
     state.playerY += (target - state.playerY) * (1 - Math.exp(-10 * delta));
     state.vy = 0;
     if (parachuteRig) {
-      parachuteRig.scale.setScalar(0.48 + open * 0.52);
-      parachuteRig.rotation.z = Math.sin(elapsed * 2.4) * 0.07 + (state.playerX - state.targetX) * 0.08;
+      const spread = 0.48 + open * 0.52;
+      parachuteRig.scale.set(spread, 1, spread);
+      const bank = THREE.MathUtils.clamp((state.playerX - state.targetX) * 0.045, -0.1, 0.1);
+      parachuteRig.rotation.z = Math.sin(elapsed * 2.4) * 0.05 + bank;
     }
   }
 
@@ -2734,7 +2742,38 @@
     }
   }
 
-  let routePatternCount = 0;
+  const FIRST_BOOST_DISTANCE = 210;
+  let nextBoostDistance = FIRST_BOOST_DISTANCE;
+  let boostSpawnCount = 0;
+
+  function spawnRouteBoost(lane, z) {
+    const pickupDistance = state.distance - z;
+    if (pickupDistance < nextBoostDistance) return;
+
+    const routeSpeed = Math.min(49, START_SPEED + pickupDistance * 0.017);
+    nextBoostDistance = pickupDistance + Math.max(350, routeSpeed * 11.5) + Math.random() * 75;
+    boostSpawnCount += 1;
+    if (boostSpawnCount % 5 === 2) {
+      createSpecialBoost('parachute', lane, z);
+      return;
+    }
+    if (boostSpawnCount % 5 === 4) {
+      createSpecialBoost('secret-star', lane, z);
+      return;
+    }
+
+    const roll = Math.random();
+    if (roll < 0.12) createHoverboardPowerup(lane, z);
+    else if (roll < 0.24) createRollerSkatesPowerup(lane, z);
+    else if (roll < 0.35) createMysteryBox(lane, z);
+    else if (roll < 0.46) createMagnetPowerup(lane, z);
+    else if (roll < 0.56) createJetpackPowerup(lane, z);
+    else if (roll < 0.66) createSneakersPowerup(lane, z);
+    else if (roll < 0.76) createDoublerPowerup(lane, z);
+    else if (roll < 0.84) createWarpPowerup(lane, z);
+    else if (roll < 0.92) createGhostPowerup(lane, z);
+    else createVortexPowerup(lane, z);
+  }
 
   function spawnWorldPattern() {
     while (nextSpawnZ > -280) {
@@ -2742,39 +2781,7 @@
       const openLane = Math.floor(Math.random() * 3);
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
-      routePatternCount += 1;
-      if (routePatternCount % 7 === 1) {
-        createSpecialBoost('parachute', openLane, nextSpawnZ + 17);
-      } else if (routePatternCount % 9 === 3) {
-        createSpecialBoost('secret-star', otherLane, nextSpawnZ - 12);
-      }
-
-      // Spawn Power-Ups & Mystery Boxes periodically (45% chance in open lane!)
-      if (Math.random() < 0.45) {
-        const pChoice = Math.random();
-        const pZ = nextSpawnZ + 8;
-        if (pChoice < 0.12) {
-          createHoverboardPowerup(openLane, pZ); // 🛹 Surfboard on track!
-        } else if (pChoice < 0.24) {
-          createRollerSkatesPowerup(openLane, pZ); // 🛼 Roller Skates on track!
-        } else if (pChoice < 0.35) {
-          createMysteryBox(openLane, pZ);
-        } else if (pChoice < 0.46) {
-          createMagnetPowerup(openLane, pZ);
-        } else if (pChoice < 0.56) {
-          createJetpackPowerup(openLane, pZ);
-        } else if (pChoice < 0.66) {
-          createSneakersPowerup(openLane, pZ);
-        } else if (pChoice < 0.76) {
-          createDoublerPowerup(openLane, pZ);
-        } else if (pChoice < 0.84) {
-          createWarpPowerup(openLane, pZ);
-        } else if (pChoice < 0.92) {
-          createGhostPowerup(openLane, pZ);
-        } else {
-          createVortexPowerup(openLane, pZ);
-        }
-      }
+      spawnRouteBoost(openLane, nextSpawnZ + 17);
 
       if (roll < 0.38) {
         // Pattern 1: Sleek Maglev Bullet Transit (50% chance ramp)
@@ -3157,7 +3164,8 @@
     powerups.length = 0;
 
     nextSpawnZ = -104;
-    routePatternCount = 0;
+    nextBoostDistance = FIRST_BOOST_DISTANCE;
+    boostSpawnCount = 0;
     for (const decoration of sideScenery) {
       if (decoration.userData.routeStartZ !== undefined) decoration.position.z = decoration.userData.routeStartZ;
     }
@@ -3517,7 +3525,13 @@
     const targetCamX = state.playerX * 0.72;
     camera.position.x += (targetCamX - camera.position.x) * 16 * delta;
 
-    if (isAirBoostActive()) {
+    if (state.parachuteTimer > 0) {
+      const follow = 1 - Math.exp(-8 * delta);
+      const flight = THREE.MathUtils.smoothstep(state.playerY - state.groundY, 0, 4.8);
+      camera.position.y += (state.playerY + 4.6 - camera.position.y) * follow;
+      camera.position.z += (THREE.MathUtils.lerp(8.2, 9.5, flight) - camera.position.z) * follow;
+      camera.lookAt(state.playerX * 0.4, 1.7 + flight * 0.3, -18 - flight * 5);
+    } else if (isAirBoostActive()) {
       // Follow Kai smoothly while airborne. during Jetpack Flight (Subway Surfers High Elevation)
       camera.position.y += ((state.playerY + 3.8) - camera.position.y) * (1 - Math.exp(-8 * delta));
       camera.position.z += (8.6 - camera.position.z) * 8 * delta;
