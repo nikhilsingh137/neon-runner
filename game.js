@@ -1351,15 +1351,27 @@
     const teal = new THREE.MeshStandardMaterial({ color: isBright ? 0x368e93 : 0x2c6b79, roughness: 0.71 });
     const gold = new THREE.MeshBasicMaterial({ color: 0xffcd8c });
     const aqua = new THREE.MeshBasicMaterial({ color: 0xa7ede6 });
-    const wall = new THREE.MeshStandardMaterial({ color: isBright ? 0x819895 : 0x536b77, roughness: 0.88, side: THREE.DoubleSide });
-    const ribMat = new THREE.MeshStandardMaterial({ color: 0x4c777a, roughness: 0.72 });
+    const wall = new THREE.MeshStandardMaterial({ color: 0x17233d, roughness: 0.88, side: THREE.DoubleSide });
+    const ribMat = new THREE.MeshStandardMaterial({ color: 0x334a78, roughness: 0.72 });
     const cube = new THREE.BoxGeometry(1, 1, 1);
     const archPoints = [];
     const vertices = [];
     const indices = [];
     const spans = 24;
     const radius = 8.26;
-    const tunnelLength = 39;
+    const tunnelLength = 74;
+    const makeStationBoard = (label) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 320; canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#111a37'; ctx.fillRect(4, 4, 312, 72);
+      ctx.strokeStyle = '#21e6ff'; ctx.lineWidth = 5; ctx.strokeRect(6, 6, 308, 68);
+      ctx.fillStyle = '#ffd45c'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('STATION  ' + label, 160, 49);
+      const board = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false }));
+      board.scale.set(3.4, 0.85, 1);
+      return board;
+    };
     for (let step = 0; step <= spans; step++) {
       const angle = step / spans * Math.PI;
       const x = -Math.cos(angle) * radius;
@@ -1386,7 +1398,7 @@
 
     for (let index = 0; index < 4; index++) {
       const section = new THREE.Group();
-      const z = [-67, -152, -239, -325][index];
+      const z = [-67, -170, -273, -376][index];
       section.position.z = z;
       section.userData.routeStartZ = z;
 
@@ -1411,6 +1423,10 @@
         for (const side of [-1, 1]) {
           addBlock(section, wall, [0.33, 6.1, tunnelLength], [side * radius, 3.05, 0]);
           addBlock(section, teal, [0.38, 0.31, tunnelLength], [side * 8.02, 1.42, 0]);
+          const board = makeStationBoard(index === 1 ? 'NIGHT MARKET' : 'RIVER GATE');
+          board.position.set(side * 7.72, 3.62, -10);
+          board.rotation.y = side < 0 ? 0.08 : -0.08;
+          section.add(board);
         }
         for (const z of [-19.4, -12.8, -6.4, 0, 6.4, 12.8, 19.4]) {
           const rib = new THREE.Mesh(arch, ribMat);
