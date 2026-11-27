@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 4D PWA
-const CACHE_NAME = 'urbandash-v28-mobile-menu-sound-fix';
+const CACHE_NAME = 'urbandash-v29-same-origin-cache';
 
 const CORE_ASSETS = [
   './manifest.json',
@@ -26,6 +26,9 @@ self.addEventListener('activate', (e) => {
 // Always bypass cache for index.html, game.js, style.css, audio.js to guarantee fresh updates
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
+  const requestUrl = new URL(url);
+  if ((requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') || requestUrl.origin !== self.location.origin) return;
+
   if (url.includes('index.html') || url.includes('game.js') || url.includes('features.js') || url.includes('style.css') || url.includes('audio.js') || url.endsWith('/neon-runner/')) {
     e.respondWith(
       fetch(e.request)
@@ -39,7 +42,9 @@ self.addEventListener('fetch', (e) => {
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && e.request.method === 'GET') {
           const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          caches.open(CACHE_NAME)
+            .then((cache) => cache.put(e.request, clone))
+            .catch(() => {});
         }
         return networkResponse;
       })
