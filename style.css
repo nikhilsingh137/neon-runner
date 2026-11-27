@@ -1611,3 +1611,25 @@ body.theme-bright #start-screen {
   #start-screen .menu-actions-stack { gap: 6px; }
   #start-screen :is(.primary-start-btn, #btn-install-app) { height: 46px; }
 }
+/* Replay mission card */
+.run-mission-card {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 3px;
+  min-width: 178px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 213, 92, .75);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(30, 22, 66, .92), rgba(94, 39, 105, .86));
+  box-shadow: 0 7px 24px rgba(0, 0, 0, .3), 0 0 18px rgba(255, 101, 180, .25);
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+  z-index: 5;
+}
+.run-mission-card .mission-kicker { color: #ffd55c; font: 700 9px/1 Arial, sans-serif; letter-spacing: .14em; }
+.run-mission-card strong { font: 800 12px/1.15 Arial, sans-serif; }
+.run-mission-card .mission-progress { color: #9ff7ff; font: 700 10px/1 Arial, sans-serif; }
