@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 4D PWA
-const CACHE_NAME = 'urbandash-v26-feature-progression';
+const CACHE_NAME = 'urbandash-v27-complete-features';
 
 const CORE_ASSETS = [
   './manifest.json',
