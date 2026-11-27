@@ -1458,15 +1458,31 @@
         person.position.set(side * (index % 2 ? 6.8 : 7.15), 0, index % 2 ? -11.8 : -7.5);
         person.rotation.y = side < 0 ? -0.18 : 0.18;
         section.add(person);
+        if (index % 2 === 1) {
+          for (let guest = 0; guest < 2; guest++) {
+            const extra = makeStationPerson(guest ? 0xffd35a : 0x7b8cff, guest ? 0x253b36 : 0x263c63);
+            extra.scale.setScalar(0.9 + guest * 0.08);
+            extra.position.set(side * (6.15 + guest * 0.56), 0, -9.2 - guest * 1.2);
+            extra.rotation.y = side < 0 ? -0.22 : 0.22;
+            section.add(extra);
+          }
+        }
         if (index % 2 === 0) {
+          for (let guest = 0; guest < 3; guest++) {
+            const extra = makeStationPerson([0xffd35a, 0x7b8cff, 0xff7eb6][guest], [0x263c63, 0x5b2b63, 0x253b36][guest]);
+            extra.scale.setScalar(0.88 + guest * 0.06);
+            extra.position.set(side * (6.25 + guest * 0.52), 0, -6.1 - guest * 1.05);
+            extra.rotation.y = side < 0 ? -0.22 : 0.22;
+            section.add(extra);
+          }
           const stopBoard = makeStationBoard(index === 0 ? 'SUNSET PARK' : 'SKY GARDEN');
           stopBoard.position.set(side * 8.65, 3.2, -7.5);
           stopBoard.rotation.y = side < 0 ? 0.08 : -0.08;
           section.add(stopBoard);
           addBlock(section, teal, [0.12, 2.8, 0.12], [side * 8.65, 1.55, -7.5]);
           addBlock(section, gold, [2.2, 0.12, 0.9], [side * 8.65, 2.75, -7.5]);
-          addBlock(section, wall, [3.4, 2.1, 0.14], [side * 7.15, 1.25, -8.55]);
-          addBlock(section, teal, [3.8, 0.18, 2.5], [side * 7.15, 2.55, -7.5]);
+          addBlock(section, wall, [4.4, 2.1, 0.14], [side * 7.15, 1.25, -8.55]);
+          addBlock(section, teal, [4.8, 0.18, 5.2], [side * 7.15, 2.55, -7.5]);
           addBlock(section, gold, [0.14, 2.45, 0.14], [side * 5.55, 1.35, -7.5]);
           addBlock(section, gold, [0.14, 2.45, 0.14], [side * 8.75, 1.35, -7.5]);
         }
