@@ -1633,3 +1633,13 @@ body.theme-bright #start-screen {
 .run-mission-card .mission-kicker { color: #ffd55c; font: 700 9px/1 Arial, sans-serif; letter-spacing: .14em; }
 .run-mission-card strong { font: 800 12px/1.15 Arial, sans-serif; }
 .run-mission-card .mission-progress { color: #9ff7ff; font: 700 10px/1 Arial, sans-serif; }
+/* Character upgrades and journey map */
+.progression-panel { width: min(92vw, 420px); margin: 8px auto 14px; padding: 12px 14px; border: 1px solid rgba(108, 232, 255, .48); border-radius: 18px; background: rgba(17, 25, 62, .76); box-shadow: 0 10px 28px rgba(0,0,0,.24); color: #fff; }
+.progression-heading, .upgrade-row, .outfit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.progression-heading { color: #9ff7ff; font: 800 10px/1 Arial,sans-serif; letter-spacing: .12em; }
+.progression-heading b { color: #ffd45c; font-size: 9px; }
+.journey-track { display: flex; justify-content: space-between; align-items: center; margin: 13px 3px 10px; background: linear-gradient(90deg,#ffd45c 0 56%,#405276 56%); height: 3px; }
+.journey-stop { display: grid; place-items: center; width: 23px; height: 23px; border: 2px solid #405276; border-radius: 50%; background: #19233e; color: #aab7d8; font: 800 9px Arial,sans-serif; font-style: normal; }
+.journey-stop.complete { border-color: #ffd45c; color: #17213f; background: #ffd45c; }.journey-stop.active { border-color: #fff; background: #ff6db4; color: #fff; box-shadow: 0 0 12px #ff6db4; }
+.upgrade-row { color: #c6d5ff; font: 700 9px Arial,sans-serif; }
+.outfit-row { margin-top: 10px; overflow: hidden; }.outfit-chip { padding: 6px 8px; border-radius: 10px; background: rgba(49, 217, 231, .18); color: #9ff7ff; font: 800 8px Arial,sans-serif; white-space: nowrap; }.outfit-chip.locked { background: rgba(95, 105, 142, .24); color: #8f9ab9; }
