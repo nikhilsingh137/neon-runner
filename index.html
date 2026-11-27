@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=skyline_routes">
+  <link rel="stylesheet" href="style.css?v=feature_progression_v3">
 </head>
 <body>
   <div id="game-container">
@@ -141,9 +141,12 @@
       <div class="zone-panel" aria-label="City zones">
         <div class="zone-title"><span>CITY LINE</span><b>DESTINATION: GRAND CENTRAL</b></div>
         <div class="zone-cards">
-          <div class="zone-card sunset active"><strong>SUNSET PARK</strong><small>OPEN • 1,240 m</small></div>
+          <div class="zone-card sunset active"><strong>SUNSET CITY</strong><small>OPEN • 0 m</small></div>
           <div class="zone-card night"><strong>NIGHT METRO</strong><small>UNLOCK AT 2,000 m</small></div>
-          <div class="zone-card sky"><strong>SKY BRIDGE</strong><small>UNLOCK AT 5,000 m</small></div>
+          <div class="zone-card rain"><strong>RAIN STATION</strong><small>UNLOCK AT 5,000 m</small></div>
+          <div class="zone-card festival"><strong>FESTIVAL STREET</strong><small>UNLOCK AT 8,000 m</small></div>
+          <div class="zone-card sky"><strong>SKY BRIDGE</strong><small>UNLOCK AT 12,000 m</small></div>
+          <div class="zone-card tunnel"><strong>UNDERGROUND</strong><small>UNLOCK AT 16,000 m</small></div>
         </div>
         <div class="zone-event">★ SECRET ROUTE AVAILABLE  •  Find the glowing tunnel entrance</div>
       </div>
@@ -187,7 +190,7 @@
 
     <div id="feature-menu-modal" class="screen-overlay hidden">
       <div class="feature-menu-card">
-        <div class="feature-menu-header"><div><span class="menu-kicker">URBAN DASH 4D</span><h2>Home / Menu</h2></div><button id="btn-feature-menu-close" class="modal-close">×</button></div>
+        <div class="feature-menu-header"><div><span class="menu-kicker">URBAN DASH 4D</span><h2>Home / Menu</h2></div><div class="menu-wallet">💎 <span id="feature-wallet">0</span></div><button id="btn-feature-menu-close" class="modal-close">×</button></div>
         <p class="feature-story">Kai is racing across the city to reach Grand Central before the final metro leaves.</p>
         <div class="feature-menu-grid">
           <button class="feature-tile story">📖 <b>Story</b><small>Reach Grand Central</small></button>
@@ -374,9 +377,8 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=devotional_five"></script>
-  <script src="features.js?v=progression_v1"></script>
-  <script src="features.js?v=progression_v1"></script>
-  <script src="game.js?v=parachute_landing"></script>
+  <script src="features.js?v=feature_progression_v3"></script>
+  <script src="game.js?v=feature_progression_v3"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -436,6 +438,8 @@
     const close = document.getElementById('btn-feature-menu-close');
     const play = document.getElementById('btn-feature-menu-play');
     if (!menu || !open || !close || !play) return;
+    const featureCard = menu.querySelector('.feature-menu-card');
+    featureCard?.prepend(document.querySelector('.zone-panel'), document.querySelector('.progression-panel'));
     const hide = () => menu.classList.add('hidden');
     open.addEventListener('click', () => menu.classList.remove('hidden'));
     close.addEventListener('click', hide);

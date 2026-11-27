@@ -96,12 +96,15 @@
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
   let skateFrameL, skateFrameR, skateWheelsL = [], skateWheelsR = [];
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
+  let runnerHoodieMaterial;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
-  let trackTies = [], sideScenery = [], speedLines = [], flightSmokeParticles = [];
+  let trackTies = [], sideScenery = [], speedLines = [], flightSmokeParticles = [], stationSigns = [];
   let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
   let exhaustElapsed = 0;
+  let secretStarPhotoTimer = 0;
+  let activeZoneIndex = -1;
   const exhaustOrigin = new THREE.Vector3();
   let runnerSprite, runnerSpriteShadow, runnerSpriteAtlas, slideSpriteAtlas;
   let runnerSpritePhase = 0;
@@ -222,7 +225,7 @@
   function useStoredMagnet() {
     if (!state.running || state.paused || state.storedMagnets <= 0) return;
     state.storedMagnets--;
-    state.magnetTimer = 14.0;
+    state.magnetTimer = 14.0 + ((window.urbanDashFeatures?.data.upgrades.magnet || 1) - 1) * 1.5;
     updatePowerupSlotsUI();
     showToast('🧲 CHUMBAK MAGNET ACTIVATED!');
     if (window.soundEngine) {
@@ -248,7 +251,7 @@
   function activateParachute() {
     if (!isAirBoostActive()) beginAirTrail();
     state.jetpackTimer = 0;
-    state.parachuteTimer = PARACHUTE_DURATION;
+    state.parachuteTimer = PARACHUTE_DURATION + ((window.urbanDashFeatures?.data.upgrades.air || 1) - 1) * 0.8;
     state.parachuteStartY = Math.max(0, state.playerY);
     state.vy = 0;
     showToast('PARACHUTE GLIDE');
@@ -524,7 +527,14 @@
     const hairMat = new THREE.MeshStandardMaterial({ color: 0x40261f, roughness: 0.70, metalness: 0.0 }); // Dark brown hair
     const capMat = new THREE.MeshStandardMaterial({ color: 0xe95f39, roughness: 0.83, metalness: 0.0 }); // Terracotta canvas cap
     const capWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.40, metalness: 0.0 }); // Crisp white visor trim & button
-    const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x70cfac, roughness: 0.95, metalness: 0.0 }); // Mint cotton fleece
+    runnerHoodieMaterial = new THREE.MeshStandardMaterial({ color: 0x70cfac, roughness: 0.95, metalness: 0.0 }); // Mint cotton fleece
+    const hoodieMat = runnerHoodieMaterial;
+    window.addEventListener('urban-dash-outfit', event => {
+      const colors = { 'teal-runner': 0x70cfac, 'neon-hoodie': 0xf23fcb, 'metro-guard': 0x263d84, festival: 0xffa522, 'night-runner': 0x39276f, 'royal-blue': 0x147de0 };
+      runnerHoodieMaterial.color.setHex(colors[event.detail] || colors['teal-runner']);
+      runnerHoodieMaterial.emissive.setHex(event.detail === 'night-runner' ? 0x6e39ff : 0x000000);
+      runnerHoodieMaterial.emissiveIntensity = event.detail === 'night-runner' ? 0.35 : 0;
+    });
     const denimMat = new THREE.MeshStandardMaterial({ color: 0x264f75, roughness: 0.96, metalness: 0.0 }); // Classic blue denim vest & jeans
     const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x213950, roughness: 0.96, metalness: 0.0 }); // Deep indigo denim accents
     const denimStitchMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.55, metalness: 0.0 }); // Gold denim stitching & rolled cuffs
@@ -1370,6 +1380,7 @@
       ctx.fillText('STATION  ' + label, 160, 49);
       const board = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false }));
       board.scale.set(3.4, 0.85, 1);
+      stationSigns.push(board);
       return board;
     };
     const makeStationPerson = (coat, accent) => {
@@ -1414,6 +1425,7 @@
       const z = [-67, -170, -273, -376][index];
       section.position.z = z;
       section.userData.routeStartZ = z;
+      section.userData.isTunnel = index % 2 === 1;
 
       if (index % 2 === 0) {
         const water = new THREE.MeshLambertMaterial({ color: isBright ? 0x78b2b7 : 0x4f8196 });
@@ -1485,6 +1497,8 @@
           addBlock(section, teal, [4.8, 0.18, 5.2], [side * 7.15, 2.55, -7.5]);
           addBlock(section, gold, [0.14, 2.45, 0.14], [side * 5.55, 1.35, -7.5]);
           addBlock(section, gold, [0.14, 2.45, 0.14], [side * 8.75, 1.35, -7.5]);
+          addBlock(section, gold, [1.35, 0.95, 0.65], [side * 9.45, 0.55, -2.8]);
+          addBlock(section, teal, [1.48, 0.16, 0.78], [side * 9.45, 1.12, -2.8]);
         }
       }
 
@@ -3092,7 +3106,8 @@
       state.isSliding = false;
       state.jumpBuffered = false;
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
-      state.vy = Math.sqrt(2 * GRAVITY * jumpHeight);
+      const jumpLevel = window.urbanDashFeatures?.data.upgrades.jump || 1;
+      state.vy = Math.sqrt(2 * GRAVITY * (jumpHeight + (jumpLevel - 1) * 0.18));
 
       if (state.sneakersTimer > 0 && window.soundEngine && window.soundEngine.playSneakersSFX) {
         window.soundEngine.playSneakersSFX();
@@ -3127,7 +3142,7 @@
     state.hasShield = true;
     state.isBoosted = true;
     pulseBoostHaptics();
-    state.boostTimer = 16.0; // 16 seconds of surfboard fun
+    state.boostTimer = 16.0 + ((window.urbanDashFeatures?.data.upgrades.shield || 1) - 1) * 1.5;
     if (hoverboardMesh) hoverboardMesh.visible = true;
     if (badgeShield) {
       badgeShield.style.display = 'flex';
@@ -3145,7 +3160,7 @@
       state.isBoosted = true;
       state.hasShield = true;
       pulseBoostHaptics();
-      state.boostTimer = 6.0;
+      state.boostTimer = 6.0 + ((window.urbanDashFeatures?.data.upgrades.shield || 1) - 1) * 0.75;
       state.overdriveCharge = 0;
       if (hoverboardMesh) hoverboardMesh.visible = true;
       if (badgeShield) badgeShield.style.display = 'flex';
@@ -3297,7 +3312,12 @@
     gameOverScreen.classList.remove('hidden');
     if (finalScoreEl) finalScoreEl.textContent = Math.floor(state.score);
     if (finalDistanceEl) finalDistanceEl.textContent = Math.floor(state.distance) + ' m';
-    if (finalCreditsEl) finalCreditsEl.textContent = '+' + state.coins;
+    const progressionReward = window.urbanDashFeatures?.recordRun({
+      score: state.score, distance: state.distance, diamonds: state.coins,
+      combo: comboStreak, speed: state.speed
+    }) || 0;
+    if (finalCreditsEl) finalCreditsEl.textContent = '+' + (state.coins + progressionReward);
+    showToast('RUN REWARD  +' + progressionReward + ' COINS');
     if (newRecordBadge) newRecordBadge.style.display = isNewRecord ? 'inline-block' : 'none';
   }
 
@@ -3305,7 +3325,8 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function getNextRunSpeed(run, delta) {
-    const distanceSpeed = Math.min(49, START_SPEED + run.distance * 0.017);
+    const speedLevel = window.urbanDashFeatures?.data.upgrades.speed || 1;
+    const distanceSpeed = Math.min(49, START_SPEED + run.distance * 0.017 + (speedLevel - 1) * 1.2);
     const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0, run.parachuteTimer > 0 ? 3.5 : 0);
     const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
     const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
@@ -3519,6 +3540,34 @@
     state.speed = getNextRunSpeed(state, delta);
     const distDelta = state.speed * delta;
     state.distance += distDelta;
+    window.urbanDashFeatures?.addMission('distance', distDelta);
+    if (Math.floor(state.distance / 1000) > Math.floor((state.distance - distDelta) / 1000)) {
+      window.urbanDashFeatures?.addMission('stations', 1);
+      const stationEvents = ['CITY SHOP OPEN', 'LIVE PLATFORM PERFORMER', 'METRO TRAIN ARRIVING', 'NEON MARKET CROWD'];
+      const stationNumber = Math.floor(state.distance / 1000);
+      showToast('STATION ' + stationNumber + '  •  ' + stationEvents[stationNumber % stationEvents.length]);
+      if (window.soundEngine && window.soundEngine.playClickSFX) window.soundEngine.playClickSFX();
+    }
+    const zoneThresholds = [0, 2000, 5000, 8000, 12000, 16000];
+    let zoneIndex = 0;
+    for (let zone = 1; zone < zoneThresholds.length; zone++) {
+      if (state.distance >= zoneThresholds[zone]) zoneIndex = zone;
+    }
+    if (zoneIndex !== activeZoneIndex) {
+      activeZoneIndex = zoneIndex;
+      const zonePalettes = [0xff9a73, 0x23305d, 0x548eb8, 0xd64289, 0x2eb6ca, 0x17223a];
+      scene.background.setHex(zonePalettes[zoneIndex]);
+      if (scene.fog) scene.fog.color.setHex(zonePalettes[zoneIndex]);
+      if (zoneIndex > 0) showToast(['SUNSET CITY', 'NIGHT METRO', 'RAIN STATION', 'FESTIVAL STREET', 'SKY BRIDGE', 'UNDERGROUND TUNNEL'][zoneIndex]);
+    }
+    if (window.urbanDashFeatures && state.distance >= 20000 && !window.urbanDashFeatures.data.grandCentralReached) {
+      window.urbanDashFeatures.data.grandCentralReached = true;
+      window.urbanDashFeatures.data.coins += 1000;
+      window.urbanDashFeatures.save();
+      showToast('GRAND CENTRAL REACHED  +1,000 COINS');
+      window.dispatchEvent(new CustomEvent('urban-dash-destination'));
+      if (window.soundEngine) window.soundEngine.playPowerupSFX();
+    }
     if (isAirBoostActive()) fillFlightCrystalTrail(distDelta);
     state.score += getBoostedScore(distDelta * state.multiplier * 1.5);
 
@@ -3616,11 +3665,23 @@
 
     // Scroll side murals, lanterns & scenery
     for (let i = 0; i < sideScenery.length; i++) {
+      const previousSceneryZ = sideScenery[i].position.z;
       sideScenery[i].position.z += distDelta;
+      if (sideScenery[i].userData.isTunnel && previousSceneryZ < 0 && sideScenery[i].position.z >= 0) {
+        window.urbanDashFeatures?.addMission('tunnels', 1);
+        showToast('TUNNEL PASSED  +DISTANCE');
+        if (Math.abs(state.playerX) > 1.5 && window.urbanDashFeatures) {
+          window.urbanDashFeatures.data.coins += 75;
+          window.urbanDashFeatures.data.secretRoutes = (window.urbanDashFeatures.data.secretRoutes || 0) + 1;
+          window.urbanDashFeatures.save();
+          showToast('SECRET SIDE ROUTE  +75 COINS');
+        }
+      }
       if (sideScenery[i].position.z > 25) {
         sideScenery[i].position.z -= 345;
       }
     }
+    for (const sign of stationSigns) sign.material.opacity = 0.72 + (Math.sin(runAnimTime * 4 + sign.position.x) + 1) * 0.14;
 
     // Scroll speed wind lines
     for (let i = 0; i < speedLines.length; i++) {
@@ -3767,6 +3828,15 @@
       const previousZ = obs.position.z;
       obs.position.z += moveZ;
 
+      const nearMissX = Math.abs(state.playerX - LANES[obs.userData.lane]);
+      if (!obs.userData.closeCallAwarded && previousZ < 1.4 && obs.position.z >= 1.4 && nearMissX > 1.05 && nearMissX < 3.5) {
+        obs.userData.closeCallAwarded = true;
+        state.score += 250;
+        if (typeof addComboPoint === 'function') addComboPoint(2);
+        showToast('CLOSE CALL  +250');
+        if (window.soundEngine && window.soundEngine.playJetpackSFX) window.soundEngine.playJetpackSFX();
+      }
+
       if (checkCollision(obs, previousZ)) {
         if (state.hasShield) {
           obs.userData.cleared = true;
@@ -3804,6 +3874,14 @@
       const dist = Math.hypot(p.position.x - state.playerX, p.position.y - state.playerY, nearestZ - playerGroup.position.z);
       if (dist < 2.2 && !p.userData.collected) {
         p.userData.collected = true;
+        window.urbanDashFeatures?.addMission('boosts', 1);
+        if (p.userData.type === 'secret-star') {
+          secretStarPhotoTimer = 1.8;
+          state.score += 500;
+          showToast('SECRET STAR  •  PHOTO MOMENT  +500');
+          window.dispatchEvent(new CustomEvent('urban-dash-photo'));
+          if (window.soundEngine && window.soundEngine.playVortexSFX) window.soundEngine.playVortexSFX();
+        }
         const pType = p.userData.type;
 
         if (pType === 'parachute') {
@@ -3811,7 +3889,7 @@
         } else if (pType === 'secret-star') {
           activateSecretStar();
         } else if (pType === 'magnet') {
-          state.magnetTimer = 14.0;
+          state.magnetTimer = 14.0 + ((window.urbanDashFeatures?.data.upgrades.magnet || 1) - 1) * 1.5;
           careerStats.totalMagnets = (careerStats.totalMagnets || 0) + 1;
           saveCareerStats();
           updateCareerStatsUI();
@@ -3976,6 +4054,7 @@
       if (touched && !crystal.userData.collected) {
         crystal.userData.collected = true;
         const crystalGain = (state.doublerTimer > 0) ? 2 : 1;
+        window.urbanDashFeatures?.addMission('diamonds', crystalGain);
         state.coins += crystalGain;
         careerStats.totalCoins = (careerStats.totalCoins || 0) + crystalGain;
         saveCareerStats();
@@ -4056,7 +4135,9 @@
   // --- RENDER LOOP ---
   function animate() {
     requestAnimationFrame(animate);
-    const delta = Math.min(clock.getDelta(), 0.08);
+    const frameDelta = Math.min(clock.getDelta(), 0.08);
+    secretStarPhotoTimer = Math.max(0, secretStarPhotoTimer - frameDelta);
+    const delta = frameDelta * (secretStarPhotoTimer > 0 ? 0.42 : 1);
     update(delta);
     updateRunnerSprite(delta);
     const rushing = state.running && !state.paused && state.isBoosted;

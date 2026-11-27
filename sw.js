@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 4D PWA
-const CACHE_NAME = 'urbandash-v25-metro-rush-4d';
+const CACHE_NAME = 'urbandash-v26-feature-progression';
 
 const CORE_ASSETS = [
   './manifest.json',
@@ -26,7 +26,7 @@ self.addEventListener('activate', (e) => {
 // Always bypass cache for index.html, game.js, style.css, audio.js to guarantee fresh updates
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
-  if (url.includes('index.html') || url.includes('game.js') || url.includes('style.css') || url.includes('audio.js') || url.endsWith('/neon-runner/')) {
+  if (url.includes('index.html') || url.includes('game.js') || url.includes('features.js') || url.includes('style.css') || url.includes('audio.js') || url.endsWith('/neon-runner/')) {
     e.respondWith(
       fetch(e.request)
         .catch(() => caches.match(e.request))
