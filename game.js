@@ -2567,11 +2567,11 @@
     starAura = new THREE.Group();
     const orbit = new THREE.Group();
     // Keep the protection behind Kai so it reads as a safety bubble, not a line across the track.
-    orbit.position.set(0, 1.48, 0.62);
-    const bubble = new THREE.Mesh(new THREE.SphereGeometry(1.75, 24, 16), new THREE.MeshBasicMaterial({
+    orbit.position.set(0, 1.68, 0.62);
+    const bubble = new THREE.Mesh(new THREE.SphereGeometry(2.08, 24, 16), new THREE.MeshBasicMaterial({
       color: 0xff4fb3, transparent: true, opacity: 0.28, depthWrite: false
     }));
-    bubble.scale.set(0.98, 1.14, 0.84);
+    bubble.scale.set(1.03, 1.24, 0.9);
     orbit.add(bubble);
     const sparkGeometry = new THREE.SphereGeometry(0.15, 10, 8);
     for (let i = 0; i < 10; i++) {
