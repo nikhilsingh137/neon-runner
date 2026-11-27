@@ -98,7 +98,7 @@
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
   let runnerHoodieMaterial;
   let tracksGroup, obstacles = [], coins = [], powerups = [];
-  let trackTies = [], sideScenery = [], speedLines = [], flightSmokeParticles = [], stationSigns = [];
+  let trackTies = [], sideScenery = [], speedLines = [], rainDrops = [], flightSmokeParticles = [], stationSigns = [], stationPerformers = [];
   let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
@@ -534,6 +534,11 @@
       runnerHoodieMaterial.color.setHex(colors[event.detail] || colors['teal-runner']);
       runnerHoodieMaterial.emissive.setHex(event.detail === 'night-runner' ? 0x6e39ff : 0x000000);
       runnerHoodieMaterial.emissiveIntensity = event.detail === 'night-runner' ? 0.35 : 0;
+      const capColors = { 'teal-runner': 0xff7c3f, 'neon-hoodie': 0xff4bc7, 'metro-guard': 0x25385f, festival: 0xffd84c, 'night-runner': 0x4b32a8, 'royal-blue': 0x123a9c };
+      capGroup?.traverse(piece => {
+        if (!piece.isMesh || !piece.material || !piece.material.color) return;
+        piece.material.color.setHex(capColors[event.detail] || capColors['teal-runner']);
+      });
     });
     const denimMat = new THREE.MeshStandardMaterial({ color: 0x264f75, roughness: 0.96, metalness: 0.0 }); // Classic blue denim vest & jeans
     const denimDarkMat = new THREE.MeshStandardMaterial({ color: 0x213950, roughness: 0.96, metalness: 0.0 }); // Deep indigo denim accents
@@ -1242,6 +1247,7 @@
     trackTies = [];
     sideScenery = [];
     speedLines = [];
+    rainDrops = [];
 
     const isBright = state.theme === 'bright';
     const groundColor = isBright ? 0xae786d : 0x805662; // Crisp light ballast in Day vs Deep midnight in Night
@@ -1352,6 +1358,15 @@
       tracksGroup.add(sLine);
       speedLines.push(sLine);
     }
+    const rainMat = new THREE.MeshBasicMaterial({ color: 0xa8efff, transparent: true, opacity: 0.52, depthWrite: false });
+    for (let i = 0; i < 56; i++) {
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.48, 0.018), rainMat);
+      drop.position.set((Math.random() - 0.5) * 18, 2 + Math.random() * 8, -Math.random() * 230);
+      drop.rotation.z = -0.08;
+      drop.visible = false;
+      tracksGroup.add(drop);
+      rainDrops.push(drop);
+    }
 
     scene.add(tracksGroup);
   }
@@ -1393,7 +1408,15 @@
       hair.position.y = 1.61;
       const legs = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.58, 0.24), new THREE.MeshStandardMaterial({ color: 0x34466f, roughness: 0.72 }));
       legs.position.y = 0.1;
-      person.add(body, head, hair, legs);
+      const sleeveMat = new THREE.MeshStandardMaterial({ color: coat, roughness: 0.72 });
+      const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.62, 8), sleeveMat);
+      leftArm.position.set(-0.34, 0.83, 0);
+      leftArm.rotation.z = -0.18;
+      const rightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.62, 8), sleeveMat);
+      rightArm.position.set(0.34, 0.83, 0);
+      rightArm.rotation.z = 0.18;
+      person.add(body, head, hair, legs, leftArm, rightArm);
+      person.userData.performerArm = rightArm;
       return person;
     };
     for (let step = 0; step <= spans; step++) {
@@ -1426,6 +1449,7 @@
       section.position.z = z;
       section.userData.routeStartZ = z;
       section.userData.isTunnel = index % 2 === 1;
+      section.userData.secretLane = index % 4 === 1 ? 0 : 2;
 
       if (index % 2 === 0) {
         const water = new THREE.MeshLambertMaterial({ color: isBright ? 0x78b2b7 : 0x4f8196 });
@@ -1445,6 +1469,15 @@
         }
       } else {
         section.add(new THREE.Mesh(roof, wall));
+        const secretLaneX = LANES[section.userData.secretLane];
+        const secretGateMaterial = new THREE.MeshBasicMaterial({ color: 0xff4fd8, toneMapped: false });
+        addBlock(section, secretGateMaterial, [0.16, 2.65, 0.18], [secretLaneX - 1.18, 1.33, 15]);
+        addBlock(section, secretGateMaterial, [0.16, 2.65, 0.18], [secretLaneX + 1.18, 1.33, 15]);
+        addBlock(section, secretGateMaterial, [2.45, 0.16, 0.18], [secretLaneX, 2.66, 15]);
+        const secretSign = makeStationBoard('SECRET ROUTE');
+        secretSign.position.set(secretLaneX, 3.25, 15);
+        secretSign.scale.set(2.4, 0.58, 1);
+        section.add(secretSign);
         for (const side of [-1, 1]) {
           addBlock(section, wall, [0.33, 6.1, tunnelLength], [side * radius, 3.05, 0]);
           addBlock(section, teal, [0.38, 0.31, tunnelLength], [side * 8.02, 1.42, 0]);
@@ -1477,6 +1510,7 @@
             extra.position.set(side * (6.15 + guest * 0.56), 0, -9.2 - guest * 1.2);
             extra.rotation.y = side < 0 ? -0.22 : 0.22;
             section.add(extra);
+            if (guest === 1) stationPerformers.push(extra.userData.performerArm);
           }
         }
         if (index % 2 === 0) {
@@ -3091,6 +3125,7 @@
     if (target !== state.currentLane) {
       state.currentLane = target;
       state.targetX = LANES[state.currentLane + 1];
+      if (typeof addComboPoint === 'function') addComboPoint(1);
       if (window.soundEngine) window.soundEngine.playFootstep();
     }
   }
@@ -3103,6 +3138,7 @@
 
     if (isGrounded) {
       state.isJumping = true;
+      if (typeof addComboPoint === 'function') addComboPoint(1);
       state.isSliding = false;
       state.jumpBuffered = false;
       const jumpHeight = (state.sneakersTimer > 0) ? 7.6 : JUMP_HEIGHT;
@@ -3123,6 +3159,7 @@
   function doSlide() {
     if (isAirBoostActive()) return;
     state.isSliding = true;
+    if (typeof addComboPoint === 'function') addComboPoint(1);
     state.slideTimer = state.slideDuration;
     state.jumpBuffered = false;
     if (state.isJumping) {
@@ -3157,6 +3194,7 @@
 
   function triggerBoost() {
     if (state.overdriveCharge >= 25 || state.isBoosted) {
+      window.urbanDashFeatures?.addMission('boosts', 1);
       state.isBoosted = true;
       state.hasShield = true;
       pulseBoostHaptics();
@@ -3560,6 +3598,16 @@
       if (scene.fog) scene.fog.color.setHex(zonePalettes[zoneIndex]);
       if (zoneIndex > 0) showToast(['SUNSET CITY', 'NIGHT METRO', 'RAIN STATION', 'FESTIVAL STREET', 'SKY BRIDGE', 'UNDERGROUND TUNNEL'][zoneIndex]);
     }
+    for (const drop of rainDrops) {
+      drop.visible = zoneIndex === 2;
+      if (!drop.visible) continue;
+      drop.position.z += distDelta * 2.6;
+      if (drop.position.z > 12) {
+        drop.position.z = -220 - Math.random() * 35;
+        drop.position.x = (Math.random() - 0.5) * 18;
+        drop.position.y = 2 + Math.random() * 8;
+      }
+    }
     if (window.urbanDashFeatures && state.distance >= 20000 && !window.urbanDashFeatures.data.grandCentralReached) {
       window.urbanDashFeatures.data.grandCentralReached = true;
       window.urbanDashFeatures.data.coins += 1000;
@@ -3670,12 +3718,14 @@
       if (sideScenery[i].userData.isTunnel && previousSceneryZ < 0 && sideScenery[i].position.z >= 0) {
         window.urbanDashFeatures?.addMission('tunnels', 1);
         showToast('TUNNEL PASSED  +DISTANCE');
-        if (Math.abs(state.playerX) > 1.5 && window.urbanDashFeatures) {
-          window.urbanDashFeatures.data.coins += 75;
-          window.urbanDashFeatures.data.secretRoutes = (window.urbanDashFeatures.data.secretRoutes || 0) + 1;
-          window.urbanDashFeatures.save();
-          showToast('SECRET SIDE ROUTE  +75 COINS');
-        }
+      }
+      if (sideScenery[i].userData.isTunnel && previousSceneryZ < -15 && sideScenery[i].position.z >= -15 &&
+          Math.abs(state.playerX - LANES[sideScenery[i].userData.secretLane]) < 1.1 && window.urbanDashFeatures) {
+        window.urbanDashFeatures.addMission('routes', 1);
+        window.urbanDashFeatures.data.secretRoutes = (window.urbanDashFeatures.data.secretRoutes || 0) + 1;
+        window.urbanDashFeatures.data.coins += 75;
+        window.urbanDashFeatures.save();
+        showToast('SECRET ROUTE FOUND  +75 COINS');
       }
       if (sideScenery[i].position.z > 25) {
         sideScenery[i].position.z -= 345;
@@ -3714,6 +3764,7 @@
 
     // --- ATHLETIC RUNNER BOY ANIMATION SYSTEM ---
     runAnimTime += delta * (state.speed * 0.38);
+    for (const arm of stationPerformers) arm.rotation.z = 0.18 + Math.sin(runAnimTime * 2.1) * 0.34;
 
     if (state.jetpackTimer > 0) {
       // 🚀 REAL AUTHENTIC SUPERHERO FLIGHT POSTURE (Realistic pitch angle, head looking forward, smoke particles)

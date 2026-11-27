@@ -1,8 +1,12 @@
 (function () {
   const storageKey = 'urban-dash-progress-v2';
-  const today = new Date().toISOString().slice(0, 10);
-  const week = new Date().getUTCFullYear() + '-W' + Math.ceil((Date.now() - Date.UTC(new Date().getUTCFullYear(), 0, 1)) / 604800000);
-  const base = { coins: 0, stars: 0, lastReward: '', week: '', upgrades: { speed: 1, magnet: 1, air: 1, shield: 1, jump: 1 }, outfits: ['teal-runner'], selectedOutfit: 'teal-runner', missions: { diamonds: 0, distance: 0, boosts: 0, tunnels: 0, stations: 0 }, claimed: [], weeklyDistance: 0, best: { score: 0, distance: 0, diamonds: 0, combo: 0, speed: 0 }, runs: [] };
+  const now = new Date();
+  const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+  const weekDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  weekDate.setUTCDate(weekDate.getUTCDate() + 4 - (weekDate.getUTCDay() || 7));
+  const weekYearStart = new Date(Date.UTC(weekDate.getUTCFullYear(), 0, 1));
+  const week = weekDate.getUTCFullYear() + '-W' + String(Math.ceil((((weekDate - weekYearStart) / 86400000) + 1) / 7)).padStart(2, '0');
+  const base = { coins: 0, stars: 0, lastReward: '', week: '', upgrades: { speed: 1, magnet: 1, air: 1, shield: 1, jump: 1 }, outfits: ['teal-runner'], selectedOutfit: 'teal-runner', missions: { diamonds: 0, distance: 0, boosts: 0, tunnels: 0, stations: 0, routes: 0 }, claimed: [], weeklyDistance: 0, best: { score: 0, distance: 0, diamonds: 0, combo: 0, speed: 0 }, runs: [] };
   let data = base;
   try { data = Object.assign({}, base, JSON.parse(localStorage.getItem(storageKey) || '{}')); } catch (_) {}
   data.upgrades = Object.assign({}, base.upgrades, data.upgrades);
@@ -11,15 +15,17 @@
   data.outfits = data.outfits || base.outfits;
   data.claimed = data.claimed || [];
   data.runs = data.runs || [];
+  if (data.missionDay !== today) { data.missions = Object.assign({}, base.missions); data.claimed = []; data.missionDay = today; }
   if (data.week !== week) { data.week = week; data.weeklyDistance = 0; }
   const missionDefs = [
     ['diamonds', 'Collect 50 diamonds', 50, 250],
     ['distance', 'Run 500 meters', 500, 250],
     ['boosts', 'Use 3 boosts', 3, 200],
     ['tunnels', 'Pass through 2 tunnels', 2, 300],
-    ['stations', 'Reach 3 stations safely', 3, 350]
+    ['stations', 'Reach 3 stations safely', 3, 350],
+    ['routes', 'Discover a secret route', 1, 400]
   ];
-  const save = () => localStorage.setItem(storageKey, JSON.stringify(data));
+  const save = () => { localStorage.setItem(storageKey, JSON.stringify(data)); updateJourney(); };
   const notify = (message) => window.dispatchEvent(new CustomEvent('urban-dash-toast', { detail: message }));
   function updateMissionCard() {
     const card = document.getElementById('run-mission-card');
@@ -32,6 +38,8 @@
   function updateJourney() {
     const wallet=document.getElementById('feature-wallet');
     if(wallet) wallet.textContent=data.coins.toLocaleString();
+    const stars=document.getElementById('feature-stars');
+    if(stars) stars.textContent=data.stars.toLocaleString();
     const panel = document.querySelector('.progression-panel');
     if (panel) {
       panel.querySelectorAll('.upgrade-row span').forEach((item,index) => {
@@ -84,7 +92,7 @@
     },
     claimWeekly() { if (data.weeklyDistance < 3000 || data.weeklyClaimed === week) return false; data.weeklyClaimed = week; data.stars += 3; data.coins += 500; save(); return true; }
   };
-  const dailyClaimed = api.claimDailyReward();
+  const dailyClaimed = data.lastReward === today;
   save();
 
   function openFeature(key) {
@@ -93,16 +101,16 @@
     const content = {
       story: ['Kai’s Last Metro', 'Race through six city districts and reach Grand Central before the final train departs. Every run moves the city journey forward.'],
       mission: ['Missions', missionDefs.map(([name, label, target, reward]) => `${label} — ${Math.min(data.missions[name], target)} / ${target} · ${data.claimed.includes(name) ? 'CLAIMED' : '+' + reward + ' coins'}`).join('<br>')],
-      reward: ['Daily Rewards', dailyClaimed ? 'Today’s welcome gift has been added: 100 coins and 1 star.' : 'Today’s reward is already claimed. Come back tomorrow for 100 coins and 1 star.'],
-      upgrade: ['Runner Upgrades', ['speed','magnet','jump','air','shield'].map(name => `<button class="detail-action" data-upgrade="${name}">Upgrade ${name} · Lv ${data.upgrades[name]} · ${data.upgrades[name]*150} coins</button>`).join('')],
+      reward: ['Daily Rewards', dailyClaimed ? 'Today’s 100 coins and 1 star are already in your wallet.' : 'Claim today’s gift of 100 coins and 1 star.<br><button class="detail-action" data-claim-daily>Claim daily reward</button>'],
+      upgrade: ['Runner Upgrades', ['speed','magnet','jump','air','shield'].map(name => `<button class="detail-action" data-upgrade="${name}" ${data.upgrades[name]>=5?'disabled':''}>${data.upgrades[name]>=5?'MAXED': 'Upgrade'} ${name} · Lv ${data.upgrades[name]}${data.upgrades[name]<5?' · '+(data.upgrades[name]*150)+' coins':''}</button>`).join('')],
       outfit: ['Outfits', ['teal-runner','neon-hoodie','metro-guard','festival','night-runner','royal-blue'].map((name,i) => `<button class="detail-action" data-outfit="${name}" data-cost="${i ? 300+i*100 : 0}">${data.outfits.includes(name) ? (data.selectedOutfit===name?'✓ Wearing ':'Wear ') : 'Unlock '}${name.replaceAll('-',' ')}${i && !data.outfits.includes(name) ? ' · '+(300+i*100)+' coins' : ''}</button>`).join('')],
       zones: ['City Journey', 'Sunset City → Night Metro → Rain Station → Festival Street → Sky Bridge → Underground Tunnel → Grand Central. Reach 2,000 m, 5,000 m, 8,000 m, 12,000 m, and 16,000 m to unlock the next district.'],
       event: ['Station Events', 'Stations can host crowds, performers, moving trains, shops, flashing signs, and neon advertisements. Watch the track and time each move.'],
       stats: ['Personal Bests', `Highest score ${data.best.score} · Longest run ${Math.floor(data.best.distance)} m · Most diamonds ${data.best.diamonds} · Best combo ${data.best.combo} · Fastest ${Math.floor(data.best.speed*1.2)} km/h`],
-      weekly: ['Weekly Challenge', `Run 3,000 meters this week to earn 3 stars and 500 coins. Progress ${Math.min(3000,Math.floor(data.weeklyDistance))} / 3,000 m.<br><button class="detail-action" data-claim-weekly>Claim weekly reward</button>`],
-      leaderboard: ['Local Leaderboards', `Highest score ${data.best.score}<br>Longest distance ${Math.floor(data.best.distance)} m<br>Best combo ${data.best.combo}<br>Most diamonds ${data.best.diamonds}<br>Fastest run ${Math.floor(data.best.speed*1.2)} km/h`],
+      weekly: ['Weekly Challenge', `Run 3,000 meters this week to earn 3 stars and 500 coins. Progress ${Math.min(3000,Math.floor(data.weeklyDistance))} / 3,000 m.<br><button class="detail-action" data-claim-weekly ${data.weeklyClaimed===week?'disabled':''}>${data.weeklyClaimed===week?'Reward claimed':'Claim weekly reward'}</button>`],
+      leaderboard: ['Leaderboards', `<div class="leaderboard-tabs"><button data-board="score">Score</button><button data-board="distance">Distance</button><button data-board="combo">Combo</button><button data-board="diamonds">Diamonds</button><button data-board="speed">Speed</button></div><div id="leaderboard-results"></div><small>Scores saved on this device</small>`],
       tutorial: ['Quick Tutorial', 'Swipe left or right to change lanes. Swipe up to jump over barriers. Swipe down to slide under signs. Collect boosts on the track. During parachute flight, steer toward the floating diamonds.'],
-      secret: ['Secret Routes', 'Look for glowing side entrances near stations. Hidden tunnels, rooftops, and bridge paths contain bonus diamonds and shortcut rewards.']
+      secret: ['Secret Routes', `${data.secretRoutes||0} hidden tunnel entrances found. Pass through the glowing side gate in the outer lane to discover a route and earn 75 coins. Rooftops and bridges remain part of the city journey.`]
     }[key];
     if (!content) return;
     detail.innerHTML = `<h3>${content[0]}</h3><p>${content[1]}</p>`;
@@ -110,6 +118,19 @@
     detail.querySelectorAll('[data-upgrade]').forEach(button => button.onclick = () => { if(api.upgrade(button.dataset.upgrade)) openFeature('upgrade'); else notify('Collect more coins to upgrade'); });
     detail.querySelectorAll('[data-outfit]').forEach(button => button.onclick = () => { const name=button.dataset.outfit; const cost=Number(button.dataset.cost); if(!data.outfits.includes(name) && !api.unlockOutfit(name,cost)) return notify('Collect more coins to unlock'); api.selectOutfit(name); openFeature('outfit'); });
     detail.querySelector('[data-claim-weekly]')?.addEventListener('click', () => { if(api.claimWeekly()) { notify('WEEKLY CHALLENGE COMPLETE  +3 STARS'); openFeature('weekly'); } else notify('Run 3,000 meters this week first'); });
+    detail.querySelector('[data-claim-daily]')?.addEventListener('click', () => {
+      if (!api.claimDailyReward()) return notify('Come back tomorrow for another reward');
+      updateJourney(); notify('DAILY GIFT  +100 COINS  +1 STAR'); openFeature('reward');
+    });
+    if (key === 'leaderboard') {
+      const renderBoard = metric => {
+        const rows = [...data.runs].sort((a,b)=>(b[metric]||0)-(a[metric]||0)).slice(0,5);
+        const result = detail.querySelector('#leaderboard-results');
+        result.innerHTML = rows.length ? rows.map((run,index)=>`<div class="leaderboard-row"><b>${index+1}</b><span>${Math.floor(run[metric]||0)}${metric==='distance'?' m':metric==='speed'?' km/h':''}</span><small>${run.date}</small></div>`).join('') : '<p>Finish a run to set your first record.</p>';
+      };
+      detail.querySelectorAll('[data-board]').forEach(button=>button.addEventListener('click',()=>renderBoard(button.dataset.board)));
+      renderBoard('score');
+    }
     if (key === 'tutorial') {
       const lessons=['Swipe left or right to change lanes.','Swipe up to jump over barriers.','Swipe down to slide under overhead signs.','Collect boosts and crystals on the track.','During parachute flight, steer toward floating diamonds.'];
       let step=0;
