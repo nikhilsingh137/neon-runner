@@ -1440,10 +1440,6 @@
           board.position.set(side * 7.72, 3.62, -10);
           board.rotation.y = side < 0 ? 0.08 : -0.08;
           section.add(board);
-          const person = makeStationPerson(side < 0 ? 0xff6f91 : 0x45d6c4, side < 0 ? 0x2b2148 : 0x3b1f2f);
-          person.position.set(side * 7.2, 0, -11.8);
-          person.rotation.y = side < 0 ? -0.18 : 0.18;
-          section.add(person);
         }
         for (const z of [-19.4, -12.8, -6.4, 0, 6.4, 12.8, 19.4]) {
           const rib = new THREE.Mesh(arch, ribMat);
@@ -1454,6 +1450,14 @@
             addBlock(section, aqua, [0.11, 0.13, 1.12], [side * 8.04, 2.56, z]);
           }
         }
+      }
+
+      // Add small platform passengers throughout every route area, not only in tunnels.
+      for (const side of [-1, 1]) {
+        const person = makeStationPerson((index + side > 0) ? 0xff6f91 : 0x45d6c4, index % 2 ? 0x2b2148 : 0x3b1f2f);
+        person.position.set(side * (index % 2 ? 7.2 : 8.7), 0, index % 2 ? -11.8 : -7.5);
+        person.rotation.y = side < 0 ? -0.18 : 0.18;
+        section.add(person);
       }
 
       tracksGroup.add(section);
