@@ -2566,20 +2566,18 @@
 
     starAura = new THREE.Group();
     const orbit = new THREE.Group();
-    orbit.position.y = 1.35;
-    const ringGeometry = new THREE.TorusGeometry(1.53, 0.031, 6, 40);
-    const sparkGeometry = new THREE.OctahedronGeometry(0.09);
-    for (let i = 0; i < 2; i++) {
-      const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({
-        color: i ? 0xbc8efb : 0xffc771, transparent: true, opacity: 0.86, depthWrite: false
-      }));
-      ring.rotation.set(Math.PI / 2.5, i * 1.25, i * 0.8);
-      orbit.add(ring);
-    }
-    for (let i = 0; i < 8; i++) {
+    // Keep the protection behind Kai so it reads as a safety bubble, not a line across the track.
+    orbit.position.set(0, 1.25, 0.62);
+    const bubble = new THREE.Mesh(new THREE.SphereGeometry(1.55, 24, 16), new THREE.MeshBasicMaterial({
+      color: 0xff8fd8, transparent: true, opacity: 0.16, depthWrite: false
+    }));
+    bubble.scale.set(0.86, 1.08, 0.72);
+    orbit.add(bubble);
+    const sparkGeometry = new THREE.OctahedronGeometry(0.11);
+    for (let i = 0; i < 10; i++) {
       const phase = i * Math.PI / 4;
-      const spark = new THREE.Mesh(sparkGeometry, new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffca78 : 0xd1a3ff }));
-      spark.position.set(Math.cos(phase) * 1.58, Math.sin(phase * 2) * 0.5, Math.sin(phase) * 1.58);
+      const spark = new THREE.Mesh(sparkGeometry, new THREE.MeshBasicMaterial({ color: [0xffca78, 0x8ee8ff, 0xd1a3ff, 0xff7fb8][i % 4] }));
+      spark.position.set(Math.cos(phase) * 1.16, Math.sin(phase * 1.7) * 0.82, Math.sin(phase) * 0.78);
       orbit.add(spark);
     }
     starAura.add(orbit);
@@ -2652,9 +2650,10 @@
     updateBoostBadge(badgeSecretStar, timerSecretStar, state.secretStarTimer);
     if (parachuteRig) parachuteRig.visible = state.parachuteTimer > 0;
     if (starAura) {
-      starAura.visible = state.secretStarTimer > 0;
+      // The parachute owns the sky silhouette. Hide the star balloons while flying.
+      starAura.visible = state.secretStarTimer > 0 && state.parachuteTimer <= 0;
       starAura.rotation.y += delta * 2.4;
-      const scale = 1 + Math.sin(state.secretStarTimer * 4.5) * 0.065;
+      const scale = 1 + Math.sin(state.secretStarTimer * 4.5) * 0.09;
       starAura.scale.setScalar(scale);
     }
   }
