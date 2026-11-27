@@ -1374,13 +1374,13 @@
     };
     const makeStationPerson = (coat, accent) => {
       const person = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.82, 8), new THREE.MeshStandardMaterial({ color: coat, roughness: 0.78 }));
-      body.position.y = 0.62;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshStandardMaterial({ color: 0xe2a078, roughness: 0.72 }));
-      head.position.y = 1.23;
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.48), new THREE.MeshStandardMaterial({ color: accent, roughness: 0.9 }));
-      hair.position.y = 1.3;
-      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.48, 0.2), new THREE.MeshStandardMaterial({ color: 0x24304e, roughness: 0.82 }));
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 1.02, 8), new THREE.MeshStandardMaterial({ color: coat, roughness: 0.68 }));
+      body.position.y = 0.76;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf0aa7c, roughness: 0.65 }));
+      head.position.y = 1.53;
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.48), new THREE.MeshStandardMaterial({ color: accent, roughness: 0.82 }));
+      hair.position.y = 1.61;
+      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.58, 0.24), new THREE.MeshStandardMaterial({ color: 0x34466f, roughness: 0.72 }));
       legs.position.y = 0.1;
       person.add(body, head, hair, legs);
       return person;
@@ -1455,7 +1455,7 @@
       // Add small platform passengers throughout every route area, not only in tunnels.
       for (const side of [-1, 1]) {
         const person = makeStationPerson((index + side > 0) ? 0xff6f91 : 0x45d6c4, index % 2 ? 0x2b2148 : 0x3b1f2f);
-        person.position.set(side * (index % 2 ? 7.2 : 8.7), 0, index % 2 ? -11.8 : -7.5);
+        person.position.set(side * (index % 2 ? 6.8 : 7.15), 0, index % 2 ? -11.8 : -7.5);
         person.rotation.y = side < 0 ? -0.18 : 0.18;
         section.add(person);
         if (index % 2 === 0) {
@@ -1465,6 +1465,10 @@
           section.add(stopBoard);
           addBlock(section, teal, [0.12, 2.8, 0.12], [side * 8.65, 1.55, -7.5]);
           addBlock(section, gold, [2.2, 0.12, 0.9], [side * 8.65, 2.75, -7.5]);
+          addBlock(section, wall, [3.4, 2.1, 0.14], [side * 7.15, 1.25, -8.55]);
+          addBlock(section, teal, [3.8, 0.18, 2.5], [side * 7.15, 2.55, -7.5]);
+          addBlock(section, gold, [0.14, 2.45, 0.14], [side * 5.55, 1.35, -7.5]);
+          addBlock(section, gold, [0.14, 2.45, 0.14], [side * 8.75, 1.35, -7.5]);
         }
       }
 
