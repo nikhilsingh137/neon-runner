@@ -175,12 +175,35 @@
             <span class="btn-text">Play now</span>
             <span class="run-arrow" aria-hidden="true">&#8594;</span>
           </button>
+          <button class="cyber-btn feature-menu-btn" id="btn-feature-menu">Home / Menu</button>
           <button class="cyber-btn blue" id="btn-install-app">Install app</button>
         </div>
         <p class="controls-quick-hint">
           <span class="hint-keyboard">Arrow keys to move, jump and slide</span>
           <span class="hint-touch">Swipe to move, jump and slide</span>
         </p>
+      </div>
+    </div>
+
+    <div id="feature-menu-modal" class="screen-overlay hidden">
+      <div class="feature-menu-card">
+        <div class="feature-menu-header"><div><span class="menu-kicker">URBAN DASH 4D</span><h2>Home / Menu</h2></div><button id="btn-feature-menu-close" class="modal-close">×</button></div>
+        <p class="feature-story">Kai is racing across the city to reach Grand Central before the final metro leaves.</p>
+        <div class="feature-menu-grid">
+          <button class="feature-tile story">📖 <b>Story</b><small>Reach Grand Central</small></button>
+          <button class="feature-tile mission">🎯 <b>Missions</b><small>5 active objectives</small></button>
+          <button class="feature-tile reward">🎁 <b>Daily Rewards</b><small>Claim today’s gift</small></button>
+          <button class="feature-tile upgrade">⚡ <b>Upgrades</b><small>Speed • Magnet • Air</small></button>
+          <button class="feature-tile outfit">🧥 <b>Outfits</b><small>Unlock runner styles</small></button>
+          <button class="feature-tile zones">🌆 <b>City Map</b><small>6 zones to discover</small></button>
+          <button class="feature-tile event">🎉 <b>Station Events</b><small>Crowds • shows • shops</small></button>
+          <button class="feature-tile stats">🏆 <b>Personal Best</b><small>Score • distance • combo</small></button>
+          <button class="feature-tile weekly">⭐ <b>Weekly Challenge</b><small>Unlock Golden Star</small></button>
+          <button class="feature-tile leaderboard">📊 <b>Leaderboards</b><small>5 ranking categories</small></button>
+          <button class="feature-tile tutorial">💡 <b>How to Play</b><small>One lesson at a time</small></button>
+          <button class="feature-tile secret">🚇 <b>Secret Routes</b><small>Tunnels • rooftops • bridges</small></button>
+        </div>
+        <div class="feature-menu-footer"><span>Every run earns coins and unlock progress.</span><button id="btn-feature-menu-play" class="cyber-btn primary-start-btn">Play now →</button></div>
       </div>
     </div>
 
@@ -404,5 +427,18 @@
       }
     });
   </script>
+<script>
+  (() => {
+    const menu = document.getElementById('feature-menu-modal');
+    const open = document.getElementById('btn-feature-menu');
+    const close = document.getElementById('btn-feature-menu-close');
+    const play = document.getElementById('btn-feature-menu-play');
+    if (!menu || !open || !close || !play) return;
+    const hide = () => menu.classList.add('hidden');
+    open.addEventListener('click', () => menu.classList.remove('hidden'));
+    close.addEventListener('click', hide);
+    play.addEventListener('click', () => { hide(); document.getElementById('btn-start')?.click(); });
+  })();
+</script>
 </body>
 </html>
