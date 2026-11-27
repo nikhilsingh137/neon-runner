@@ -1458,6 +1458,14 @@
         person.position.set(side * (index % 2 ? 7.2 : 8.7), 0, index % 2 ? -11.8 : -7.5);
         person.rotation.y = side < 0 ? -0.18 : 0.18;
         section.add(person);
+        if (index % 2 === 0) {
+          const stopBoard = makeStationBoard(index === 0 ? 'SUNSET PARK' : 'SKY GARDEN');
+          stopBoard.position.set(side * 8.65, 3.2, -7.5);
+          stopBoard.rotation.y = side < 0 ? 0.08 : -0.08;
+          section.add(stopBoard);
+          addBlock(section, teal, [0.12, 2.8, 0.12], [side * 8.65, 1.55, -7.5]);
+          addBlock(section, gold, [2.2, 0.12, 0.9], [side * 8.65, 2.75, -7.5]);
+        }
       }
 
       tracksGroup.add(section);
