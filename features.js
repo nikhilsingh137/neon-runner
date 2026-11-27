@@ -140,7 +140,7 @@
   }
   document.addEventListener('DOMContentLoaded', () => {
     const detail = document.createElement('section'); detail.id='feature-detail'; detail.className='feature-detail hidden';
-    document.querySelector('.feature-menu-card')?.append(detail);
+    document.querySelector('.feature-story')?.after(detail);
     document.querySelectorAll('.feature-tile').forEach(tile => tile.addEventListener('click', () => {
       const key = [...tile.classList].find(name => name !== 'feature-tile');
       openFeature(key);

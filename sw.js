@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 4D PWA
-const CACHE_NAME = 'urbandash-v27-complete-features';
+const CACHE_NAME = 'urbandash-v28-mobile-menu-sound-fix';
 
 const CORE_ASSETS = [
   './manifest.json',

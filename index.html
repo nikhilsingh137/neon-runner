@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v22_complete_features';
+      var LATEST_VERSION = 'v23_mobile_menu_sound_fix';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=all20_complete_3d1b00c">
+  <link rel="stylesheet" href="style.css?v=mobile_menu_sound_fix">
 </head>
 <body>
   <div id="game-container">
@@ -286,7 +286,7 @@
           <div class="settings-section-title">AUDIO & SOUND</div>
           <div class="settings-sound-row">
             <span>Game Sound Effects &amp; Music</span>
-            <button class="mini-icon-btn" id="btn-toggle-sound">SOUND: ON</button>
+            <button class="cyber-btn outline sound-toggle-btn" id="btn-toggle-sound" type="button">SOUND: ON</button>
           </div>
 
           <details class="soundtrack-credits">
@@ -377,8 +377,8 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=devotional_five"></script>
-  <script src="features.js?v=all20_complete_3d1b00c"></script>
-  <script src="game.js?v=all20_complete_3d1b00c"></script>
+  <script src="features.js?v=mobile_menu_sound_fix"></script>
+  <script src="game.js?v=mobile_menu_sound_fix"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -439,7 +439,8 @@
     const play = document.getElementById('btn-feature-menu-play');
     if (!menu || !open || !close || !play) return;
     const featureCard = menu.querySelector('.feature-menu-card');
-    featureCard?.prepend(document.querySelector('.zone-panel'), document.querySelector('.progression-panel'));
+    const featureGrid = featureCard?.querySelector('.feature-menu-grid');
+    featureGrid?.after(document.querySelector('.progression-panel'), document.querySelector('.zone-panel'));
     const hide = () => menu.classList.add('hidden');
     open.addEventListener('click', () => menu.classList.remove('hidden'));
     close.addEventListener('click', hide);
