@@ -1372,6 +1372,19 @@
       board.scale.set(3.4, 0.85, 1);
       return board;
     };
+    const makeStationPerson = (coat, accent) => {
+      const person = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 0.82, 8), new THREE.MeshStandardMaterial({ color: coat, roughness: 0.78 }));
+      body.position.y = 0.62;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshStandardMaterial({ color: 0xe2a078, roughness: 0.72 }));
+      head.position.y = 1.23;
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.48), new THREE.MeshStandardMaterial({ color: accent, roughness: 0.9 }));
+      hair.position.y = 1.3;
+      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.48, 0.2), new THREE.MeshStandardMaterial({ color: 0x24304e, roughness: 0.82 }));
+      legs.position.y = 0.1;
+      person.add(body, head, hair, legs);
+      return person;
+    };
     for (let step = 0; step <= spans; step++) {
       const angle = step / spans * Math.PI;
       const x = -Math.cos(angle) * radius;
@@ -1427,6 +1440,10 @@
           board.position.set(side * 7.72, 3.62, -10);
           board.rotation.y = side < 0 ? 0.08 : -0.08;
           section.add(board);
+          const person = makeStationPerson(side < 0 ? 0xff6f91 : 0x45d6c4, side < 0 ? 0x2b2148 : 0x3b1f2f);
+          person.position.set(side * 7.2, 0, -11.8);
+          person.rotation.y = side < 0 ? -0.18 : 0.18;
+          section.add(person);
         }
         for (const z of [-19.4, -12.8, -6.4, 0, 6.4, 12.8, 19.4]) {
           const rib = new THREE.Mesh(arch, ribMat);
