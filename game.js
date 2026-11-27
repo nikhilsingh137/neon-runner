@@ -12,7 +12,11 @@
   const VISIBLE_DISTANCE = 260;
   const JUMP_HEIGHT = 4.6;
   const GRAVITY = 32.0;
-  const START_SPEED = 20;
+  const START_SPEED = 24.5;
+  const PARACHUTE_DURATION = 6;
+  const STAR_DURATION = 9;
+  const AIR_TRAIL_LIFTS = [-0.28, 0.22, 0.42, 0.14, -0.25];
+  const AIR_TRAIL_WEAVE = [-0.49, 0.47, 0.08, -0.36, 0.51];
   const SKATE_WHEEL_RADIUS = 0.097;
   const TRAIN_HEIGHT = 3.5;
   const JETPACK_FLIGHT_Y = 8.5;
@@ -48,6 +52,8 @@
     // 8 Epic Power-ups
     magnetTimer: 0,
     jetpackTimer: 0,
+    parachuteTimer: 0,
+    secretStarTimer: 0,
     sneakersTimer: 0,
     doublerTimer: 0,
     warpTimer: 0,
@@ -86,6 +92,7 @@
 
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
+  let parachuteRig, starAura;
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
   let skateFrameL, skateFrameR, skateWheelsL = [], skateWheelsR = [];
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
@@ -94,6 +101,8 @@
   let cityBuildingsGroup;
   let clock = new THREE.Clock();
   let runAnimTime = 0;
+  let exhaustElapsed = 0;
+  const exhaustOrigin = new THREE.Vector3();
   let runnerSprite, runnerSpriteShadow, runnerSpriteAtlas, slideSpriteAtlas;
   let runnerSpritePhase = 0;
   const RUNNER_ATLAS_COLUMNS = 4;
@@ -133,6 +142,10 @@
   const timerVortex = document.getElementById('timer-vortex');
   const badgeShield = document.getElementById('badge-shield');
   const badgeSkates = document.getElementById('badge-skates');
+  const badgeParachute = document.getElementById('badge-parachute');
+  const timerParachute = document.getElementById('timer-parachute');
+  const badgeSecretStar = document.getElementById('badge-secret-star');
+  const timerSecretStar = document.getElementById('timer-secret-star');
   const timerSkates = document.getElementById('timer-skates');
 
   // Quick-Use Power-Up Tray Elements
@@ -218,12 +231,13 @@
     }
   }
 
-  function startJetpack(duration) {
-    if (state.jetpackTimer <= 0) {
-      nextFlightCrystalZ = -16;
-      flightCrystalIndex = 0;
-    }
-    state.jetpackTimer = Math.max(state.jetpackTimer, duration);
+  function isAirBoostActive() {
+    return state.jetpackTimer > 0 || state.parachuteTimer > 0;
+  }
+
+  function beginAirTrail() {
+    nextFlightCrystalZ = -16;
+    flightCrystalIndex = 0;
     state.vy = 0;
     state.isJumping = false;
     state.isSliding = false;
@@ -231,22 +245,54 @@
     state.jumpBuffered = false;
   }
 
+  function activateParachute() {
+    if (!isAirBoostActive()) beginAirTrail();
+    state.jetpackTimer = 0;
+    state.parachuteTimer = PARACHUTE_DURATION;
+    state.parachuteStartY = Math.max(0, state.playerY);
+    state.vy = 0;
+    showToast('PARACHUTE GLIDE');
+    window.soundEngine?.playPowerupSFX();
+  }
+
+  function activateSecretStar() {
+    state.secretStarTimer = STAR_DURATION;
+    showToast('SECRET STAR  ?  3x SCORE');
+    window.soundEngine?.playPowerupSFX();
+  }
+
+  function getBoostedScore(amount) {
+    return amount * (state.secretStarTimer > 0 ? 3 : 1);
+  }
+
+  function startJetpack(duration) {
+    if (!isAirBoostActive()) beginAirTrail();
+    state.parachuteTimer = 0;
+    state.jetpackTimer = Math.max(state.jetpackTimer, duration);
+    state.vy = 0;
+  }
+
   function fillFlightCrystalTrail(distance) {
     nextFlightCrystalZ += distance;
     while (nextFlightCrystalZ > -84) {
       const index = flightCrystalIndex++;
       const lane = FLIGHT_CRYSTAL_LANES[index % FLIGHT_CRYSTAL_LANES.length];
-      const height = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7);
-      const offset = index % 2 === 0 ? -0.43 : 0.43;
-      createCrystal(lane, nextFlightCrystalZ, height, true, offset);
+      const lift = AIR_TRAIL_LIFTS[index % AIR_TRAIL_LIFTS.length];
+      const height = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7 + lift);
+      const offset = AIR_TRAIL_WEAVE[index % AIR_TRAIL_WEAVE.length];
+      createCrystal(lane, nextFlightCrystalZ, height, true, offset, lift);
+      if (index % 5 === 2) {
+        createCrystal((lane + 2) % LANES.length, nextFlightCrystalZ - 2.1,
+          Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.88), true, 0.29, 0.18);
+      }
       nextFlightCrystalZ -= FLIGHT_CRYSTAL_GAPS[index % FLIGHT_CRYSTAL_GAPS.length];
     }
   }
 
   function updateFlightCrystal(crystal, delta) {
     if (!crystal.userData.flightTrail) return;
-    if (state.jetpackTimer > 0) {
-      const targetY = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7);
+    if (isAirBoostActive()) {
+      const targetY = Math.max(GROUND_CRYSTAL_Y, state.playerY + 0.7 + crystal.userData.flightLift);
       crystal.position.y += (targetY - crystal.position.y) * (1 - Math.exp(-12 * delta));
     } else if (state.playerY <= state.groundY + 0.05) {
       crystal.position.y = GROUND_CRYSTAL_Y;
@@ -442,13 +488,14 @@
     buildMetroEnvironment();
     loadMetroSkyArtwork();
     buildHeroKai();
+    buildBoostVisuals();
     buildRunnerTrail();
     loadRunnerSprite();
 
     // Initialize Jetpack Billowing Flight Smoke Particle Pool
     flightSmokeParticles = [];
     const smokeGeom = new THREE.SphereGeometry(0.26, 8, 8);
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < 46; i++) {
       const smMat = new THREE.MeshBasicMaterial({
         color: 0xf1f5f9,
         transparent: true,
@@ -1061,7 +1108,7 @@
 
     const sliding = state.isSliding && Boolean(slideSpriteAtlas);
     const showSprite = state.running && !state.isJumping && (!state.isSliding || sliding) &&
-      !state.isBoosted && state.jetpackTimer <= 0 && state.skatesTimer <= 0 &&
+      !state.isBoosted && !isAirBoostActive() && state.skatesTimer <= 0 &&
       state.playerY <= state.groundY + 0.06;
     runnerSprite.visible = showSprite;
     runnerSpriteShadow.visible = showSprite;
@@ -1276,6 +1323,7 @@
     trackTies.push(sleeperMesh, fasteners);
 
     addStationCanopies(isBright);
+    buildRouteLandmarks(isBright);
 
     // 7. HIGH-SPEED AERODYNAMIC WIND STREAKS (Visual speed sensation)
     const lineMat = new THREE.MeshBasicMaterial({
@@ -1299,6 +1347,87 @@
   }
 
   // The metro skyline sits behind the open platforms.
+  function buildRouteLandmarks(isBright) {
+    const teal = new THREE.MeshStandardMaterial({ color: isBright ? 0x368e93 : 0x2c6b79, roughness: 0.71 });
+    const gold = new THREE.MeshBasicMaterial({ color: 0xffcd8c });
+    const aqua = new THREE.MeshBasicMaterial({ color: 0xa7ede6 });
+    const wall = new THREE.MeshStandardMaterial({ color: isBright ? 0x819895 : 0x536b77, roughness: 0.88, side: THREE.DoubleSide });
+    const ribMat = new THREE.MeshStandardMaterial({ color: 0x4c777a, roughness: 0.72 });
+    const cube = new THREE.BoxGeometry(1, 1, 1);
+    const archPoints = [];
+    const vertices = [];
+    const indices = [];
+    const spans = 24;
+    const radius = 8.26;
+    const tunnelLength = 39;
+    for (let step = 0; step <= spans; step++) {
+      const angle = step / spans * Math.PI;
+      const x = -Math.cos(angle) * radius;
+      const y = 6.10 + Math.sin(angle) * radius;
+      archPoints.push(new THREE.Vector3(x, y, 0));
+      vertices.push(x, y, -tunnelLength / 2, x, y, tunnelLength / 2);
+      if (step < spans) {
+        const n = step * 2;
+        indices.push(n, n + 2, n + 1, n + 1, n + 2, n + 3);
+      }
+    }
+    const roof = new THREE.BufferGeometry();
+    roof.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    roof.setIndex(indices);
+    roof.computeVertexNormals();
+    const arch = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(archPoints), 30, 0.13, 6, false);
+    const addBlock = (parent, material, size, position) => {
+      const block = new THREE.Mesh(cube, material);
+      block.scale.set(...size);
+      block.position.set(...position);
+      parent.add(block);
+      return block;
+    };
+
+    for (let index = 0; index < 4; index++) {
+      const section = new THREE.Group();
+      const z = [-67, -152, -239, -325][index];
+      section.position.z = z;
+      section.userData.routeStartZ = z;
+
+      if (index % 2 === 0) {
+        const water = new THREE.MeshLambertMaterial({ color: isBright ? 0x78b2b7 : 0x4f8196 });
+        for (const side of [-1, 1]) {
+          const x = side * 6.7;
+          addBlock(section, water, [7.1, 0.043, 35], [side * 13.9, -0.025, 0]);
+          addBlock(section, teal, [0.24, 0.26, 35], [x, 0.26, 0]);
+          addBlock(section, teal, [0.22, 0.23, 35], [x, 3.6, 0]);
+          for (const offset of [-15, -9, -3, 3, 9, 15]) {
+            addBlock(section, teal, [0.24, 3.7, 0.24], [x, 1.85, offset]);
+            addBlock(section, gold, [0.25, 0.08, 0.26], [x, 3.76, offset]);
+            if (offset < 15) {
+              const brace = addBlock(section, teal, [0.13, 6.9, 0.12], [x, 1.9, offset + 3]);
+              brace.rotation.x = offset % 4 === 1 ? 1.05 : -1.05;
+            }
+          }
+        }
+      } else {
+        section.add(new THREE.Mesh(roof, wall));
+        for (const side of [-1, 1]) {
+          addBlock(section, wall, [0.33, 6.1, tunnelLength], [side * radius, 3.05, 0]);
+          addBlock(section, teal, [0.38, 0.31, tunnelLength], [side * 8.02, 1.42, 0]);
+        }
+        for (const z of [-19.4, -12.8, -6.4, 0, 6.4, 12.8, 19.4]) {
+          const rib = new THREE.Mesh(arch, ribMat);
+          rib.position.z = z;
+          section.add(rib);
+          for (const side of [-1, 1]) {
+            addBlock(section, gold, [0.24, 0.11, 2.85], [side * 5.25, 11.8, z]);
+            addBlock(section, aqua, [0.11, 0.13, 1.12], [side * 8.04, 2.56, z]);
+          }
+        }
+      }
+
+      tracksGroup.add(section);
+      sideScenery.push(section);
+    }
+  }
+
   function getPlatformTiles(isBright) {
     if (platformTiles.has(isBright)) return platformTiles.get(isBright);
 
@@ -1858,12 +1987,13 @@
     metalness: 0.85
   });
 
-  function createCrystal(laneIndex, zPos, yPos = GROUND_CRYSTAL_Y, flightTrail = false, lateralOffset = 0) {
+  function createCrystal(laneIndex, zPos, yPos = GROUND_CRYSTAL_Y, flightTrail = false, lateralOffset = 0, flightLift = 0) {
     const crystal = new THREE.Mesh(crystalGeom, crystalMat);
     crystal.position.set(LANES[laneIndex] + lateralOffset, yPos, zPos);
     crystal.castShadow = true;
     crystal.userData = { lane: laneIndex, collected: false };
     crystal.userData.flightTrail = flightTrail;
+    crystal.userData.flightLift = flightLift;
     scene.add(crystal);
     coins.push(crystal);
   }
@@ -2375,6 +2505,166 @@
   }
 
   // 9. Golden Mystery Surprise Box (Lucky Crate with Holographic ?)
+  function buildParachuteCanopy() {
+    const rig = new THREE.Group();
+    const colors = [0xffbd71, 0xee717c, 0x8c69d8, 0x59b8c3, 0xffbd71, 0xee717c, 0x8c69d8, 0x59b8c3];
+    const seamPoints = [];
+    for (let i = 0; i < colors.length; i++) {
+      const angle = i * Math.PI * 2 / colors.length;
+      const segment = new THREE.Mesh(
+        new THREE.SphereGeometry(1.64, 5, 9, angle, Math.PI / 4, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.85, side: THREE.DoubleSide })
+      );
+      segment.scale.set(1, 0.67, 0.84);
+      segment.position.y = 2.88;
+      rig.add(segment);
+      const x = -Math.cos(angle) * 1.64;
+      const z = Math.sin(angle) * 1.38;
+      seamPoints.push(new THREE.Vector3(x, 2.88, z), new THREE.Vector3(x * 0.32, 1.96, z * 0.15));
+    }
+    const straps = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seamPoints),
+      new THREE.LineBasicMaterial({ color: 0xffe7cb }));
+    rig.add(straps);
+    return rig;
+  }
+
+  function buildSecretStar() {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.PI / 2 + i * Math.PI / 6;
+      const radius = i % 2 ? 0.34 : 0.77;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) shape.moveTo(x, y);
+      else shape.lineTo(x, y);
+    }
+    shape.closePath();
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.11, bevelEnabled: true, bevelSize: 0.065, bevelThickness: 0.06, bevelSegments: 2, steps: 1
+    });
+    geometry.translate(0, 0, -0.055);
+    const gem = new THREE.Mesh(geometry, [
+      new THREE.MeshStandardMaterial({ color: 0xffc46c, metalness: 0.32, roughness: 0.26, emissive: 0xe76545, emissiveIntensity: 0.35 }),
+      new THREE.MeshStandardMaterial({ color: 0x9c70ed, metalness: 0.46, roughness: 0.3, emissive: 0x5531aa, emissiveIntensity: 0.38 })
+    ]);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.23), new THREE.MeshBasicMaterial({ color: 0xfff2ba }));
+    core.position.z = 0.16;
+    gem.add(core);
+    return gem;
+  }
+
+  function buildBoostVisuals() {
+    parachuteRig = buildParachuteCanopy();
+    parachuteRig.visible = false;
+    playerGroup.add(parachuteRig);
+
+    starAura = new THREE.Group();
+    const orbit = new THREE.Group();
+    orbit.position.y = 1.35;
+    const ringGeometry = new THREE.TorusGeometry(1.53, 0.031, 6, 40);
+    const sparkGeometry = new THREE.OctahedronGeometry(0.09);
+    for (let i = 0; i < 2; i++) {
+      const ring = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({
+        color: i ? 0xbc8efb : 0xffc771, transparent: true, opacity: 0.86, depthWrite: false
+      }));
+      ring.rotation.set(Math.PI / 2.5, i * 1.25, i * 0.8);
+      orbit.add(ring);
+    }
+    for (let i = 0; i < 8; i++) {
+      const phase = i * Math.PI / 4;
+      const spark = new THREE.Mesh(sparkGeometry, new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffca78 : 0xd1a3ff }));
+      spark.position.set(Math.cos(phase) * 1.58, Math.sin(phase * 2) * 0.5, Math.sin(phase) * 1.58);
+      orbit.add(spark);
+    }
+    starAura.add(orbit);
+    starAura.visible = false;
+    playerGroup.add(starAura);
+  }
+
+  function createSpecialBoost(type, lane, z) {
+    const pickup = new THREE.Group();
+    const isStar = type === 'secret-star';
+    const icon = isStar ? buildSecretStar() : buildParachuteCanopy();
+    pickup.position.set(LANES[lane], isStar ? 1.52 : 1.34, z);
+    if (!isStar) {
+      icon.scale.setScalar(0.47);
+      icon.position.y = -1.2;
+    }
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.91, 0.035, 8, 32),
+      new THREE.MeshBasicMaterial({ color: isStar ? 0xffc275 : 0xc9aaf9, transparent: true, opacity: 0.7, depthWrite: false }));
+    halo.rotation.x = Math.PI / 2;
+    halo.position.y = -0.57;
+    pickup.add(icon, halo);
+    pickup.userData = { type, lane, collected: false, icon, halo, phase: 0, baseY: pickup.position.y };
+    scene.add(pickup);
+    powerups.push(pickup);
+  }
+
+  function animateSpecialBoost(pickup, delta) {
+    const data = pickup.userData;
+    data.phase += delta;
+    pickup.position.y = data.baseY + Math.sin(data.phase * 3.3) * 0.18;
+    data.icon.rotation.z = Math.sin(data.phase * 2.1) * 0.14;
+    const pulse = (data.phase * 1.15) % 1;
+    data.halo.scale.setScalar(0.75 + pulse * 0.6);
+    data.halo.material.opacity = 0.74 * (1 - pulse);
+  }
+
+  function applyParachuteGlide(delta) {
+    const elapsed = PARACHUTE_DURATION - state.parachuteTimer;
+    const open = THREE.MathUtils.smoothstep(elapsed, 0, 0.9);
+    const landing = THREE.MathUtils.smoothstep(state.parachuteTimer, 0, 1.72);
+    const peak = Math.max(state.parachuteStartY, 4.8);
+    const cruising = THREE.MathUtils.lerp(state.parachuteStartY, peak, open);
+    const target = THREE.MathUtils.lerp(state.groundY, cruising, landing);
+    state.playerY += (target - state.playerY) * (1 - Math.exp(-10 * delta));
+    state.vy = 0;
+    if (parachuteRig) {
+      parachuteRig.scale.setScalar(0.48 + open * 0.52);
+      parachuteRig.rotation.z = Math.sin(elapsed * 2.4) * 0.07 + (state.playerX - state.targetX) * 0.08;
+    }
+  }
+
+  function updateBoostBadge(badge, timer, remaining) {
+    const display = remaining > 0 ? 'flex' : 'none';
+    if (badge && badge.style.display !== display) badge.style.display = display;
+    if (remaining > 0 && timer) {
+      const label = Math.ceil(remaining) + 's';
+      if (timer.textContent !== label) timer.textContent = label;
+    }
+  }
+
+  function updateSpecialBoosts(delta) {
+    if (state.parachuteTimer > 0) {
+      state.parachuteTimer = Math.max(0, state.parachuteTimer - delta);
+      applyParachuteGlide(delta);
+    }
+    if (state.secretStarTimer > 0) state.secretStarTimer = Math.max(0, state.secretStarTimer - delta);
+    updateBoostBadge(badgeParachute, timerParachute, state.parachuteTimer);
+    updateBoostBadge(badgeSecretStar, timerSecretStar, state.secretStarTimer);
+    if (parachuteRig) parachuteRig.visible = state.parachuteTimer > 0;
+    if (starAura) {
+      starAura.visible = state.secretStarTimer > 0;
+      starAura.rotation.y += delta * 2.4;
+      const scale = 1 + Math.sin(state.secretStarTimer * 4.5) * 0.065;
+      starAura.scale.setScalar(scale);
+    }
+  }
+
+  function updateParachutePose() {
+    kaiModel.scale.set(1, 1, 1);
+    kaiModel.position.set(0, 0, 0);
+    kaiModel.rotation.set(-0.08, 0, (state.playerX - state.targetX) * 0.06);
+    leftArm.rotation.set(-0.76, 0, -0.51);
+    rightArm.rotation.set(-0.76, 0, 0.51);
+    leftForearm.rotation.x = 0.98;
+    rightForearm.rotation.x = 0.98;
+    leftLeg.rotation.x = 0.18;
+    rightLeg.rotation.x = 0.22;
+    leftLowerLeg.rotation.x = 0.36;
+    rightLowerLeg.rotation.x = 0.38;
+  }
+
   function createMysteryBox(laneIndex, zPos) {
     const group = new THREE.Group();
     group.position.set(LANES[laneIndex], 1.5, zPos);
@@ -2430,14 +2720,21 @@
   let nextSpawnZ = -45;
 
   function scatterGroundCrystals(anchorZ, primaryLane, alternateLane, count = 6) {
-    const canChangeLane = Math.abs(primaryLane - alternateLane) === 1;
-    const offsets = [0, 4, 8.8, 13, 18, 22.6];
-    const lateralOffsets = [-0.66, 0.66, -0.52, 0.57, -0.61, 0.65];
+    const spacedDepths = [0, 4.3, 8.2, 13.4, 17.8, 22.1];
+    const weave = [-0.79, 0.22, 0.83, 0.31, -0.73, -0.35];
+    const canCross = Math.abs(primaryLane - alternateLane) === 1;
     for (let i = 0; i < count; i++) {
-      const lane = canChangeLane && i % 2 === 1 ? alternateLane : primaryLane;
-      createCrystal(lane, anchorZ - offsets[i], GROUND_CRYSTAL_Y, false, lateralOffsets[i]);
+      const z = anchorZ - spacedDepths[i];
+      const lane = canCross && (i === 2 || i === 3) ? alternateLane : primaryLane;
+      createCrystal(lane, z, GROUND_CRYSTAL_Y, false, weave[i]);
+      if (i === 1 || i === 4) {
+        const branch = lane === primaryLane ? alternateLane : primaryLane;
+        createCrystal(branch, z - 1.7, GROUND_CRYSTAL_Y, false, -weave[i] * 0.72);
+      }
     }
   }
+
+  let routePatternCount = 0;
 
   function spawnWorldPattern() {
     while (nextSpawnZ > -280) {
@@ -2445,6 +2742,12 @@
       const openLane = Math.floor(Math.random() * 3);
       const obstacleLane = (openLane + 1 + Math.floor(Math.random() * 2)) % 3;
       const otherLane = 3 - openLane - obstacleLane;
+      routePatternCount += 1;
+      if (routePatternCount % 7 === 1) {
+        createSpecialBoost('parachute', openLane, nextSpawnZ + 17);
+      } else if (routePatternCount % 9 === 3) {
+        createSpecialBoost('secret-star', otherLane, nextSpawnZ - 12);
+      }
 
       // Spawn Power-Ups & Mystery Boxes periodically (45% chance in open lane!)
       if (Math.random() < 0.45) {
@@ -2708,7 +3011,7 @@
   }
 
   function doJump() {
-    if (state.jetpackTimer > 0) return;
+    if (isAirBoostActive()) return;
     // Strict Grounded Check: can only jump if grounded on floor or train roof!
     // Prevents infinite mid-air floating so player ALWAYS comes down fast!
     const isGrounded = (!state.isJumping && state.playerY <= state.groundY + 0.15) || (state.playerY <= state.groundY + 0.05);
@@ -2732,7 +3035,7 @@
   }
 
   function doSlide() {
-    if (state.jetpackTimer > 0) return;
+    if (isAirBoostActive()) return;
     state.isSliding = true;
     state.slideTimer = state.slideDuration;
     state.jumpBuffered = false;
@@ -2798,6 +3101,8 @@
     trailPoints.length = 0;
     trailDistance = 0;
     runnerSpritePhase = 0;
+    exhaustElapsed = 0;
+    for (const puff of flightSmokeParticles) puff.visible = false;
     if (headMesh) headMesh.rotation.set(0, 0, 0);
     if (playerGroup) {
       playerGroup.rotation.set(0, 0, 0);
@@ -2826,6 +3131,13 @@
     // Reset all 8 boost timers
     state.magnetTimer = 0;
     state.jetpackTimer = 0;
+    state.parachuteTimer = 0;
+    state.secretStarTimer = 0;
+    state.parachuteStartY = 0;
+    if (parachuteRig) parachuteRig.visible = false;
+    if (starAura) starAura.visible = false;
+    if (badgeParachute) badgeParachute.style.display = 'none';
+    if (badgeSecretStar) badgeSecretStar.style.display = 'none';
     state.sneakersTimer = 0;
     state.doublerTimer = 0;
     state.warpTimer = 0;
@@ -2845,6 +3157,10 @@
     powerups.length = 0;
 
     nextSpawnZ = -104;
+    routePatternCount = 0;
+    for (const decoration of sideScenery) {
+      if (decoration.userData.routeStartZ !== undefined) decoration.position.z = decoration.userData.routeStartZ;
+    }
     scatterGroundCrystals(-10, 1, 0, 5);
     scatterGroundCrystals(-33, 1, 2, 5);
     scatterGroundCrystals(-56, 1, 0, 4);
@@ -2917,8 +3233,8 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function getNextRunSpeed(run, delta) {
-    const distanceSpeed = Math.min(46, START_SPEED + run.distance * 0.0155);
-    const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0);
+    const distanceSpeed = Math.min(49, START_SPEED + run.distance * 0.017);
+    const boost = Math.max(run.isBoosted ? 7 : 0, run.jetpackTimer > 0 ? 5 : 0, run.skatesTimer > 0 ? 4 : 0, run.parachuteTimer > 0 ? 3.5 : 0);
     const targetSpeed = (distanceSpeed + boost) * (run.warpTimer > 0 ? 0.45 : 1);
     const change = Math.max(-7 * delta, Math.min(4.5 * delta, targetSpeed - run.speed));
     return run.speed + change;
@@ -2931,9 +3247,36 @@
       previousZ <= 1.35 && position.z >= -1.35;
   }
 
+  function emitJetExhaust(delta) {
+    exhaustElapsed += delta;
+    if (exhaustElapsed < 1 / 27) return;
+    exhaustElapsed %= 1 / 27;
+
+    for (const flame of [flameMeshL, flameMeshR]) {
+      if (!flame) continue;
+      const puff = flightSmokeParticles.find(particle => !particle.visible);
+      if (!puff) break;
+
+      flame.getWorldPosition(exhaustOrigin);
+      puff.position.copy(exhaustOrigin);
+      puff.position.z += 0.16;
+      puff.scale.set(0.39, 0.30, 0.72);
+      puff.material.opacity = 0.78;
+      puff.material.color.setHex(Math.random() < 0.33 ? 0xffbe62 : Math.random() < 0.60 ? 0x65dbff : 0xef96ea);
+      puff.visible = true;
+      puff.userData.life = 0;
+      puff.userData.maxLife = 0.48 + Math.random() * 0.19;
+      puff.userData.vx = (Math.random() - 0.5) * 0.8;
+      puff.userData.vy = -0.65 - Math.random() * 0.9;
+      puff.userData.vz = 9.0 + Math.random() * 4.6;
+    }
+  }
+
   // --- UPDATE LOOP ---
   function update(delta) {
     if (!state.running) {
+      if (parachuteRig) parachuteRig.visible = false;
+      if (starAura) starAura.visible = false;
       // 3D Menu Idle Animation: Showcase 3D Runner Kai in dynamic hero stance!
       if (!reducedMotion.matches) menuIdleTime += delta;
       if (playerGroup) {
@@ -3007,6 +3350,8 @@
       if (badgeJetpack) badgeJetpack.style.display = 'none';
       if (jetpackMesh) jetpackMesh.visible = false;
     }
+
+    updateSpecialBoosts(delta);
 
     // 3. Super Jump Sneakers Timer & HUD
     if (state.sneakersTimer > 0) {
@@ -3102,8 +3447,8 @@
     state.speed = getNextRunSpeed(state, delta);
     const distDelta = state.speed * delta;
     state.distance += distDelta;
-    if (state.jetpackTimer > 0) fillFlightCrystalTrail(distDelta);
-    state.score += distDelta * state.multiplier * 1.5;
+    if (isAirBoostActive()) fillFlightCrystalTrail(distDelta);
+    state.score += getBoostedScore(distDelta * state.multiplier * 1.5);
 
     // Overdrive gauge
     state.overdriveCharge = Math.min(100, state.overdriveCharge + delta * 7);
@@ -3137,7 +3482,7 @@
     }
 
     // Gravity (when not flying in Jetpack)
-    if (state.jetpackTimer <= 0) {
+    if (!isAirBoostActive()) {
       if (state.isJumping || state.playerY > state.groundY) {
         state.vy -= GRAVITY * delta;
         state.playerY += state.vy * delta;
@@ -3172,8 +3517,8 @@
     const targetCamX = state.playerX * 0.72;
     camera.position.x += (targetCamX - camera.position.x) * 16 * delta;
 
-    if (state.jetpackTimer > 0) {
-      // High Sky View during Jetpack Flight (Subway Surfers High Elevation)
+    if (isAirBoostActive()) {
+      // Follow Kai smoothly while airborne. during Jetpack Flight (Subway Surfers High Elevation)
       camera.position.y += ((state.playerY + 3.8) - camera.position.y) * (1 - Math.exp(-8 * delta));
       camera.position.z += (8.6 - camera.position.z) * 8 * delta;
       camera.lookAt(state.playerX * 0.45, camera.position.y - 4.6, -25);
@@ -3220,9 +3565,10 @@
           sp.position.x += sp.userData.vx * delta;
           sp.position.y += sp.userData.vy * delta;
           sp.position.z += sp.userData.vz * delta + distDelta;
-          const sc = 0.4 + progress * 2.2;
-          sp.scale.set(sc, sc, sc);
-          sp.material.opacity = Math.max(0, 0.75 * (1 - progress));
+          const sc = 0.40 + progress * 1.88;
+          sp.scale.set(sc, sc * 0.76, sc * 1.44);
+          sp.material.opacity = 0.78 * (1 - progress) ** 1.4;
+          sp.rotation.z += delta * 1.8;
         }
       }
     }
@@ -3262,27 +3608,9 @@
         flameMeshR.scale.copy(flameMeshL.scale);
       }
 
-      // Emit billowing flight smoke clouds from dual rocket exhausts
-      if (Math.random() < 0.65) {
-        const deadParticle = flightSmokeParticles.find((p) => !p.visible);
-        if (deadParticle) {
-          const side = Math.random() < 0.5 ? -0.42 : 0.42;
-          deadParticle.position.set(
-            state.playerX + side,
-            state.playerY + 0.95,
-            0.55
-          );
-          deadParticle.scale.set(0.4, 0.4, 0.4);
-          deadParticle.material.opacity = 0.75;
-          deadParticle.material.color.setHex(Math.random() < 0.35 ? 0xfbbf24 : 0xe2e8f0);
-          deadParticle.visible = true;
-          deadParticle.userData.life = 0;
-          deadParticle.userData.maxLife = 0.55 + Math.random() * 0.3;
-          deadParticle.userData.vx = (Math.random() - 0.5) * 0.8;
-          deadParticle.userData.vy = -0.5 - Math.random() * 0.8;
-          deadParticle.userData.vz = 8 + Math.random() * 6;
-        }
-      }
+      emitJetExhaust(delta);
+    } else if (state.parachuteTimer > 0) {
+      updateParachutePose();
     } else {
       if (headMesh) headMesh.rotation.x = 0; // Reset head angle when running
 
@@ -3384,20 +3712,27 @@
     // Move & collect powerups (All 8 Epic Boosts found on track!)
     for (let i = powerups.length - 1; i >= 0; i--) {
       const p = powerups[i];
+      const previousZ = p.position.z;
       p.position.z += moveZ;
       p.rotation.y += delta * 3.0;
       if (p.userData.type === 'jetpack') animateJetpackPickup(p, delta);
       if (p.userData.type === 'hoverboard') animateHoverboardPowerup(p, delta);
+      if (p.userData.type === 'secret-star' || p.userData.type === 'parachute') animateSpecialBoost(p, delta);
       if (p.userData.type === 'skates') {
         for (const wheel of p.userData.wheels) wheel.rotation.x -= delta * 9;
       }
 
-      const dist = p.position.distanceTo(playerGroup.position);
+      const nearestZ = THREE.MathUtils.clamp(playerGroup.position.z, previousZ, p.position.z);
+      const dist = Math.hypot(p.position.x - state.playerX, p.position.y - state.playerY, nearestZ - playerGroup.position.z);
       if (dist < 2.2 && !p.userData.collected) {
         p.userData.collected = true;
         const pType = p.userData.type;
 
-        if (pType === 'magnet') {
+        if (pType === 'parachute') {
+          activateParachute();
+        } else if (pType === 'secret-star') {
+          activateSecretStar();
+        } else if (pType === 'magnet') {
           state.magnetTimer = 14.0;
           careerStats.totalMagnets = (careerStats.totalMagnets || 0) + 1;
           saveCareerStats();
@@ -3535,7 +3870,7 @@
 
     // Flight diamonds stay in their lanes. Only active ground magnet powers pull diamonds.
     const isMagnet = state.magnetTimer > 0;
-    const isFlying = state.jetpackTimer > 0;
+    const isFlying = isAirBoostActive();
     const isVortex = state.vortexTimer > 0;
     for (let i = coins.length - 1; i >= 0; i--) {
       const crystal = coins[i];
@@ -3567,7 +3902,7 @@
         careerStats.totalCoins = (careerStats.totalCoins || 0) + crystalGain;
         saveCareerStats();
         updateCareerStatsUI();
-        state.score += 80 * crystalGain;
+        state.score += getBoostedScore(80 * crystalGain);
         if (typeof addComboPoint === 'function') addComboPoint(1);
         if (window.soundEngine) window.soundEngine.playCoinSFX();
         scene.remove(crystal);
@@ -3595,7 +3930,7 @@
   function checkCollision(obs, previousZ) {
     if (state.godMode) return false;
     // Jetpack or Quantum Ghost Phase: 100% immune from all obstacles!
-    if (state.jetpackTimer > 0 || state.ghostTimer > 0) return false;
+    if (isAirBoostActive() || state.ghostTimer > 0 || state.secretStarTimer > 0) return false;
 
     const laneX = LANES[obs.userData.lane];
     // Check if player is horizontally in the obstacle's lane
@@ -3647,7 +3982,8 @@
     update(delta);
     updateRunnerSprite(delta);
     const rushing = state.running && !state.paused && state.isBoosted;
-    const flying = state.running && !state.paused && state.jetpackTimer > 0;
+    const flying = state.running && !state.paused && isAirBoostActive();
+    container.classList.toggle('is-secret-star', state.running && state.secretStarTimer > 0);
     container.classList.toggle('is-rushing', rushing);
     container.classList.toggle('is-flying', flying);
     for (const ribbon of trailRibbons) {

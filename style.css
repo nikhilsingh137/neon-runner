@@ -222,6 +222,23 @@ html, body {
   box-shadow: 0 0 12px #ef9e6066;
 }
 
+.powerup-pill.parachute {
+  border-color: #ffc784;
+  background: #563d70ec;
+}
+
+.powerup-pill.secret-star {
+  border-color: #ffc16b;
+  background: linear-gradient(135deg, #743f64, #49357c);
+  box-shadow: 0 0 12px #ffba6755;
+}
+
+.is-secret-star .rush-effect {
+  opacity: 1;
+  background: radial-gradient(ellipse at 50% 48%, transparent 44%, #965cee23 72%, #ffbb6375);
+  box-shadow: inset 0 0 34px #cc91f770;
+}
+
 /* Top Buttons: Pause & Home */
 .hud-top-actions {
   display: flex;
@@ -1431,8 +1448,32 @@ body.theme-bright #start-screen {
 
 #start-screen #btn-start {
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   justify-content: center;
   padding-inline: 44px;
+  background: linear-gradient(110deg, #fff6c3, #ffda87 43%, #ff9d6b);
+  box-shadow: 0 4px #ab5449, 0 9px 30px #ffc97870;
+}
+
+#start-screen #btn-start::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -42%;
+  z-index: -1;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, #fff9dd98, transparent);
+  transform: skewX(-18deg);
+  animation: menu-button-glint 4.8s ease-in-out infinite;
+}
+
+@keyframes menu-button-glint {
+  0%, 57% { left: -42%; }
+  83%, 100% { left: 112%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #start-screen #btn-start::before { animation: none; }
 }
 
 #start-screen .primary-start-btn:hover {

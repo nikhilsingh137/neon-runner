@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=devotional_five">
+  <link rel="stylesheet" href="style.css?v=skyline_routes">
 </head>
 <body>
   <div id="game-container">
@@ -60,7 +60,7 @@
           <div class="hud-score-val" id="hud-score">0</div>
         </div>
         <div class="hud-top-right">
-          <div class="hud-speed-badge" id="hud-speed">24 KM/H</div>
+          <div class="hud-speed-badge" id="hud-speed">29 KM/H</div>
           <div class="hud-credits-badge">
             <span>💎</span>
             <span id="hud-credits">0</span>
@@ -94,6 +94,12 @@
           </div>
           <div class="powerup-pill skates" id="badge-skates" style="display: none;">
             <span>🛼</span> <span id="timer-skates">15s</span>
+          </div>
+          <div class="powerup-pill parachute" id="badge-parachute" style="display: none;">
+            <span aria-label="Parachute">&#x1FA82;</span> <span id="timer-parachute">6s</span>
+          </div>
+          <div class="powerup-pill secret-star" id="badge-secret-star" style="display: none;">
+            <span aria-label="Secret Star">&#x2726; x3</span> <span id="timer-secret-star">9s</span>
           </div>
           <div class="powerup-pill" id="badge-shield" style="display: none;">
             <span>🛹 SHIELD ACTIVE</span>
@@ -136,7 +142,7 @@
 
       <div class="menu-center-hero">
         <p class="game-subtitle">Metro Rush</p>
-        <h1 class="game-title"><span>Urban</span><span>Dash <small>4D</small></span></h1>
+        <h1 class="game-title"><span>Urban</span> <span>Dash <small>4D</small></span></h1>
       </div>
 
       <div class="menu-bottom-capsule">
@@ -325,7 +331,7 @@
   <!-- 3D Three.js Engine & Game Scripts -->
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=devotional_five"></script>
-  <script src="game.js?v=metro_indian_zigzag"></script>
+  <script src="game.js?v=skyline_routes"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
