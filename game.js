@@ -2569,14 +2569,14 @@
     // Keep the protection behind Kai so it reads as a safety bubble, not a line across the track.
     orbit.position.set(0, 1.25, 0.62);
     const bubble = new THREE.Mesh(new THREE.SphereGeometry(1.55, 24, 16), new THREE.MeshBasicMaterial({
-      color: 0xff8fd8, transparent: true, opacity: 0.16, depthWrite: false
+      color: 0xff4fb3, transparent: true, opacity: 0.28, depthWrite: false
     }));
     bubble.scale.set(0.86, 1.08, 0.72);
     orbit.add(bubble);
-    const sparkGeometry = new THREE.OctahedronGeometry(0.11);
+    const sparkGeometry = new THREE.SphereGeometry(0.15, 10, 8);
     for (let i = 0; i < 10; i++) {
       const phase = i * Math.PI / 4;
-      const spark = new THREE.Mesh(sparkGeometry, new THREE.MeshBasicMaterial({ color: [0xffca78, 0x8ee8ff, 0xd1a3ff, 0xff7fb8][i % 4] }));
+      const spark = new THREE.Mesh(sparkGeometry, new THREE.MeshBasicMaterial({ color: [0xffd43b, 0x16e0ff, 0xb56cff, 0xff3f91][i % 4] }));
       spark.position.set(Math.cos(phase) * 1.16, Math.sin(phase * 1.7) * 0.82, Math.sin(phase) * 0.78);
       orbit.add(spark);
     }
