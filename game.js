@@ -3624,7 +3624,9 @@
     if (hudOverdriveFill) hudOverdriveFill.style.width = state.overdriveCharge + '%';
 
     // Snappy Lane Transition
-    state.playerX += (state.targetX - state.playerX) * (1 - Math.exp(-28 * delta));
+    const airControlLevel = window.urbanDashFeatures?.data.upgrades.air || 1;
+    const laneControl = 28 + (state.parachuteTimer > 0 ? (airControlLevel - 1) * 3.5 : 0);
+    state.playerX += (state.targetX - state.playerX) * (1 - Math.exp(-laneControl * delta));
 
     // Check train roof ground support
     let activeRoofGround = 0;
