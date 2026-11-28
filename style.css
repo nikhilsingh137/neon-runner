@@ -227,6 +227,12 @@ html, body {
   background: #563d70ec;
 }
 
+.powerup-pill.fire-balloon {
+  border-color: #ff672f;
+  background: linear-gradient(110deg, #6f1c28, #c84720 55%, #7d3218);
+  box-shadow: 0 0 14px #ff552e99, inset 0 0 10px #ffcf4a44;
+}
+
 .powerup-pill.secret-star {
   border-color: #ffc16b;
   background: linear-gradient(135deg, #743f64, #49357c);

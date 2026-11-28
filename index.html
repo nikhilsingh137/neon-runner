@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v25_flight_balloons';
+      var LATEST_VERSION = 'v26_fire_balloon_boost';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -97,6 +97,9 @@
           </div>
           <div class="powerup-pill parachute" id="badge-parachute" style="display: none;">
             <span aria-label="Parachute">&#x1FA82;</span> <span id="timer-parachute">6s</span>
+          </div>
+          <div class="powerup-pill fire-balloon" id="badge-fire-balloon" style="display: none;">
+            <span aria-label="Fire Balloon">&#x1F525;&#x1F388;</span> <span>FIRE BALLOON</span> <span id="timer-fire-balloon">9s</span>
           </div>
           <div class="powerup-pill secret-star" id="badge-secret-star" style="display: none;">
             <span aria-label="Secret Star">&#x2726; x3</span> <span id="timer-secret-star">9s</span>
@@ -378,7 +381,7 @@
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=devotional_five"></script>
   <script src="features.js?v=mobile_menu_sound_fix"></script>
-  <script src="game.js?v=flight_balloons_v1"></script>
+  <script src="game.js?v=fire_balloon_v1"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -396,7 +399,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=26').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=27').catch(() => {});
       });
     }
 

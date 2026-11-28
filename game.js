@@ -53,6 +53,7 @@
     magnetTimer: 0,
     jetpackTimer: 0,
     parachuteTimer: 0,
+    fireBalloonTimer: 0,
     secretStarTimer: 0,
     sneakersTimer: 0,
     doublerTimer: 0,
@@ -92,7 +93,7 @@
 
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
-  let parachuteRig, starAura, flightBalloons;
+  let parachuteRig, starAura, flightBalloons, fireBalloonRig;
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
   let skateFrameL, skateFrameR, skateWheelsL = [], skateWheelsR = [];
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
@@ -149,6 +150,8 @@
   const timerParachute = document.getElementById('timer-parachute');
   const badgeSecretStar = document.getElementById('badge-secret-star');
   const timerSecretStar = document.getElementById('timer-secret-star');
+  const badgeFireBalloon = document.getElementById('badge-fire-balloon');
+  const timerFireBalloon = document.getElementById('timer-fire-balloon');
   const timerSkates = document.getElementById('timer-skates');
 
   // Quick-Use Power-Up Tray Elements
@@ -235,7 +238,7 @@
   }
 
   function isAirBoostActive() {
-    return state.jetpackTimer > 0 || state.parachuteTimer > 0;
+    return state.jetpackTimer > 0 || state.parachuteTimer > 0 || state.fireBalloonTimer > 0;
   }
 
   function beginAirTrail() {
@@ -250,6 +253,7 @@
 
   function activateParachute() {
     if (!isAirBoostActive()) beginAirTrail();
+    state.fireBalloonTimer = 0;
     state.jetpackTimer = 0;
     state.parachuteTimer = PARACHUTE_DURATION + ((window.urbanDashFeatures?.data.upgrades.air || 1) - 1) * 0.8;
     state.parachuteStartY = Math.max(0, state.playerY);
@@ -264,12 +268,25 @@
     window.soundEngine?.playPowerupSFX();
   }
 
+  function activateFireBalloon() {
+    const wasFlying = isAirBoostActive();
+    if (!wasFlying) beginAirTrail();
+    state.jetpackTimer = 0;
+    state.parachuteTimer = 0;
+    state.parachuteStartY = Math.max(0, state.playerY);
+    state.fireBalloonTimer = 9;
+    state.vy = 0;
+    showToast('FIRE BALLOON BOOST!');
+    window.soundEngine?.playPowerupSFX();
+  }
+
   function getBoostedScore(amount) {
     return amount * (state.secretStarTimer > 0 ? 3 : 1);
   }
 
   function startJetpack(duration) {
     if (!isAirBoostActive()) beginAirTrail();
+    state.fireBalloonTimer = 0;
     state.parachuteTimer = 0;
     state.jetpackTimer = Math.max(state.jetpackTimer, duration);
     state.vy = 0;
@@ -2703,6 +2720,35 @@
     });
     playerGroup.add(flightBalloons);
 
+    fireBalloonRig = new THREE.Group();
+    fireBalloonRig.visible = false;
+    const fireBalloon = new THREE.Group();
+    const balloonSkin = new THREE.MeshStandardMaterial({ color: 0xff552e, emissive: 0xff310c, emissiveIntensity: 0.38, roughness: 0.29 });
+    const balloonBody = new THREE.Mesh(new THREE.SphereGeometry(0.63, 20, 16), balloonSkin);
+    balloonBody.scale.set(0.92, 1.22, 0.82);
+    fireBalloon.add(balloonBody);
+    const stripe = new THREE.Mesh(new THREE.SphereGeometry(0.638, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffc13d, wireframe: true, transparent: true, opacity: 0.48 }));
+    stripe.scale.copy(balloonBody.scale);
+    fireBalloon.add(stripe);
+    const basket = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.27, 0.36), new THREE.MeshStandardMaterial({ color: 0x7b3e20, roughness: 0.8 }));
+    basket.position.y = -1.02;
+    fireBalloon.add(basket);
+    const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xffd596 });
+    for (const x of [-0.18, 0.18]) {
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.55, 5), ropeMaterial);
+      rope.position.set(x, -0.72, 0);
+      fireBalloon.add(rope);
+    }
+    fireBalloon.position.set(0, 3.65, 0.12);
+    fireBalloonRig.add(fireBalloon);
+    for (let i = 0; i < 4; i++) {
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.10 + i * 0.015, 0.35, 7), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffb11b : 0xff562a, transparent: true, opacity: 0.9 }));
+      flame.position.set((i - 1.5) * 0.11, 1.8 - (i % 2) * 0.12, 0.13);
+      flame.userData.phase = i * 1.3;
+      fireBalloonRig.add(flame);
+    }
+    playerGroup.add(fireBalloonRig);
+
     starAura = new THREE.Group();
     const orbit = new THREE.Group();
     // Keep the protection behind Kai so it reads as a safety bubble, not a line across the track.
@@ -2743,6 +2789,29 @@
     powerups.push(pickup);
   }
 
+  function createFireBalloonPowerup(lane, z) {
+    const pickup = new THREE.Group();
+    pickup.position.set(LANES[lane], 1.65, z);
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.54, 18, 14), new THREE.MeshStandardMaterial({
+      color: 0xff4a26, emissive: 0xff310c, emissiveIntensity: 0.5, roughness: 0.28
+    }));
+    shell.scale.set(0.88, 1.2, 0.82);
+    pickup.add(shell);
+    const bands = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 12), new THREE.MeshBasicMaterial({ color: 0xffd34d, wireframe: true, transparent: true, opacity: 0.55 }));
+    bands.scale.copy(shell.scale);
+    pickup.add(bands);
+    const basket = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.2, 0.25), new THREE.MeshStandardMaterial({ color: 0x87441d }));
+    basket.position.y = -0.77;
+    pickup.add(basket);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.045, 8, 28), new THREE.MeshBasicMaterial({ color: 0xffac32, transparent: true, opacity: 0.86 }));
+    halo.rotation.x = Math.PI / 2;
+    halo.position.y = -0.38;
+    pickup.add(halo);
+    pickup.userData = { type: 'fire-balloon', lane, collected: false, phase: 0, baseY: pickup.position.y, halo };
+    scene.add(pickup);
+    powerups.push(pickup);
+  }
+
   function animateSpecialBoost(pickup, delta) {
     const data = pickup.userData;
     data.phase += delta;
@@ -2751,6 +2820,14 @@
     const pulse = (data.phase * 1.15) % 1;
     data.halo.scale.setScalar(0.75 + pulse * 0.6);
     data.halo.material.opacity = 0.74 * (1 - pulse);
+  }
+
+  function animateFireBalloonPickup(pickup, delta) {
+    const data = pickup.userData;
+    data.phase += delta;
+    pickup.position.y = data.baseY + Math.sin(data.phase * 3) * 0.15;
+    data.halo.scale.setScalar(0.92 + Math.sin(data.phase * 3.6) * 0.12);
+    pickup.rotation.z = Math.sin(data.phase * 2.2) * 0.08;
   }
 
   function applyParachuteGlide(delta) {
@@ -2789,10 +2866,31 @@
     updateBoostBadge(badgeSecretStar, timerSecretStar, state.secretStarTimer);
     if (parachuteRig) parachuteRig.visible = state.parachuteTimer > 0;
     if (flightBalloons) {
-      flightBalloons.visible = isAirBoostActive();
+      flightBalloons.visible = state.parachuteTimer > 0 || state.jetpackTimer > 0;
       flightBalloons.children.forEach((balloon) => {
         balloon.position.y = balloon.userData.baseY + Math.sin(runAnimTime * 2.1 + balloon.userData.phase) * 0.07;
         balloon.rotation.z = Math.sin(runAnimTime * 1.7 + balloon.userData.phase) * 0.075;
+      });
+    }
+    if (state.fireBalloonTimer > 0) {
+      state.fireBalloonTimer = Math.max(0, state.fireBalloonTimer - delta);
+      const flightTime = 9 - state.fireBalloonTimer;
+      const rise = THREE.MathUtils.smoothstep(flightTime, 0, 0.9);
+      const descent = THREE.MathUtils.smoothstep(state.fireBalloonTimer, 0, 1.5);
+      const peak = Math.max(state.parachuteStartY, 5.1);
+      const cruise = THREE.MathUtils.lerp(state.parachuteStartY, peak, rise);
+      const targetY = THREE.MathUtils.lerp(state.groundY, cruise, descent);
+      state.playerY += (targetY - state.playerY) * (1 - Math.exp(-7 * delta));
+      state.vy = 0;
+      if (badgeFireBalloon) badgeFireBalloon.style.display = 'flex';
+      if (timerFireBalloon) timerFireBalloon.textContent = Math.ceil(state.fireBalloonTimer) + 's';
+    } else if (badgeFireBalloon) badgeFireBalloon.style.display = 'none';
+    if (fireBalloonRig) {
+      fireBalloonRig.visible = state.fireBalloonTimer > 0;
+      fireBalloonRig.rotation.z = Math.sin(runAnimTime * 1.8) * 0.055;
+      fireBalloonRig.children.slice(1).forEach((flame) => {
+        flame.scale.y = 0.8 + (0.25 + 0.3 * Math.sin(runAnimTime * 9 + flame.userData.phase));
+        flame.material.opacity = 0.66 + Math.sin(runAnimTime * 8 + flame.userData.phase) * 0.2;
       });
     }
     if (starAura) {
@@ -2904,6 +3002,10 @@
     }
     if (boostSpawnCount % 5 === 4) {
       createSpecialBoost('secret-star', lane, z);
+      return;
+    }
+    if (boostSpawnCount % 7 === 0) {
+      createFireBalloonPowerup(lane, z);
       return;
     }
 
@@ -3289,13 +3391,16 @@
     state.magnetTimer = 0;
     state.jetpackTimer = 0;
     state.parachuteTimer = 0;
+    state.fireBalloonTimer = 0;
     state.secretStarTimer = 0;
     state.parachuteStartY = 0;
     if (parachuteRig) parachuteRig.visible = false;
     if (starAura) starAura.visible = false;
     if (flightBalloons) flightBalloons.visible = false;
+    if (fireBalloonRig) fireBalloonRig.visible = false;
     if (badgeParachute) badgeParachute.style.display = 'none';
     if (badgeSecretStar) badgeSecretStar.style.display = 'none';
+    if (badgeFireBalloon) badgeFireBalloon.style.display = 'none';
     state.sneakersTimer = 0;
     state.doublerTimer = 0;
     state.warpTimer = 0;
@@ -3443,6 +3548,7 @@
       if (parachuteRig) parachuteRig.visible = false;
       if (starAura) starAura.visible = false;
       if (flightBalloons) flightBalloons.visible = false;
+      if (fireBalloonRig) fireBalloonRig.visible = false;
       // 3D Menu Idle Animation: Showcase 3D Runner Kai in dynamic hero stance!
       if (!reducedMotion.matches) menuIdleTime += delta;
       if (playerGroup) {
@@ -3954,6 +4060,7 @@
       if (p.userData.type === 'jetpack') animateJetpackPickup(p, delta);
       if (p.userData.type === 'hoverboard') animateHoverboardPowerup(p, delta);
       if (p.userData.type === 'secret-star' || p.userData.type === 'parachute') animateSpecialBoost(p, delta);
+      if (p.userData.type === 'fire-balloon') animateFireBalloonPickup(p, delta);
       if (p.userData.type === 'skates') {
         for (const wheel of p.userData.wheels) wheel.rotation.x -= delta * 9;
       }
@@ -3976,6 +4083,8 @@
           activateParachute();
         } else if (pType === 'secret-star') {
           activateSecretStar();
+        } else if (pType === 'fire-balloon') {
+          activateFireBalloon();
         } else if (pType === 'magnet') {
           state.magnetTimer = 14.0 + ((window.urbanDashFeatures?.data.upgrades.magnet || 1) - 1) * 1.5;
           careerStats.totalMagnets = (careerStats.totalMagnets || 0) + 1;
