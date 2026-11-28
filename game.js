@@ -92,7 +92,7 @@
 
   // --- THREE.JS GLOBALS ---
   let scene, camera, renderer;
-  let parachuteRig, starAura;
+  let parachuteRig, starAura, flightBalloons;
   let playerGroup, kaiModel, hoverboardMesh, jetpackMesh, flameMeshL, flameMeshR;
   let skateFrameL, skateFrameR, skateWheelsL = [], skateWheelsR = [];
   let leftLeg, rightLeg, leftLowerLeg, rightLowerLeg, leftArm, rightArm, leftForearm, rightForearm, headMesh, capGroup;
@@ -2677,6 +2677,32 @@
     parachuteRig.visible = false;
     playerGroup.add(parachuteRig);
 
+    // A bright balloon bundle marks Kai's flight boost without hiding the rails.
+    flightBalloons = new THREE.Group();
+    flightBalloons.visible = false;
+    const balloonColors = [0xff426d, 0xffc928, 0x24dbff, 0x9b63ff, 0x41e49a];
+    const balloonShape = new THREE.SphereGeometry(0.25, 16, 12);
+    balloonColors.forEach((color, i) => {
+      const balloon = new THREE.Group();
+      const skin = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.28, roughness: 0.3 });
+      const body = new THREE.Mesh(balloonShape, skin);
+      body.scale.set(0.83, 1.14, 0.78);
+      balloon.add(body);
+      const knot = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.11, 8), skin);
+      knot.position.y = -0.29;
+      knot.rotation.z = Math.PI;
+      balloon.add(knot);
+      const string = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.72, 5),
+        new THREE.MeshBasicMaterial({ color: 0xffe9bd }));
+      string.position.y = -0.68;
+      balloon.add(string);
+      balloon.position.set((i - 2) * 0.3, 2.82 + (i % 2) * 0.33, 0.72 + (i % 2) * 0.05);
+      balloon.userData.baseY = balloon.position.y;
+      balloon.userData.phase = i * 1.15;
+      flightBalloons.add(balloon);
+    });
+    playerGroup.add(flightBalloons);
+
     starAura = new THREE.Group();
     const orbit = new THREE.Group();
     // Keep the protection behind Kai so it reads as a safety bubble, not a line across the track.
@@ -2762,6 +2788,13 @@
     updateBoostBadge(badgeParachute, timerParachute, state.parachuteTimer);
     updateBoostBadge(badgeSecretStar, timerSecretStar, state.secretStarTimer);
     if (parachuteRig) parachuteRig.visible = state.parachuteTimer > 0;
+    if (flightBalloons) {
+      flightBalloons.visible = isAirBoostActive();
+      flightBalloons.children.forEach((balloon) => {
+        balloon.position.y = balloon.userData.baseY + Math.sin(runAnimTime * 2.1 + balloon.userData.phase) * 0.07;
+        balloon.rotation.z = Math.sin(runAnimTime * 1.7 + balloon.userData.phase) * 0.075;
+      });
+    }
     if (starAura) {
       // The parachute owns the sky silhouette. Hide the star balloons while flying.
       starAura.visible = state.secretStarTimer > 0 && state.parachuteTimer <= 0;
@@ -3260,6 +3293,7 @@
     state.parachuteStartY = 0;
     if (parachuteRig) parachuteRig.visible = false;
     if (starAura) starAura.visible = false;
+    if (flightBalloons) flightBalloons.visible = false;
     if (badgeParachute) badgeParachute.style.display = 'none';
     if (badgeSecretStar) badgeSecretStar.style.display = 'none';
     state.sneakersTimer = 0;
@@ -3408,6 +3442,7 @@
     if (!state.running) {
       if (parachuteRig) parachuteRig.visible = false;
       if (starAura) starAura.visible = false;
+      if (flightBalloons) flightBalloons.visible = false;
       // 3D Menu Idle Animation: Showcase 3D Runner Kai in dynamic hero stance!
       if (!reducedMotion.matches) menuIdleTime += delta;
       if (playerGroup) {

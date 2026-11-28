@@ -8,7 +8,7 @@
   <!-- Instant Cache Purge & Version Sync -->
   <script>
     (function() {
-      var LATEST_VERSION = 'v24_service_worker_scheme_fix';
+      var LATEST_VERSION = 'v25_flight_balloons';
       try {
         if (localStorage.getItem('subway_v_tag') !== LATEST_VERSION) {
           localStorage.setItem('subway_v_tag', LATEST_VERSION);
@@ -378,7 +378,7 @@
   <script src="libs/three.min.js"></script>
   <script src="audio.js?v=devotional_five"></script>
   <script src="features.js?v=mobile_menu_sound_fix"></script>
-  <script src="game.js?v=mobile_menu_sound_fix"></script>
+  <script src="game.js?v=flight_balloons_v1"></script>
 
   <!-- PWA Chrome Install Trigger Handler -->
   <script>
@@ -396,7 +396,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=25').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=26').catch(() => {});
       });
     }
 

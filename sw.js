@@ -1,5 +1,5 @@
 // Network-First Service Worker for Urban Dash 4D PWA
-const CACHE_NAME = 'urbandash-v29-same-origin-cache';
+const CACHE_NAME = 'urbandash-v30-flight-balloons';
 
 const CORE_ASSETS = [
   './manifest.json',
